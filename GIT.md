@@ -10,7 +10,7 @@ git status
 
 Bring data from remote server
 ```
-git clone 
+git clone https://github.com/slgentil/croco.git 
 git log --oneline --decorate --graph --all
 ```
 
