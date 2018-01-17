@@ -1,0 +1,100 @@
+   <field_definition level="1" enabled=".TRUE.">   
+      <field_group id="Vertical_dimension_rho" domain_ref="1point" axis_ref="s_rho"  >
+         <field id="Cs_r" long_name="ocean s roms coordinate at rho point"  />
+         <field id="sc_r" long_name="S-coordinate stretching curves at RHO-points"  />
+      </field_group>
+      <field_group id="Vertical_dimension_w"  domain_ref="1point" axis_ref="s_w"  >
+         <field id="Cs_w" long_name="ocean s roms coordinate at w point"  />
+         <field id="sc_w" long_name="S-coordinate stretching curves at W-points"  />
+      </field_group>
+      <field_group id="scalar" domain_ref="1point"  >
+         <field id="hc" long_name="S-coordinate parameter, critical depth"  />
+         <field id="theta_s" long_name="S-coordinate surface control parameter"  />
+         <field id="theta_b" long_name="S-coordinate bottom control parameter"  />
+         <field id="Tcline" long_name="S-coordinate surface/bottom layer width"  />
+         <field id="Vtransform" long_name="vertical terrain-following transformation equation"  />
+    </field_group>
+     <!-- T grid -->
+     <field_group id="rho" grid_ref="rho_2D">
+         <field id="h" long_name="bathymetry at RHO-points" unit="meter" />
+         <field id="f" long_name="Coriolis parameter at RHO-points" unit="second-1" />
+         <field id="pm" long_name="curvilinear coordinates metric in XI" unit="meter-1" />
+         <field id="pn" long_name="curvilinear coordinates metric in ETA" unit="meter-1" />
+
+
+         <field id="lon_rho" long_name="longitude of RHO-points" unit="degree_east" />
+         <field id="lat_rho" long_name="latitude of RHO-points" unit="degree_north" />
+         <field id="lon_u" long_name="longitude of U-points" unit="degree_east" />
+         <field id="lat_u" long_name="latitude of U-points" unit="degree_north" />
+         <field id="lon_v" long_name="longitude of V-points" unit="degree_east" />
+         <field id="lat_v" long_name="latitude of V-points" unit="degree_north" />
+         <field id="angle" long_name="angle between XI-axis and EAST" unit="radians" />
+         <field id="mask_rho" long_name="angle between XI-axis and EAST" unit="radians" />
+
+         <field id="zeta" long_name="free-surface" unit="meter" />
+         <field id="bostr" long_name="Kinematic bottom stress" unit="N/m2" />
+         <field id="wstr" long_name="Kinematic wind stress" unit="N/m2" />
+         <field id="temp" long_name="potential temperature" unit="Celsius" grid_ref="rho_3D" />
+         <!--  --> 
+         <field id="salt" long_name="salinity" unit="PSU" grid_ref="rho_3D" />
+         <field id="swflx" long_name="surface freshwater flux (E-P)" unit="centimeter day-1"  />
+         <!--  END  --> 
+         <field id="w" long_name="vertical velocity" unit="meter second-1" grid_ref="rho_3D"/>
+         <field id="rho" long_name="density anomaly" unit="kilogram meter-3" grid_ref="rho_3D"/>
+         <field id="shflx" long_name="surface net heat flux" unit="Watts meter-2" />
+         <field id="swrad" long_name="Short-wave surface radiation" unit="Watts meter-2" />
+     </field_group>
+        
+        
+     <!-- U grid -->
+     <field_group id="u" grid_ref="u_2D">
+         <field id="ubar" long_name="vertically integrated u-momentum component" unit="meter second-1"/>
+         <field id="sustr" long_name="surface u-momentum stress" unit="N/m2" />
+         <field id="bustr" long_name="bottom  u-momentum stress" unit="N/m2" />
+         <field id="u" long_name="v-momentum component" unit="meter second-1" grid_ref="u_3D"/>
+     </field_group>
+
+     <!-- V grid -->
+     <field_group id="v" grid_ref="v_2D">
+         <field id="vbar" long_name="vertically integrated v-momentum component" unit="meter second-1"/>
+         <field id="svstr" long_name="surface v-momentum stress" unit="N/m2" />
+         <field id="bvstr" long_name="bottom  v-momentum stress" unit="N/m2" />
+         <field id="v" long_name="v-momentum component" unit="meter second-1" grid_ref="v_3D"/>
+     </field_group>
+    
+     <!-- W grid -->
+     <field_group id="w" grid_ref="w_2D">
+         <field id="omega" long_name="S-coordinate vertical momentum component" unit="meter second-1" grid_ref="w_3D"/>
+         <field id="AKv" long_name="vertical viscosity coefficient" unit="meter2 second-1" grid_ref="w_3D"/>
+         <field id="AKt" long_name="temperature vertical diffusion coefficient" unit="meter2 second-1" grid_ref="w_3D"/>
+         <!--  --> 
+         <field id="AKs" long_name="salinity vertical diffusion coefficient" unit="meter2 second-1" grid_ref="w_3D"/>
+         <!-- END  --> 
+     </field_group>
+
+       <field_group id="grid_fields" operation="once">
+        <field field_ref="hc"         name= "hc" />
+        <field field_ref="theta_s"    name= "theta_s" />
+        <field field_ref="theta_b"    name= "theta_b" />
+        <field field_ref="Tcline"     name= "Tcline" />
+        <field field_ref="Vtransform" name= "Vtransform" />
+        <field field_ref="h"          name= "h" />
+        <field field_ref="f"          name= "f" />
+        <field field_ref="pm"         name= "pm" />
+        <field field_ref="pn"         name= "pn" />
+        <field field_ref="lon_rho"    name= "lon_rho" />
+        <field field_ref="lat_rho"    name= "lat_rho" />
+        <field field_ref="lon_u"      name= "lon_u" />
+        <field field_ref="lat_u"      name= "lat_u" />
+        <field field_ref="lon_v"      name= "lon_v" />
+        <field field_ref="lat_v"      name= "lat_v" />
+        <field field_ref="angle"      name= "angle" />
+        <field field_ref="mask_rho"   name= "mask_rho"  />
+        <field field_ref="Cs_r"       name= "Cs_r" />
+        <field field_ref="Cs_w"       name= "Cs_w" />
+        <field field_ref="sc_r"       name= "sc_r" />
+        <field field_ref="sc_w"       name= "sc_w" />
+      </field_group>
+
+
+   </field_definition>
