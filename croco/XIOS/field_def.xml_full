@@ -60,6 +60,8 @@
          <field id="w" long_name="vertical velocity" unit="meter second-1" grid_ref="rho_3D"/>
          <field id="levels_rho" long_name="levels depths (rho)" standard_name="levels depths (rho)" unit="m" grid_ref="rho_3D" />
          <field id="levels_w" long_name="levels depths (w)" standard_name="levels depths (w)" unit="m" grid_ref="w_3D" />
+         <field id="levels_u" long_name="levels depths (u)" standard_name="levels depths (u)" unit="m" grid_ref="u_3D" />
+         <field id="levels_v" long_name="levels depths (v)" standard_name="levels depths (v)" unit="m" grid_ref="v_3D" />
 
 #ifdef NBQ
          <field id="w_nbq" long_name="vertical velocity" unit="meter second-1" grid_ref="w_3D"/>
@@ -184,17 +186,12 @@
          <field id="PBSi"     long_name="Primary production of Si diatoms"         unit="molSi/m3/s"  grid_ref="rho_3D" />
          <field id="PFeN"     long_name="Primary production of nano iron"          unit="molFe/m3/s"  grid_ref="rho_3D" />
          <field id="PFeD"     long_name="Primary production of diatoms iron"       unit="molFe/m3/s"  grid_ref="rho_3D" />
-         <field id="PPNEWo2"  long_name="Oxygen production by the New Produc."     unit="molC/m3/s"   grid_ref="rho_3D" />
-         <field id="PPRego2"  long_name="Oxygen production by the Regen Produc."   unit="molC/m3/s"   grid_ref="rho_3D" />
-         <field id="Grazing" long_name="Grazing by microzooplankton"              unit="molC/m3/s"   grid_ref="rho_3D" />
-         <field id="Grazing2" long_name="Grazing by mesozooplankton"               unit="molC/m3/s"   grid_ref="rho_3D" />
-         <field id="MicroZo2" long_name="O2 consumption by microzooplankton"       unit="molC/m2/s"   grid_ref="rho_3D" />
-         <field id="MesoZo2"  long_name="O2 consumption by mesozooplankton"        unit="molC/m2/s"   grid_ref="rho_3D" />
-         <field id="Nitrifo2" long_name="O2 consumption by nitrification"          unit="molC/m2/s"   grid_ref="rho_3D" />
-         <field id="Remino2"  long_name="O2 consumption by remineralisation"       unit="molC/m2/s"   grid_ref="rho_3D" />
-         <field id="Nfixo2"   long_name="O2 production by Nfix"                    unit="molN/m2/s"   grid_ref="rho_3D" />
-         <field id="Irondep"  long_name="Iron flux from dust"                      unit="molFe/m2/s"  grid_ref="rho_3D"   />
-         <field id="Ironsed"  long_name="Iron from sediments"                      unit="molFe/m2/s"  grid_ref="rho_3D" />
+         <field id="PPNEWo2"  long_name="Oxygen production by the New Produc."     unit="molC/m3/s"  grid_ref="rho_3D" />
+         <field id="PPRego2"  long_name="Oxygen production by the Regen Produc."   unit="molC/m3/s"  grid_ref="rho_3D" />
+         <field id="GRAZ"     long_name="Total Grazing by zooplankton"             unit="molC/m3/s"   grid_ref="rho_3D" />
+         <field id="Nito2"    long_name="O2 consumption by nitrification"          unit="molC/m2/s"  grid_ref="rho_3D" />
+         <field id="Nremino2" long_name="O2 consumption by remineralisation"       unit="molC/m2/s"  grid_ref="rho_3D" />
+         <field id="Nfixo2"   long_name="O2 production by Nfix"                    unit="molN/m2/s"  grid_ref="rho_3D"     />
          <field id="Cflx"     long_name="DIC flux"                                 unit="molC/m2/s"      />
          <field id="Oflx"     long_name="Oxygen flux"                              unit="molC/m2/s"      />
          <field id="Kg"       long_name="Gas transfer"                             unit="molC/m2/s/uatm" />
@@ -205,10 +202,7 @@
          <field id="EPCAL100" long_name="Export of Calcite at 100 m"               unit="molC/m2/s"      />
          <field id="Heup"     long_name="Euphotic layer depth"                     unit="m"               />
          <field id="Nfix"     long_name="Nitrogen fixation at surface"             unit="molN/m2/s"      />
-         <field id="Sildep"   long_name="silicate deposition at surface"           unit="molC/m2/s"     />
-         <field id="Po4dep"   long_name="Phosphorus deposition at surface"         unit="molP/m2/s"     />
-         <field id="No3dep"   long_name="Nitrate deposition at surface"            unit="molN/m2/s"     />
-         <field id="Nh4dep"   long_name="Ammonium deposition at surface"           unit="molN/m2/s"     />
+         <field id="Irondep"  long_name="Iron deposition"                          unit="molFe/m2/s"     />
 # endif
 
 # elif defined IO_NChlPZD || defined BIO_N2ChlPZD2
@@ -264,6 +258,9 @@
          <field id="sustr" long_name="surface u-momentum stress" unit="N/m2" />
          <field id="bustr" long_name="bottom  u-momentum stress" unit="N/m2" />
          <field id="u" long_name="v-momentum component" unit="meter second-1" grid_ref="u_3D"/>
+#ifdef MASKING
+         <field id="mask_u" long_name="land/sea mask along u points" unit="--" />
+#endif
 #ifdef MRL_WCI
          <!-- MRL_WCI -->
          <field id="ust2d" long_name="u depth-averaged Stokes drift velocity" unit="meter second-1" />
@@ -287,6 +284,9 @@
          <field id="svstr" long_name="surface v-momentum stress" unit="N/m2" />
          <field id="bvstr" long_name="bottom  v-momentum stress" unit="N/m2" />
          <field id="v" long_name="v-momentum component" unit="meter second-1" grid_ref="v_3D"/>
+#ifdef MASKING
+         <field id="mask_v" long_name="land/sea mask along v points" unit="--" />
+#endif
 #ifdef MRL_WCI
          <!-- MRL_WCI -->
          <field id="vst2d" long_name="v depth-averaged Stokes drift velocity" unit="meter second-1" />
@@ -330,29 +330,5 @@
          <!-- END GLS_MIXING -->
 #endif
      </field_group>
-
-       <!-- <field_group id="grid_fields" operation="once">
-        <field field_ref="hc"         name= "hc" />
-        <field field_ref="theta_s"    name= "theta_s" />
-        <field field_ref="theta_b"    name= "theta_b" />
-        <field field_ref="Tcline"     name= "Tcline" />
-        <field field_ref="Vtransform" name= "Vtransform" />
-        <field field_ref="h"          name= "h" />
-        <field field_ref="f"          name= "f" />
-        <field field_ref="pm"         name= "pm" />
-        <field field_ref="pn"         name= "pn" />
-        <field field_ref="lon_rho"    name= "lon_rho" />
-        <field field_ref="lat_rho"    name= "lat_rho" />
-        <field field_ref="lon_u"      name= "lon_u" />
-        <field field_ref="lat_u"      name= "lat_u" />
-        <field field_ref="lon_v"      name= "lon_v" />
-        <field field_ref="lat_v"      name= "lat_v" />
-        <field field_ref="angle"      name= "angle" />
-        <field field_ref="mask_rho"   name= "mask_rho"  />
-        <field field_ref="Cs_r"       name= "Cs_r" />
-        <field field_ref="Cs_w"       name= "Cs_w" />
-        <field field_ref="sc_r"       name= "sc_r" />
-        <field field_ref="sc_w"       name= "sc_w" />
-      </field_group>-->
 
    </field_definition>

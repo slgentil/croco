@@ -4,6 +4,9 @@ title:
 time_stepping: NTIMES   dt[sec]  NDTFAST  NINFO
                600      2880     48      1
 
+time_stepping_nbq: NDTNBQ    CSOUND_NBQ    VISC2_NBQ
+                     1          500          1.
+
 S-coord: THETA_S,   THETA_B,    Hc (m)
          1.0d0      0.0d0       5000.0d0
 

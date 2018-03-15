@@ -1,12 +1,12 @@
 ! $Id: param.h 1619 2015-01-07 13:53:03Z marchesiello $
 !
 !======================================================================
-! ROMS_AGRIF is a branch of ROMS developped at IRD and INRIA, in France
-! The two other branches from UCLA (Shchepetkin et al)
+! CROCO is a branch of ROMS developped at IRD and INRIA, in France
+! The two other branches from UCLA (Shchepetkin et al) 
 ! and Rutgers University (Arango et al) are under MIT/X style license.
-! ROMS_AGRIF specific routines (nesting) are under CeCILL-C license.
-!
-! ROMS_AGRIF website : http://www.romsagrif.org
+! CROCO specific routines (nesting) are under CeCILL-C license.
+! 
+! CROCO website : http://www.croco-ocean.org
 !======================================================================
 !
 !----------------------------------------------------------------------
@@ -20,7 +20,7 @@
 ! Lm,Mm    Number of the internal points [see above] of array
 !          covering a Message Passing subdomain. In the case when
 !          no Message Passing partitioning is used, these two are
-!          the same as LLm,MMm.
+!          the same as LLm,MMm. 
 !
 ! N        Number of vertical levels.
 !
@@ -61,96 +61,9 @@
       parameter (LLm0=2048,  MMm0=2048,  N=240) 
 #  endif /* RESOLUTION */
 
-/*
-!
-!==========================================================
-!              JETN grid size
-!==========================================================
-!
-*/
-! aponte jetn (
-#elif defined JETN
-#  ifdef JET_NARROW
-! Smaller domain: 64 km x 2048 km for regular grid
-!                 64 km x 5000 km for stretched grid
-#    if RESOLUTION == 4
-#      ifdef Y_STRETCH_GRID
-! coeff_stretch = 1.09741
-!      parameter (LLm0=16,  MMm0=576,  N=50)     !  4 km
-! coeff_stretch = 1.03973
-       parameter (LLm0=16,  MMm0=640,  N=50)     !  4 km
-! coeff_stretch = 1.02172
-!      parameter (LLm0=16,  MMm0=704,  N=50)     !  4 km
-! coeff_stretch = 1.00874
-!      parameter (LLm0=16,  MMm0=832,  N=50)     !  4 km
-#      else  /* Y_STRETCH_GRID */
-       parameter (LLm0=16,  MMm0=512,  N=50)     !  4 km
-#      endif /* Y_STRETCH_GRID */
-#    elif RESOLUTION == 2
-#      ifdef Y_STRETCH_GRID
-       parameter (LLm0=16,  MMm0=1152,  N=100)   !  2 km
-#      else   /* Y_STRETCH_GRID */
-       parameter (LLm0=16,  MMm0=1024,  N=100)   !  2 km
-#      endif  /* Y_STRETCH_GRID */
-#    elif RESOLUTION == 1
-#      ifdef Y_STRETCH_GRID
-       parameter (LLm0=16,  MMm0=2176,  N=200)   !  1 km
-#      else  /* Y_STRETCH_GRID */
-       parameter (LLm0=16,  MMm0=2048,  N=200)   !  1 km
-#      endif /* Y_STRETCH_GRID */
-#    endif /* RESOLUTION */
-#  else /* JETN_NARROW */
-! Smaller domain: 512 km x 2048 km
-!      parameter (LLm0=32,  MMm0=128,  N=20)      ! 16 km
-!      parameter (LLm0=62,  MMm0=256,  N=40)      !  8 km
-!#  if RESOLUTION == 4
-!       parameter (LLm0=128,  MMm0=512,  N=80)    !  4 km
-!#  elif RESOLUTION == 2
-!      parameter (LLm0=256,  MMm0=1024,  N=100)   !  2 km
-!#  elif RESOLUTION == 1
-!      parameter (LLm0=3000,  MMm0=3200,  N=100)  !  1 km
-!#  endif
-! Larger domain: 1024 km x 2880 km for regular grid
-!                1024 km x 5000 km for stretched grid
-#    if RESOLUTION == 8
-#      ifdef Y_STRETCH_GRID
-       parameter (LLm0=128,  MMm0=320,  N=25)     !  8 km
-#      else  /* Y_STRETCH_GRID */
-       parameter (LLm0=128,  MMm0=360,  N=25)      !  8 km
-#      endif /* Y_STRETCH_GRID */
-#    elif RESOLUTION == 4
-#      ifdef Y_STRETCH_GRID
-       parameter (LLm0=256,  MMm0=640,  N=50)     !  4 km
-#      else  /* Y_STRETCH_GRID */
-!      parameter (LLm0=256,  MMm0=780,  N=50)      !  4 km
-       parameter (LLm0=256,  MMm0=720,  N=50)      !  4 km
-#      endif /* Y_STRETCH_GRID */
-#    elif RESOLUTION == 2
-#      ifdef Y_STRETCH_GRID
-       parameter (LLm0=512,  MMm0=1152,  N=100)   !  2 km
-#      else  /* Y_STRETCH_GRID */
-!      parameter (LLm0=512,  MMm0=1560,  N=100)   !  2 km
-       parameter (LLm0=512,  MMm0=1440,  N=100)   !  2 km
-#      endif  /* Y_STRETCH_GRID */
-#    elif RESOLUTION == 1
-#      ifdef Y_STRETCH_GRID
-       parameter (LLm0=1024,  MMm0=2176,  N=200)  !  1 km
-#      else /* Y_STRETCH_GRID */
-!      parameter (LLm0=1024,  MMm0=3120,  N=200)  !  1 km
-       parameter (LLm0=1024,  MMm0=2880,  N=200)  !  1 km
-#      endif    /* Y_STRETCH_GRID */
-#    endif /* RESOLUTION */
-#  endif /* JETN_NARROW */
-!  aponte vmodes (
-      integer nvmodes
-      parameter (nvmodes=5)
-      integer obc_nvmodes
-      parameter (obc_nvmodes=2)
-!  aponte vmodes )
-!  aponte jetn )
-#else  /* GO_MEDDY or JETN */
+#else  /* GO_MEDDY */
       parameter (LLm0=xx, MMm0=xx, N=xx)
-#endif  /* GO_MEDDY or JETN */
+#endif  /* GO_MEDDY */
 
 #ifdef AGRIF
       common /scrum_physical_grid/ LLm,Lm,LLmm2,MMm,Mm,MMmm2
@@ -185,112 +98,7 @@
       integer NSUB_X, NSUB_E, NPP
 #ifdef MPI
       integer NP_XI, NP_ETA, NNODES
-/*
-!
-!==========================================================
-!              JETN Nb procs
-!==========================================================
-!
-*/
-! aponte jetn )
-#ifdef JETN
-#  ifdef JET_NARROW
-!  Smaller domain: 64 km x 2048 km for regular grid
-!                 64 km x 6000 km for stretched grid
-#    if RESOLUTION == 4
-#      ifdef Y_STRETCH_GRID
-! 4km: 16 x 128 blocks - coeff_stretch = 1.03973 - 5 procs
-       parameter (NP_XI=1, NP_ETA=5,  NNODES=NP_XI*NP_ETA)
-#      else /* Y_STRETCH_GRID */
-! 4km: 16 x 128 blocks -  4 procs
-       parameter (NP_XI=1, NP_ETA=4,  NNODES=NP_XI*NP_ETA)
-#      endif /* Y_STRETCH_GRID */
-#    elif RESOLUTION == 2
-#      ifdef Y_STRETCH_GRID
-! 2km: 16 x 128 blocks -  9 procs
-       parameter (NP_XI=1, NP_ETA=9,  NNODES=NP_XI*NP_ETA)
-#      else /* Y_STRETCH_GRID */
-! 2km: 16 x 128 blocks -  8 procs
-       parameter (NP_XI=1, NP_ETA=8,  NNODES=NP_XI*NP_ETA)
-#      endif /* Y_STRETCH_GRID */
-#    elif RESOLUTION == 1
-#      ifdef Y_STRETCH_GRID
-! 1km: 16 x 128 blocks -  17 procs
-       parameter (NP_XI=1, NP_ETA=17,  NNODES=NP_XI*NP_ETA)
-#      else /* Y_STRETCH_GRID */
-! 1km: 16 x 128 blocks -  16 procs
-       parameter (NP_XI=1, NP_ETA=16,  NNODES=NP_XI*NP_ETA)
-#      endif /* Y_STRETCH_GRID */
-#    endif /* RESOLUTION */
-#  else   /* JET_NARROW  */
-!
-!!!!
-! Smaller domain: 512 km x 2048 km
-!!!!
-!
-!#  if RESOLUTION == 4
-! 4km:
-! 32 - 32 = 64
-!      parameter (NP_XI=4, NP_ETA=16,  NNODES=NP_XI*NP_ETA)
-! 32 - 64 = 32
-!      parameter (NP_XI=4, NP_ETA=8,  NNODES=NP_XI*NP_ETA)
-! 64 - 32 = 32 : base choice
-!      parameter (NP_XI=2, NP_ETA=16,  NNODES=NP_XI*NP_ETA)
-! 64 - 64 = 16
-!      parameter (NP_XI=2, NP_ETA=8,  NNODES=NP_XI*NP_ETA)
-!#  elif RESOLUTION == 2
-! 2km:
-!      parameter (NP_XI=8, NP_ETA=16,  NNODES=NP_XI*NP_ETA)
-!#  endif
-!
-!
-!!!!
-! Larger domain: 1024 km x 3024 km
-!!!!
-!
-#    if RESOLUTION == 8
-! 8 km : 128x390
-#      ifdef Y_STRETCH_GRID
-       parameter (NP_XI=1, NP_ETA=5,  NNODES=NP_XI*NP_ETA)
-#      else /* Y_STRETCH_GRID */
-       parameter (NP_XI=2, NP_ETA=4,  NNODES=NP_XI*NP_ETA)
-#      endif /* Y_STRETCH_GRID */
-!
-!
-#    elif RESOLUTION == 4
-! 4km: 256 x 740
-#      ifdef Y_STRETCH_GRID
-       parameter (NP_XI=4, NP_ETA=10,  NNODES=NP_XI*NP_ETA)
-#      else /* Y_STRETCH_GRID */
-! 48 procs
-       parameter (NP_XI=4, NP_ETA=12,  NNODES=NP_XI*NP_ETA)  ! caparmor
-!      parameter (NP_XI=4, NP_ETA=24,  NNODES=NP_XI*NP_ETA)  ! fermi
-#      endif /* Y_STRETCH_GRID */
 
-
-#    elif RESOLUTION == 2
-! 2km: 512 x 1440
-!
-#      ifdef Y_STRETCH_GRID
-       parameter (NP_XI=8, NP_ETA=18,  NNODES=NP_XI*NP_ETA)
-#      else /* Y_STRETCH_GRID */
-!      parameter (NP_XI=8, NP_ETA=240,  NNODES=NP_XI*NP_ETA)  ! fermi
-       parameter (NP_XI=8, NP_ETA=120,  NNODES=NP_XI*NP_ETA)  ! curie
-!      parameter (NP_XI=4, NP_ETA=15,  NNODES=NP_XI*NP_ETA)   ! caparmor
-#      endif /* Y_STRETCH_GRID */
-!
-!
-#    elif RESOLUTION == 1
-! 1km: 1024 x 3024
-#      ifdef Y_STRETCH_GRID
-       parameter (NP_XI=16, NP_ETA=34,  NNODES=NP_XI*NP_ETA)
-#      else /* Y_STRETCH_GRID */
-!      parameter (NP_XI=32, NP_ETA=480,  NNODES=NP_XI*NP_ETA)     ! fermi
-       parameter (NP_XI=32, NP_ETA=120,  NNODES=NP_XI*NP_ETA)	  ! curie
-#      endif /* Y_STRETCH_GRID */
-#    endif /* RESOLUTION */
-# endif  /* JET_NARROW  */
-! aponte jetn )
 /*
 !
 !==========================================================
@@ -298,7 +106,7 @@
 !==========================================================
 !
 */
-# elif defined GO_MEDDY
+# if defined GO_MEDDY
 
 #   if RESOLUTION == 64
       parameter (NP_XI=2, NP_ETA=4,  NNODES=NP_XI*NP_ETA)     ! linux
@@ -354,12 +162,7 @@
 !----------------------------------------------------------------------
 !
       integer NWEIGHT
-#ifdef NBQ
-      parameter (NWEIGHT=100000)
-#else
       parameter (NWEIGHT=1000)
-#endif
-
 !
 !----------------------------------------------------------------------
 ! Tides, Wetting-Drying, Point sources, Floast, Stations
@@ -369,16 +172,17 @@
 #if defined SSH_TIDES || defined UV_TIDES
       integer Ntides             ! Number of tides
                                  ! ====== == =====
-# ifdef IGW
+# if defined IGW || defined S2DV
       parameter (Ntides=1)
 # else
       parameter (Ntides=8)
 # endif
 #endif
+!
 #ifdef WET_DRY
       real D_wetdry             ! Critical Depth for Drying cells
                                 ! ======== ===== === ====== =====
-# ifdef THACKER
+# if defined THACKER || defined FLUME
       parameter (D_wetdry=0.01)
 # elif defined SWASH
       parameter (D_wetdry=0.05)
@@ -386,6 +190,7 @@
       parameter (D_wetdry=0.10)
 # endif
 #endif
+!
 #if defined PSOURCE || defined PSOURCE_NCFILE
       integer Msrc               ! Number of point sources
       parameter (Msrc=10)        ! ====== == ===== =======
@@ -410,7 +215,12 @@
 #ifdef AGRIF
       common/scrum_deriv_param/padd_X,padd_E
 #endif
-      parameter (stdout=6, Np=N+1)
+#ifdef LOGFILE
+      common /stdout/stdout 
+#else
+      parameter (stdout=6)
+#endif
+      parameter (Np=N+1)
 #ifndef AGRIF
 # ifdef MPI
       parameter (Lm=(LLm+NP_XI-1)/NP_XI, Mm=(MMm+NP_ETA-1)/NP_ETA)
@@ -423,12 +233,20 @@
 
 #if defined AGRIF || defined AUTOTILING
       integer NSA, N2d,N3d,N1dXI,N1dETA
+#if !defined NBQ
       parameter (NSA=28)
+#else
+      parameter (NSA=35)
+#endif
       common /scrum_private_param/ N2d,N3d,N1dXI,N1dETA
 #else
       integer NSA, N2d,N3d, size_XI,size_ETA
       integer se,sse, sz,ssz
+#if !defined NBQ
       parameter (NSA=28)
+#else
+      parameter (NSA=35)
+#endif
 # ifdef ALLOW_SINGLE_BLOCK_MODE
       parameter (size_XI=6+Lm, size_ETA=6+Mm)
 # else
@@ -447,8 +265,8 @@
 !----------------------------------------------------------------------
 !
 #ifdef NEW_S_COORD
-      real Vtransform
-      parameter (Vtransform=2)
+      real Vtransform          
+      parameter (Vtransform=2) 
 #else
       real Vtransform
       parameter (Vtransform=1)
@@ -456,15 +274,15 @@
 
 !
 !----------------------------------------------------------------------
-! Number of tracers
+! Number of tracers 
 !----------------------------------------------------------------------
 !
 #ifdef SOLVE3D
       integer   NT, itemp
-      integer   ntrc_salt, ntrc_pas, ntrc_bio, ntrc_sed
+      integer   ntrc_salt, ntrc_pas, ntrc_bio, ntrc_sed 
 !
       parameter (itemp=1)
-# ifdef SALINITY
+# ifdef SALINITY 
       parameter (ntrc_salt=1)
 # else
       parameter (ntrc_salt=0)
@@ -485,13 +303,13 @@
 #   endif
 #  elif defined BIO_N2ChlPZD2
       parameter (ntrc_bio=7)
-#  elif defined BIO_BioEBUS
+#  elif defined BIO_BioEBUS 
 #   ifdef NITROUS_OXIDE
       parameter (ntrc_bio=12)
 #   else
       parameter (ntrc_bio=11)
-#   endif
-#  endif
+#   endif  
+#  endif 
 # else
       parameter (ntrc_bio=0)
 # endif /* BIOLOGY */
@@ -499,13 +317,15 @@
 # ifdef SEDIMENT
 ! NGRAV          Number of gravel classes
 ! NSAND          Number of sand classes
-! NMUD           Number of mud classes
+! NMUD           Number of mud classes  
 ! NST            Number of sediment (tracer) size classes
 ! NLAY           Number of layers in sediment bed
 !
       integer    NGRAV, NSAND, NMUD, NST, NLAY
-      parameter (NGRAV=0, NSAND=2, NMUD=0,
-     &           NST=NGRAV+NSAND+NMUD, NLAY=2)
+      parameter (NGRAV=0, NSAND=2, NMUD=0) 
+!      parameter (NST=NGRAV+NSAND+NMUD) ! robustness?
+      parameter (NST=2)  ! NST=NGRAV+NSAND+NMUD
+      parameter (NLAY=1)
       parameter (ntrc_sed=NST)
 # else
       parameter (ntrc_sed=0)
@@ -513,11 +333,20 @@
 
 ! Total number of tracers
 !
-      parameter (NT=itemp+ntrc_salt+ntrc_pas+ntrc_bio+ntrc_sed)
+      parameter (NT=itemp+ntrc_salt+ntrc_pas+ntrc_bio+ntrc_sed) 
 
 # if defined BBL && defined AGRIF
       integer Agrif_lev_sedim
       parameter (Agrif_lev_sedim=0)
+# endif
+
+# ifdef GLS_MIX2017
+      integer NGLS
+      parameter(NGLS=2)
+      integer itke
+      parameter(itke=1)
+      integer igls
+      parameter(igls=2)     
 # endif
 
 #endif /* SOLVE3D */
@@ -550,18 +379,19 @@
      &          , iBFE_, iGOC_, iSFE_, iDFE_, iDSI_
      &          , iNFE_, iNCH_, iDCH_, iNO3_, iNH4_
 #   ifdef DIAGNOSTICS_BIO
-#    ifdef key_trc_dia3d
-     &          , Nhi,Nco3,Naksp,Netot,Nprorca
-     &          , Nprorca2,Npronew,Npronew2
-     &          , Nprorca3,Nprorca4,Nprorca5
-     &          , Ngraztot1,Ngraztot2,Nnitrifo2
-     &          , Npronewo2,Nprorego2,Nremino2
-     &          , Nmicroo2,Nmesoo2,Nfixo2
-#    endif
 #    ifdef key_trc_diaadd
+     &          , Nhi,Nco3,Naksp,Netot,Nprorca
+     &          , Nprorcad,Npronew,Npronewd
+     &          , Nprobsi,Nprofed,Nprofen
+     &          , Ngrapoc,Ngrapoc2
+     &          , Nmico2,Nmeso2
+     &          , Nnitrifo2,Nfixo2,Nremino2
+     &          , Npronewo2,Nprorego2
      &          , Nfld,Nflu16,Nkgco2,Natcco2,Nsinking
-     &          , Nsinking2,Nsinkfer,Nsinkfer2,Nsinksil
-     &          , Nsinkcal,Nzmeu,Nirondep,Nnitrpot
+     &          , Nsinkfer,Nsinksil,Nironsed
+     &          , Nsinkcal,Nheup,Nnitrpot
+     &          , Nirondep,Nsildep,Npo4dep
+     &          , Nno3dep,Nnh4dep
 #    endif
 #   endif
      &          , NumFluxTerms,NumVSinkTerms,NumGasExcTerms
@@ -577,8 +407,8 @@
 #   ifdef OXYGEN
      &          , OGain_NewProd, OLoss_Zmetab
      &          , OLoss_ReminD, NumFluxTermsO, OFlux_GasExc
-     &          , NumGasExcTerms, NumFluxTerms
-#   else
+     &          , NumGasExcTerms, NumFluxTerms  
+#   else 
      &          , NumGasExcTerms
      &          , NumFluxTerms
 #   endif
@@ -589,10 +419,10 @@
      &          , iDet1, iDet2
      &          , NFlux_NewProd
      &          , NFlux_RegProd
-     &          , NFlux_Nitrific
+     &          , NFlux_Nitrific 
      &          , NFlux_Grazing
      &          , NFlux_SlopFeed
-     &          , NFlux_Pmort
+     &          , NFlux_Pmort 
      &          , NFlux_Zmetab
      &          , NFlux_Zmort
      &          , NFlux_ReminD1, NFlux_ReminD2
@@ -606,7 +436,7 @@
      &          , iDet1, iDet2, iDON, iO2
 #    ifdef NITROUS_OXIDE
      &          , iN2O
-#    endif
+#    endif 
      &          , NFlux_lightlimitP1, NFlux_lightlimitP2
      &          , NFlux_templimitP1, NFlux_templimitP2
      &          , NFlux_NO3limitP1, NFlux_NO2limitP1
@@ -630,11 +460,11 @@
      &          , NFlux_NH4anammox, O2Flux_GasExc, NumFluxTermsN
 #    ifdef NITROUS_OXIDE
      &          , NFlux_paramN2O, N2OFlux_GasExc
-#    endif
+#    endif 
      &          , NumFluxTerms, NumGasExcTerms
      &          , NFlux_VSinkP2, NFlux_VSinkD1
      &          , NFlux_VSinkD2, NumVSinkTerms
-#  endif
+#  endif  
 # endif   /* BIOLOGY */
 
 # ifdef SEDIMENT
@@ -645,7 +475,7 @@
 ! ================  Parameters  =====================
 !
 
-# ifdef SALINITY
+# ifdef SALINITY 
       parameter (isalt=itemp+1)
 # endif
 # ifdef PASSIVE_TRACER
@@ -667,48 +497,49 @@
      &            iDFE_=iDIC_+17, iDSI_=iDIC_+18, iNFE_=iDIC_+19,
      &            iNCH_=iDIC_+20, iDCH_=iDIC_+21, iNO3_=iDIC_+22,
      &            iNH4_=iDIC_+23)
-#   ifdef key_trc_dia3d
-       parameter (Nhi       = 1,
+#   ifdef key_trc_diaadd
+      parameter (Nhi       = 1,
      &            Nco3      = 2,
      &            Naksp     = 3,
      &            Netot     = 4,
      &            Nprorca   = 5,
-     &            Nprorca2  = 6,
+     &            Nprorcad  = 6,
      &            Npronew   = 7,
-     &            Npronew2  = 8,
-     &            Nprorca3  = 9,
-     &            Nprorca4  = 10,
-     &            Nprorca5  = 11,
-     &            Ngraztot1 = 12,
-     &            Ngraztot2 = 13,
-     &            Nnitrifo2 = 14,
-     &            Npronewo2 = 15,
-     &            Nprorego2 = 16,
-     &            Nremino2  = 17,
-     &            Nmicroo2  = 18,
-     &            Nmesoo2   = 19,
+     &            Npronewd  = 8,
+     &            Nprobsi   = 9,
+     &            Nprofen   = 10,
+     &            Nprofed   = 11,
+     &            Npronewo2 = 12,
+     &            Nprorego2 = 13,
+     &            Ngrapoc   = 14,
+     &            Ngrapoc2  = 15,
+     &            Nmico2    = 16,
+     &            Nmeso2    = 17,
+     &            Nnitrifo2 = 18,
+     &            Nremino2  = 19,
      &            Nfixo2    = 20,
-     &            NumFluxTerms   = Nfixo2)
-#   else
-       parameter (NumFluxTerms = 0)
-#   endif
-#   ifdef key_trc_diaadd
+     &            Nirondep  = 21,
+     &            Nironsed  = 22,
+     &            NumFluxTerms = Nironsed)
+
        parameter (Nfld      = 1,
      &            Nflu16    = 2,
      &            Nkgco2    = 3,
      &            Natcco2   = 4,
      &            Nsinking  = 5,
-     &            Nsinking2 = 6,
-     &            Nsinkfer  = 7,
-     &            Nsinkfer2 = 8,
-     &            Nsinksil  = 9,
-     &            Nsinkcal  = 10,
-     &            Nzmeu     = 11,
-     &            Nirondep  = 12,
-     &            Nnitrpot  = 13,
+     &            Nsinkfer  = 6,
+     &            Nsinksil  = 7,
+     &            Nsinkcal  = 8,
+     &            Nheup     = 9,
+     &            Nsildep   = 10,
+     &            Npo4dep   = 11,
+     &            Nno3dep   = 12,
+     &            Nnh4dep   = 13,
+     &            Nnitrpot  = 14,
      &            NumGasExcTerms = 0,
      &            NumVSinkTerms = Nnitrpot)
 #   else
+       parameter (NumFluxTerms = 0)
        parameter (NumGasExcTerms = 0, NumVSinkTerms = 0)
 #   endif
 
@@ -718,9 +549,9 @@
 #   else
       parameter (itrc_bio=itemp+ntrc_salt+ntrc_pas+1)
 #   endif
-      parameter (iNO3_=itrc_bio, iChla=iNO3_+1,
+      parameter (iNO3_=itrc_bio, iChla=iNO3_+1,  
      &           iPhy1=iNO3_+2,
-     &           iZoo1=iNO3_+3,
+     &           iZoo1=iNO3_+3, 
      &           iDet1=iNO3_+4)
 #   ifdef OXYGEN
       parameter (iO2=iNO3_+5)
@@ -734,7 +565,7 @@
      &           NFlux_ReminD   = 7,
      &           NumFluxTermsN  = 7,
 #   ifdef OXYGEN
-     &           OGain_NewProd  = 8,
+     &           OGain_NewProd  = 8, 
      &           OLoss_Zmetab   = 9,
      &           OLoss_ReminD   = 10,
      &           NumFluxTermsO  = 3,
@@ -750,8 +581,8 @@
      &           NumVSinkTerms  = 2)
 
 #  elif defined BIO_N2ChlPZD2
-      parameter (ntrc_bio=7,itrc_bio=itemp+ntrc_salt+ntrc_pas+1)
-      parameter (iNO3_=itrc_bio, iNH4_=iNO3_+1, iChla=iNO3_+2,
+      parameter (ntrc_bio=7,itrc_bio=itemp+ntrc_salt+ntrc_pas+1) 
+      parameter (iNO3_=itrc_bio, iNH4_=iNO3_+1, iChla=iNO3_+2,   
      &           iPhy1=iNO3_+3,
      &           iZoo1=iNO3_+4,
      &           iDet1=iNO3_+5, iDet2=iNO3_+6)
@@ -773,13 +604,13 @@
      &           NFlux_VSinkD2  = 3,
      &           NumVSinkTerms  = 3)
 
-#  elif defined BIO_BioEBUS
+#  elif defined BIO_BioEBUS 
 #   ifdef NITROUS_OXIDE
       parameter (itrc_bio=itemp+ntrc_salt+ntrc_pas+1)
 #   else
       parameter (itrc_bio=itemp+ntrc_salt+ntrc_pas+1)
-#   endif
-
+#   endif  
+    
       parameter (iNO3_=itrc_bio, iNO2_=iNO3_+1, iNH4_=iNO3_+2,
      &           iPhy1=iNO3_+3,  iPhy2=iNO3_+4,
      &           iZoo1=iNO3_+5,  iZoo2=iNO3_+6,
@@ -789,7 +620,7 @@
 #   ifdef NITROUS_OXIDE
       parameter (iN2O=iNO3_+11)
 #   endif
-
+  
       parameter(  NFlux_lightlimitP1=1
      &          , NFlux_lightlimitP2=2
      &          , NFlux_templimitP1=3
@@ -820,7 +651,7 @@
      &          , NFlux_Z2metab=28
      &          , NFlux_Z2mort=29
      &          , NFlux_HydrolD1=30
-     &          , NFlux_ReminOxyD1=31
+     &          , NFlux_ReminOxyD1=31 			
      &          , NFlux_Denitr1D1=32
      &          , NFlux_Denitr2D1=33
      &          , NFlux_HydrolD2=34
@@ -832,12 +663,12 @@
      &          , NFlux_Denitr2DON=40
      &          , NFlux_NO2anammox=41
      &          , NFlux_NH4anammox=42
-#   ifdef NITROUS_OXIDE
+#   ifdef NITROUS_OXIDE     
      &          , NFlux_paramN2O=43
      &          , NumFluxTermsN=NFlux_paramN2O
-#   else
+#   else 
      &          , NumFluxTermsN=NFlux_NH4anammox
-#   endif
+#   endif      
      &          , NumFluxTerms=NumFluxTermsN
      &          , O2Flux_GasExc=1
 #   ifdef NITROUS_OXIDE

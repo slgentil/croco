@@ -37,9 +37,9 @@ close all
 %
 fname     = 'thacker_his.nc';            % croco file name
 g         = 9.81;                        % gravity acceleration (m^2/s)
-yindex    = 101;                         % y index
+yindex    = 1;                         % y index
 makemovie = 0;                           % make movie using QTWriter
-makepdf   = 1;                           % make pdf file
+makepdf=1
 %
 %======================================================================
 
@@ -133,7 +133,7 @@ for tindex=tstr:tend % ---------------------------------------------
  %============================================================
  % --- plot ---
  %=============================================================
- Dcrit=0.11;
+ Dcrit=0.011;
 
  xr=1.e-3*xr;
  xr2d=1.e-3*xr2d;
@@ -192,7 +192,7 @@ end
 %=============================================================
 
 t0=nc{'scrum_time'}(1:tindex);
-u10=squeeze(nc{'u'}(1:tindex,3,yindex,yindex));
+u10=squeeze(nc{'u'}(1:tindex,3,yindex,100));
 u20=-eta*omega*Lt*sin(omega*t0);
 
 figure

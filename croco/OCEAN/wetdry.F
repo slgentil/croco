@@ -28,11 +28,16 @@
 !
       real   cff, eps, cff1,cff2,cff3
       parameter (eps=1.e-10)
-#ifdef MASKING
-# define SWITCH *
-#else
-# define SWITCH !
-#endif
+# ifdef AGRIF
+#  include "zoom.h"
+      external rmask_wetinterp,umask_wetinterp,vmask_wetinterp
+      real :: tinterp
+# endif
+# ifdef MASKING
+#  define SWITCH *
+# else
+#  define SWITCH !
+# endif
 !
 #include "compute_auxiliary_bounds.h"
 !
@@ -59,8 +64,29 @@
 # endif
               wetdry(i,j)=0.
             END IF
+# ifdef AGRIF
+            IF ((wetdry(i,j)==1) .AND. (rmask_childs(i,j)==0.)) THEN
+              wetdry(i,j) = 0.
+            END IF
+# endif
           END DO
         END DO
+
+# ifdef AGRIF
+        if (.not.agrif_root()) then
+C$OMP BARRIER
+C$OMP MASTER
+          tinterp = 1.
+#  ifdef MASKING
+          Agrif_UseSpecialValue = .false.
+#  endif
+          call agrif_bc_variable(rmask_wetid,calledweight=tinterp,
+     &                           procname = rmask_wetinterp)
+C$OMP END MASTER
+C$OMP BARRIER
+        endif
+# endif
+      
         DO j=JstrR,JendR
           DO i=IstrR,IendR
             rmask_wet(i,j)=wetdry(i,j)
@@ -86,6 +112,22 @@
             END IF
           END DO
         END DO
+
+# ifdef AGRIF
+        if (.not.agrif_root()) then
+C$OMP BARRIER
+C$OMP MASTER
+          tinterp = 1.
+#  ifdef MASKING
+        Agrif_UseSpecialValue = .false.
+#  endif
+          call agrif_bc_variable(umask_wetid,calledweight=tinterp,
+     &                           procname = umask_wetinterp)
+C$OMP END MASTER
+C$OMP BARRIER
+        endif
+# endif
+
 !
 !  Wet/dry mask at V-points.
 !
@@ -97,6 +139,22 @@
             END IF
           END DO
         END DO
+
+# ifdef AGRIF
+        if (.not.agrif_root()) then
+C$OMP BARRIER
+C$OMP MASTER
+          tinterp = 1.
+#  ifdef MASKING
+        Agrif_UseSpecialValue = .false.
+#  endif
+          call agrif_bc_variable(vmask_wetid,calledweight=tinterp,
+     &                           procname = vmask_wetinterp)
+C$OMP END MASTER
+C$OMP BARRIER
+        endif
+# endif
+
 # ifdef SOLVE3D
       END IF
 # endif
@@ -166,6 +224,22 @@
             END IF
           END DO
         END DO
+
+#  ifdef AGRIF
+        if (.not.agrif_root()) then
+C$OMP BARRIER
+C$OMP MASTER
+          tinterp = 1.
+#   ifdef MASKING
+        Agrif_UseSpecialValue = .false.
+#   endif
+          call agrif_bc_variable(umask_wetid,calledweight=tinterp,
+     &                           procname = umask_wetinterp)
+C$OMP END MASTER
+C$OMP BARRIER
+        endif
+#  endif
+
 !
 !  Wet/dry mask at V-points, averaged over all fast time-steps.
 !
@@ -185,6 +259,22 @@
             END IF
           END DO
         END DO
+
+#  ifdef AGRIF
+        if (.not.agrif_root()) then
+C$OMP BARRIER
+C$OMP MASTER
+          tinterp = 1.
+#   ifdef MASKING
+        Agrif_UseSpecialValue = .false.
+#   endif
+          call agrif_bc_variable(vmask_wetid,calledweight=tinterp,
+     &                           procname = vmask_wetinterp)
+C$OMP END MASTER
+C$OMP BARRIER
+        endif
+#  endif
+
       END IF
 # endif
 !
@@ -254,5 +344,77 @@
 
       RETURN
       END SUBROUTINE wetdry_tile
+      
+# ifdef AGRIF
+      subroutine rmask_wetinterp(tabres,i1,i2,j1,j2,before)
+      implicit none
+# include "param.h"
+# include "ocean2d.h"
+# include "scalars.h"
+# include "zoom.h"
+# include "grid.h"
+
+       integer i1,i2,j1,j2
+       real tabres(i1:i2,j1:j2)
+       logical before
+       real, parameter :: eps=1.1e-10
+       integer :: i,j
+
+       if (before) then
+          tabres(i1:i2,j1:j2) = wetdry(i1:i2,j1:j2)
+        else
+          wetdry(i1:i2,j1:j2) = tabres
+          do j=j1,j2
+          do i=i1,i2
+            if (wetdry(i,j) == 1) then
+            zeta(i,j,knew) = max(zeta(i,j,knew),Dcrit(i,j)+eps-h(i,j))
+            endif
+          enddo
+          enddo
+       endif
+      return
+      end
+
+      subroutine umask_wetinterp(tabres,i1,i2,j1,j2,before)
+      implicit none
+# include "param.h"
+# include "ocean2d.h"
+# include "scalars.h"
+# include "zoom.h"
+# include "grid.h"
+
+       integer i1,i2,j1,j2
+       real tabres(i1:i2,j1:j2)
+       logical before
+
+       if (before) then
+          tabres(i1:i2,j1:j2) = umask_wet(i1:i2,j1:j2)
+        else
+          umask_wet(i1:i2,j1:j2) = tabres
+       endif
+      return
+      end
+
+      subroutine vmask_wetinterp(tabres,i1,i2,j1,j2,before)
+      implicit none
+# include "param.h"
+# include "ocean2d.h"
+# include "scalars.h"
+# include "zoom.h"
+# include "grid.h"
+
+       integer i1,i2,j1,j2
+       real tabres(i1:i2,j1:j2)
+       logical before
+
+       if (before) then
+          tabres(i1:i2,j1:j2) = vmask_wet(i1:i2,j1:j2)
+        else
+          vmask_wet(i1:i2,j1:j2) = tabres
+       endif
+      return
+      end
+# endif 
+     
 #endif
 

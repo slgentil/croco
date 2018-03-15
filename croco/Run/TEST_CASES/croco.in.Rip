@@ -2,7 +2,7 @@ title:
         RIP Example 
 
 time_stepping: NTIMES   dt[sec]  NDTFAST  NINFO
-                1200      6        60      10
+                1800      4        20      10
 
 S-coord: THETA_S,   THETA_B,    Hc (m)
          0.0d0       0.0d0      1.e16
@@ -26,7 +26,7 @@ wci_history_fields:  SUP UST2D VST2D UST VST WST AKB AKW KVF CALP KAPS
                       T   T     T     T   T   T   T   T  T    T    T
 
 restart:          NRST, NRPFRST / filename
-                  1200   -1
+                  1800   -1
                           rip_rst.nc
 
 history: LDEFHIS, NWRT, NRPFHIS / filename
@@ -34,7 +34,7 @@ history: LDEFHIS, NWRT, NRPFHIS / filename
                           rip_his.nc
 
 averages: NTSAVG, NAVG, NRPFAVG / filename
-            1     300         0
+            1     1800         0
                           rip_avg.nc
 
 primary_history_fields: zeta UBAR VBAR  U  V   wrtT(1:NT)
@@ -56,7 +56,7 @@ rho0:
       1024.4
 
 bottom_drag:     RDRG(m/s),      RDRG2,   Zob [m],  Cdb_min, Cdb_max
-                 0.0e-04         1.5e-3   0.01       1.d-4    1.d-1
+                 0.0e-04         0.0e-3   1.e-3       1.d-4    1.d-1
 
 gamma2:
                  1.
@@ -71,7 +71,7 @@ sponge:          X_SPONGE [m],    V_SPONGE [m^2/sec]
                    XXX                XXX
 
 nudg_cof:    TauT_in, TauT_out, TauM_in, TauM_out  [days for all]
-              1.       360.       1.       360.
+              1.       30.       0.1       100.
 
 lateral_visc:   VISC2,    VISC4    [m^2/sec for all]
                  0.        0.
@@ -79,11 +79,11 @@ lateral_visc:   VISC2,    VISC4    [m^2/sec for all]
 tracer_diff2: TNU2(1:NT)           [m^2/sec for all]
               0.d0 0.d0 0.d0 0.d0 0.d0 0.d0 0.d0 0.d0 0.d0
 
-wkb_history_fields: swh  frq  action  k_xi  k_eta  eps_b  eps_d Erol eps_r
+wave_history_fields: swh  frq  action  k_xi  k_eta  eps_b  eps_d Erol eps_r
                       T   T     T      T     T       T      T     T    T
 
 wkb_wwave:  amp [m], ang [deg], prd [s], tide [m], B_tg, gamma_tg
-            0.5      -1.         10.      0.0       1.3    0.38
+            0.5       0.         10.      0.0       1.3    0.38
 
 wkb_roller:  roller_sinb  roller_fraction
                   0.1          0.5

@@ -25,7 +25,7 @@
       INTEGER :: oasis_var_type
       INTEGER , dimension(5) :: oasis_ig_paral ! Box partiton
  
-      INTEGER, PARAMETER ::   nmaxfld = 10 ! Maximum number of coupling fields
+      INTEGER, PARAMETER ::   nmaxfld = 60 ! Maximum number of coupling fields
       INTEGER, PARAMETER ::   nmaxatm =  5 ! Maximum number of atmospheric models
 
       CHARACTER(len = 8), DIMENSION(nmaxfld) :: srcv_clname, ssnd_clname   ! Coupling fields 

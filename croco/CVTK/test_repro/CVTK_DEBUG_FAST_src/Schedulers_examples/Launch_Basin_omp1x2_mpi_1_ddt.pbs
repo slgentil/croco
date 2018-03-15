@@ -1,0 +1,21 @@
+#!/bin/csh
+#PBS -q mpi_1
+#PBS -l walltime=00:15:00
+# example of using 1node, i.e. 1*28 mpi procs with ddt
+# cd to the directory you submitted your job
+cd $PBS_O_WORKDIR
+
+source /usr/share/Modules/3.2.10/init/csh
+ module purge
+ module load ddt
+ module load NETCDF/4.3.3.1-mpt-intel2016
+ module list
+#
+
+setenv OMP_NUM_THREADS 2
+setenv mpiproc `cat $PBS_NODEFILE  |wc -l`
+echo "job running with  $mpiproc mpi process "
+date
+ddt --connect  ./croco_omp1X2_BASIN.exe  >& out
+date
+

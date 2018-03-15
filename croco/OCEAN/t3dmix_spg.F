@@ -266,7 +266,6 @@
      &                                             /Hz(i,j,k)
           enddo
         enddo
-      enddo
 
 #  ifdef DIAGNOSTICS_TS
 !
@@ -281,6 +280,7 @@
             enddo
           enddo
 #  endif
+      enddo
 
 
 

@@ -420,6 +420,7 @@ C$    integer omp_get_thread_num
           do i=IstrR,IendR
             Akb(i,j,k)=init 
             Akw(i,j,k)=init 
+            E_pre(i,j,k)=init
 # ifdef AVERAGES
             Akb_avg(i,j,k)=init 
             Akw_avg(i,j,k)=init 
@@ -584,15 +585,17 @@ C$    integer omp_get_thread_num
           srflxg(i,j,1)=init
           srflxg(i,j,2)=init
 # endif
-# if defined BBL && !defined ANA_WWAVE && !defined WKB_WWAVE
+# if (defined BBL || defined MRL_WCI) && defined WAVE_OFFLINE
           wwag(i,j,1)=init
           wwdg(i,j,1)=init
           wwpg(i,j,1)=init
-          wweb(i,j,1)=init
           wwag(i,j,2)=init
           wwdg(i,j,2)=init
           wwpg(i,j,2)=init
+#  ifdef WAVE_OFFLINE_BREAKING
+          wweb(i,j,1)=init
           wweb(i,j,2)=init
+#  endif
 # endif
         enddo
       enddo
@@ -1075,10 +1078,12 @@ C$    integer omp_get_thread_num
 # ifdef NBQ
       do j=JstrR,JendR
         do i=IstrR,IendR
-          rhobar_nbq(i,j,:)=1.
+#  ifdef NBQ_MASS
+          rhobar_nbq(i,j,:)   =1.
           rhobar_nbq_avg1(i,j)=1.
-          rubar_nbq(i,j)=init
-          rvbar_nbq(i,j)=init
+#  endif
+          rubar_nbq(i,j)    =init
+          rvbar_nbq(i,j)    =init
           rufrc_bak(i,j,1:2)=init
           rvfrc_bak(i,j,1:2)=init
           
@@ -1087,34 +1092,35 @@ C$    integer omp_get_thread_num
       do k=1,N
         do j=JstrR,JendR
           do i=IstrR,IendR
-            rho_nbq_ext(i,j,k)=1.
+# ifdef NBQ_MASS
+            rho_nbq(i,j,k)     =1.
             rho_nbq_avg1(i,j,k)=1.
-            rho_nbq_avg2(i,j,k)=1.
-            ruext_nbq(i,j,k)=init
-            rvext_nbq(i,j,k)=init
-            ru_nbq_ext(i,j,k)=init
+!            rho_nbq_avg2(i,j,k)=1.
+# endif
+            ru_nbq(i,j,k)     =init
+            rv_nbq(i,j,k)     =init
+#if !defined M2FILTER_NONE
             ru_nbq_avg1(i,j,k)=init
-            ru_nbq_avg2(i,j,k)=init
-            rv_nbq_ext(i,j,k)=init
             rv_nbq_avg1(i,j,k)=init
+#endif
+            ru_nbq_avg2(i,j,k)=init
             rv_nbq_avg2(i,j,k)=init
-            ruint_nbq(i,j,k)=init
-            rvint_nbq(i,j,k)=init
-            ruint_bak_nbq(i,j,k,1:2)=init
-            rvint_bak_nbq(i,j,k,1:2)=init
+            ru_int_nbq(i,j,k) =init
+            rv_int_nbq(i,j,k) =init
           enddo
         enddo
       enddo
       do k=0,N
         do j=JstrR,JendR
           do i=IstrR,IendR
-            wz(i,j,k,1)=init
-            wz(i,j,k,2)=init
-            rw_nbq_ext(i,j,k)=init
+            wz(i,j,k,1)  =init
+            wz(i,j,k,2)  =init
+            rw_nbq(i,j,k)=init
+#if !defined M2FILTER_NONE
             rw_nbq_avg1(i,j,k)=init
+#endif
             rw_nbq_avg2(i,j,k)=init
-            rwint_nbq(i,j,k)=init
-            rwint_bak_nbq(i,j,k,1:2)=init
+            rw_int_nbq(i,j,k) =init
           enddo
         enddo
       enddo

@@ -1,7 +1,7 @@
 title:
         MOZ
 time_stepping: NTIMES   dt[sec]  NDTFAST  NINFO
-                16848      600     60      12
+                16848      600     60      10
 S-coord: THETA_S,   THETA_B,    Hc (m)
            5.0d0      0.0d0      10.0d0
 grid:  filename
@@ -19,12 +19,12 @@ initial: NRREC  filename
                           CROCO_FILES/moz_ini.nc
 restart:          NRST, NRPFRST / filename
                    16848    -1
-                          CROCO_FILES/moz_rst.nc
+                          CROCO_FILES/moz_ini.nc
 history: LDEFHIS, NWRT, NRPFHIS / filename 
             T      144     0
                           CROCO_FILES/moz_his.nc
 averages: NTSAVG, NAVG, NRPFAVG / filename
-            1      16848     0
+            1      144     0
                           CROCO_FILES/moz_avg.nc
 
 primary_history_fields: zeta UBAR VBAR  U  V   wrtT(1:NT)
@@ -45,9 +45,6 @@ gls_averages:   TKE  GLS  Lscale
 rho0:
       1025.d0
 
-lin_EOS_cff:  R0 [kg/m3], T0 [Celsius], S0 [PSU], TCOEF [1/Celsius], SCOEF [1/PSU] 
-              1027.         12.            36.6        0.16            0.8
-              
 lateral_visc:   VISC2,    VISC4    [m^2/sec for all]
                  0.       0.
 
@@ -171,12 +168,3 @@ psource_ncfile:   Nsrc  Isrc  Jsrc  Dsrc qbardir  Lsrc  Tsrc   runoff file name
 online:    byear  bmonth recordsperday byearend bmonthend / data path
            1994   7      1             1994     10
           /home/datawork-lops-osi/slgentil/ERA/
-
-                            
-spectral_diags: navgspec nwrtspec / lon_min lon_max lat_min,lat_max
-    12   144  
-    36.5  43.  -25. -20.                       
-
-spectral_diags_kt: navgspec_kt nwrtspec_kt N_kt / levels
-                    48         48          2    
-                    -1100.  -600.          

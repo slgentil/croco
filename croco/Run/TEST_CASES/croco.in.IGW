@@ -5,14 +5,14 @@ time_stepping: NTIMES   dt[sec]  NDTFAST  NINFO
 S-coord: THETA_S,   THETA_B,    Hc (m)
            0.0d0      0.0d0     1.0d16
 grid:  filename
-                          igw_grd.nc
+                          TEST_CASES/igw_grd.nc
 forcing: filename
-                          igw_frc.nc
+                          TEST_CASES/igw_frc.nc
 climatology: filename
-                          igw_clm.nc
+                          TEST_CASES/igw_clm.nc
 initial: NRREC  filename
           0
-                          igw_ini.nc
+                          TEST_CASES/igw_ini.nc
 restart:          NRST, NRPFRST / filename
                    72000    -1
                           igw_rst.nc

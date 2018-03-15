@@ -36,19 +36,19 @@
 !     !             ***  ROUTINE cpl_prism_define  ***
 !     !
 !     ! ** Purpose :   Define grid and field information for ocean
-!     !                exchange between ROMS and COUPLER. (OASIS3-MCT software)
+!     !                exchange between CROCO and COUPLER. (OASIS3-MCT software)
 !     !
 !     ! ** Method  :   OASIS3 MPI communication
 !     !--------------------------------------------------------------------
 
 !------------------------------------------------------------------
-!     Set the ROMS grid definition to PRISM system
+!     Set the CROCO grid definition to PRISM system
 !------------------------------------------------------------------
 
       start_x =  iminmpi
       start_y =  jminmpi
       
-!     Set the ROMS partition definition to PRISM system
+!     Set the CROCO partition definition to PRISM system
 !------------------------------------------------------------------
 
       oasis_ig_paral(1) = 2     ! Box partition
@@ -66,10 +66,10 @@
       END IF
 
 !------------------------------------------------------------------
-!     Set the ROMS grid definition to PRISM system
+!     Set the CROCO grid definition to PRISM system
 !------------------------------------------------------------------
 
-      CALL cpl_prism_grid(oasis_part_id)
+       CALL cpl_prism_grid(oasis_part_id)
 
 !------------------------------------------------------------------
 !     Set the WRF exchange variables definition to PRISM system
@@ -100,10 +100,13 @@
 !------------------------------------------------------------------
 !     SST
       ssnd_clname(1) = 'SRMSSTV'//clevel
+!     SSH
+      ssnd_clname(2) = 'SRMSSHV'//clevel
 !     UOCE
-      ssnd_clname(2) = 'SRMUOCE'//clevel
+      ssnd_clname(3) = 'SRMUOCE'//clevel
 !     VOCE
-      ssnd_clname(3) = 'SRMVOCE'//clevel
+      ssnd_clname(4) = 'SRMVOCE'//clevel
+
 !------------------------------------------------------------------
 !     Received
 !------------------------------------------------------------------
@@ -119,7 +122,35 @@
       srcv_clname(5) = 'RRMTAUY'//clevel
 !     wind tress module [N/m2]
       srcv_clname(6) = 'RRMTAUM'//clevel
-      
+
+
+!     mask to manage wet-drying[]
+      srcv_clname(7) = 'RRM_DRY'//clevel
+!     mean Wave Period [s]
+      srcv_clname(8) = 'RRMT0M1'//clevel
+!     significant wave height [m]
+      srcv_clname(9) = 'RRM__HS'//clevel
+!     cos of mean wave direction []
+      srcv_clname(10) = 'RRMCDIR'//clevel
+!     sin of mean wave direction []
+      srcv_clname(11) = 'RRMSDIR'//clevel
+!     bhd: wave induced Bernoulli head pressure [N.m-1]
+      srcv_clname(12) = 'RRM_BHD'//clevel
+!     wave_ubr: rms amplitude of orbital bottom velocity of the waves [m.s-1]
+      srcv_clname(13) = 'RRM_UBR'//clevel
+!     wave_phioc :  wave to ocean TKE flux  [W.m-2]
+      srcv_clname(14) = 'RRM_FOC'//clevel
+!     wave_wlm :  wave mean wave length  [m]
+      srcv_clname(15) = 'RRM__LM'//clevel      
+!     wave_tauox: x-component of the wave-ocean momentum flux [m2.s-2]
+      srcv_clname(16) = 'RRMTWOX'//clevel   
+!     wave_tauoy: y-component of the wave-ocean momentum flux [m2.s-2]
+      srcv_clname(17) = 'RRMTWOY'//clevel   
+!     wave_tauwx: Net wave-supported stress, x-component [m2.s-2]
+      srcv_clname(18) = 'RRMTWSX'//clevel   
+!     wave_tauwy: Net wave-supported stress, y-component [m2.s-2]
+      srcv_clname(19) = 'RRMTWSY'//clevel   
+
       DO ja = 0, nmaxatm
 
          IF ( ja == 0 ) THEN   ;   catm = ""
@@ -139,7 +170,7 @@
           ELSE
              IF ( ssnd_nid(ja,ji) /= -1 ) THEN
                 MPI_master_only write(*,*) 
-     & 'CPL-ROMS: sent ',ssnd_clname(ji)//trim(catm),ssnd_nid(ja,ji)
+     & 'CPL-CROCO: sent ',ssnd_clname(ji)//trim(catm),ssnd_nid(ja,ji)
              ENDIF
           ENDIF
       END DO
@@ -157,7 +188,7 @@
           ELSE
              IF ( srcv_nid(ja,ji) /= -1 ) THEN
                 MPI_master_only write(*,*) 
-     & 'CPL-ROMS: received ',srcv_clname(ji)//trim(catm),srcv_nid(ja,ji)
+     & 'CPL-CROCO: received ',srcv_clname(ji)//trim(catm),srcv_nid(ja,ji)
              ENDIF
           ENDIF
       END DO
@@ -178,7 +209,7 @@
      &              'Failure in prism_enddef')
             ELSE
                MPI_master_only write(*,*) 
-     &              'CPL-ROMS: ENDDEF OK'
+     &              'CPL-CROCO: ENDDEF OK'
             ENDIF
 #ifdef AGRIF
          endif
@@ -195,14 +226,14 @@
       ierr=nf_open(trim(fname), nf_nowrite, ncid)
       if (ierr == NF_NOERR) then
           MPI_master_only write(*,*) 
-     &    'CPL-ROMS: open coupling_masks'//clevel//'.nc ok'
+     &    'CPL-CROCO: open coupling_masks'//clevel//'.nc ok'
           DO ja = 1, nmaxatm
              WRITE(catm,'(a,i1.1)') "_atm", ja
              ierr=nf_inq_varid (ncid, 'cplmsk'//catm, varid)
              if (ierr == NF_NOERR) then
       ierr=nf_fread (cplmsk(START_2D_ARRAY,ja), ncid, varid, 0, r2dvar)
                 MPI_master_only write(*,*) 
-     &               'CPL-ROMS: read cplmsk'//catm//' ok',
+     &               'CPL-CROCO: read cplmsk'//catm//' ok',
      &               minval(cplmsk(1:Lmmpi,1:Mmmpi,ja)),
      &               maxval(cplmsk(1:Lmmpi,1:Mmmpi,ja))
              endif
@@ -210,7 +241,7 @@
           ierr=nf_close(ncid)
        else
           MPI_master_only write(*,*) 
-     &         'CPL-ROMS: coupling_masks'//clevel//'.nc not found'
+     &         'CPL-CROCO: coupling_masks'//clevel//'.nc not found'
        endif
 
 

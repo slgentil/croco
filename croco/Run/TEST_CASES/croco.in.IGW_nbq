@@ -1,25 +1,25 @@
 title:
         IGW TEST MODEL
 time_stepping: NTIMES   dt[sec]  NDTFAST  NINFO
-                 500000    50.    60     500 
+                 5    50.    60     500 
 time_stepping_nbq: NDTNBQ    CSOUND_NBQ    VISC2_NBQ
                     10          1500          1.
 S-coord: THETA_S,   THETA_B,    Hc (m)
            1      0      1.e3
 grid:  filename
-                          igw_grd.nc
+                          TEST_CASES/igw_grd.nc
 forcing: filename
-                          igw_frc.nc
+                          TEST_CASES/igw_frc.nc
 climatology: filename
-                          igw_clm.nc
+                          TEST_CASES/igw_clm.nc
 initial: NRREC  filename
           0
                           igw_ini.nc
 restart:          NRST, NRPFRST / filename
-                   72000    -1
+                   5    -1
                           igw_rst.nc
 history: LDEFHIS, NWRT, NRPFHIS / filename 
-            T     465      0
+            T     5      0
                           igw_his.nc
 averages: NTSAVG, NAVG, NRPFAVG / filename
             1      259200     0

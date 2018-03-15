@@ -60,12 +60,15 @@ C$    integer omp_get_thread_num
 !
       real Length_XI,Length_ETA, depth, f0,beta, 
      &     cff,y, x0,y0,dx,dy, NSUB
-
+!
 # ifdef INTERNAL
       real cff1, ridge_width, ridge_height
 # endif
 # ifdef RIP
       real h0,per,xx,yy,xs,db,alpha,lambda,eps
+# endif
+# ifdef FLUME
+      real p1,p2,p3,p4
 # endif
 #ifdef MPI
 # define LOCALLM Lmmpi
@@ -76,6 +79,10 @@ C$    integer omp_get_thread_num
 #endif
 !
 # include "compute_extended_bounds.h"
+!
+!----------------------------------------------------------------------
+! Configuration parameters (h,f,beta)
+!----------------------------------------------------------------------
 !
 # if defined BASIN
                      depth=5000.
@@ -155,6 +162,10 @@ C$    integer omp_get_thread_num
                      depth=15.
                      f0=0.   
                      beta=0.
+# elif defined FLUME
+                     depth=0.6
+                     f0=0.   
+                     beta=0.
 # elif defined SWASH
                      depth=1.
                      f0=0.   
@@ -188,6 +199,11 @@ C$    integer omp_get_thread_num
                      f0=???
                      beta=???
 # endif
+!
+!----------------------------------------------------------------------
+! Grid dimensions (Length_XI, Length_ETA)
+!----------------------------------------------------------------------
+!
 # ifdef AGRIF
       if (Agrif_Root()) then
 # endif
@@ -201,18 +217,9 @@ C$    integer omp_get_thread_num
                      Length_ETA=3200.0E+3
                      Length_XI =4000.0E+3
 # elif defined KH_INST 
-#  ifndef KH_INSTY
-#   ifdef KH_INST2D
-                     Length_XI =286.0
-                     Length_ETA=286.0/256.0
-#   else
                      Length_XI =286.0
                      Length_ETA=Length_XI*float(MMm0)/float(LLm0) 
-#   endif
-#  else
-                     Length_ETA =286.0
-                     Length_XI=286./256.
-#  endif
+!                    Length_ETA=286.0/256.0
 # elif defined ACOUSTIC
                      Length_XI =128.0
                      Length_ETA=2.0
@@ -232,10 +239,10 @@ C$    integer omp_get_thread_num
                      Length_XI =200.0e+3
                      Length_ETA=3.0e+3
 # elif defined INTERNAL
-!                     Length_XI =2400.0e+3
                      Length_XI =1200.0e+3
-!                     Length_ETA=100.0e+3
                      Length_ETA=6.0e+3
+!                     Length_XI =2400.0e+3
+!                     Length_ETA=100.0e+3
 # elif defined OVERFLOW
                      Length_XI =2.0E+3
                      Length_ETA=64.0E+3
@@ -263,6 +270,9 @@ C$    integer omp_get_thread_num
 # elif defined SHOREFACE
                     Length_XI =1180.0 
                     Length_ETA=140.0
+# elif defined FLUME
+                    Length_XI =32.0 
+                    Length_ETA=1.0
 # elif defined SWASH
                     Length_XI =110.0 
                     Length_ETA=MMm*Length_XI/LLm
@@ -301,31 +311,34 @@ C$    integer omp_get_thread_num
                      Length_XI =???
                      Length_ETA=??? 
 # endif
+
+!----------------------------------------------------------------------
+! Copy physical dimensions of the grid into globally vizible variables
+!----------------------------------------------------------------------
+!
+        xl=Length_XI
+        el=Length_ETA
+
 # ifdef AGRIF
-      else
-!
-! Child grid dimension
-!
-        Length_XI=
-     &       Agrif_Parent_xp(Agrif_Ix()+Lm/Agrif_IRhox(),Agrif_Iy())
-     &      -Agrif_Parent_xp(Agrif_Ix(),Agrif_Iy())
-        Length_ETA=
-     &       Agrif_Parent_yp(Agrif_Ix(),Agrif_Iy()+Mm/Agrif_IRhoy())
-     &      -Agrif_Parent_yp(Agrif_Ix(),Agrif_Iy())
+      else      
+        xl=Agrif_Parent(xl)/Agrif_Parent(LLm)*LLm/Agrif_Rhox()
+        el=Agrif_Parent(el)/Agrif_Parent(MMm)*MMm/Agrif_Rhoy()
+        Length_XI=xl
+        Length_ETA=el
       endif
 # endif /* AGRIF */
 !
-! Copy physical dimensions of the grid into globally vizible  variables
 !
-      xl=Length_XI
-      el=Length_ETA
-!
+!----------------------------------------------------------------------
 ! Set grid spacings for rectangular grids
+!----------------------------------------------------------------------
 !
-      dx=Length_XI/float(LLm)
-      dy=Length_ETA/float(MMm)
+      dx=Length_XI/float(LLm)    
+      dy=Length_ETA/float(MMm)   
 !
+!----------------------------------------------------------------------
 ! Set reference point location
+!----------------------------------------------------------------------
 !
       x0=0.
       y0=0.
@@ -337,11 +350,13 @@ C$    integer omp_get_thread_num
       y0=y0-0.5*Length_ETA  
 # endif
 
+
 CR      write(*,'(4(A3,pe15.9,1x),I3)') 'dx=',dx, 'dy=',dy,
 CR     &                                'x0=',x0, 'y0=',y0, mynode
-
 !
+!----------------------------------------------------------------------
 ! Setup rectangulag grid:  coordinates (XI,ETA) at PSI- and RHO-points.
+!----------------------------------------------------------------------
 !
       do j=JstrR,JendR
         do i=IstrR,IendR
@@ -352,9 +367,11 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
         enddo
       enddo
 !
+!----------------------------------------------------------------------
 ! Compute coordinate transformation metrics at RHO-points "pm" and
 ! "pn"  (1/m) associated with the differential distances in XI and
 ! ETA, respectively.
+!----------------------------------------------------------------------
 !
       do j=JstrR,JendR
         do i=IstrR,IendR
@@ -363,7 +380,9 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
         enddo
       enddo
 !
+!----------------------------------------------------------------------
 !  Set Coriolis parameter [1/s] at RHO-points.
+!----------------------------------------------------------------------
 !
       do j=JstrR,JendR
         do i=IstrR,IendR
@@ -375,7 +394,9 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
         enddo
       enddo   
 !
+!----------------------------------------------------------------------
 !  Set bathymetry [meters; positive] at RHO-points.
+!----------------------------------------------------------------------
 !
 # if defined BASIN || defined EQUATOR || defined GRAV_ADJ \
                    || defined SOLITON || defined JET \
@@ -387,6 +408,7 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
           h(i,j)=depth
         enddo
       enddo
+
 # elif defined CANYON_A || defined CANYON_B
       do j=JstrR,JendR
         do i=IstrR,IendR
@@ -394,6 +416,7 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
           h(i,j)=20.+0.5*(depth-20.)*(1.+tanh((yr(i,j)-cff)/10000.))
         enddo
       enddo
+
 # elif defined INNERSHELF
       do j=JstrR,JendR
         do i=IstrR,IendR
@@ -404,6 +427,7 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
 !     &                      /cosh((150.e3-xr(i,j))/40.e3))
         enddo
       enddo
+
 # elif defined INTERNAL
       cff1=1./(ridge_width*ridge_width)
       do j=JstrR,JendR
@@ -422,6 +446,7 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
 #   endif
         enddo
       enddo
+
 # elif defined OVERFLOW
       do j=JstrR,JendR
         do i=IstrR,IendR
@@ -429,6 +454,7 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
      &                         tanh((yr(i,j)-40000.)/5000.))
         enddo
       enddo
+
 # elif defined SEAMOUNT
       cff=(1./50.e3)**2
       do j=JstrR,JendR
@@ -437,6 +463,7 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
      &                                  (yr(i,j)-0.5*el)**2))) 
         enddo
       enddo
+
 # elif defined SHELFRONT
       do j=JstrR,JendR
         do i=IstrR,IendR
@@ -454,6 +481,7 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
           endif
         enddo
       enddo
+
 # elif defined SED_TEST2
       do j=Jstr,Jend
         do i=Istr,Iend
@@ -464,6 +492,7 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
      &     (val1-val2)*TANH((7000.0-xr(i,j))/val3))  
         enddo
       enddo
+
 # elif defined UPWELLING
       do j=JstrR,JendR
 #  ifdef MPI
@@ -477,6 +506,7 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
           h(i,j)=cff
         enddo
       enddo
+
 # elif defined RIVER
       do i=IstrR,IendR
 #  ifdef MPI
@@ -501,6 +531,7 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
           h(i,j)=h(i,JstrR)
         enddo
       enddo
+
 # elif defined SHOREFACE
       do j=JstrR,JendR
         do i=IstrR,IendR
@@ -524,6 +555,33 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
 #  endif
         enddo
       enddo
+
+# elif defined FLUME
+      do j=JstrR,JendR
+        do i=IstrR,IendR
+#  ifdef MPI
+          cff=(float(i +ii*Lm) )
+#  else
+          cff=(float(i       ) )
+#  endif
+!
+! Grasso et al. 2009
+!          p1 = -6.953e-05
+!          p2 =  0.003705 
+!          p3 = -0.06435
+!          p4 =  0.5716
+!
+! Roelvink & Stive 1989
+          p1 =  -6.228e-06
+          p2 =   0.0004507
+          p3 =     0.01459
+          p4 =     -0.6769
+!
+          h(i,j) = p1*xr(i,j)**3 + p2*xr(i,j)**2 + p3*xr(i,j) + p4
+          h(i,j) = min(-h(i,j),depth)
+        enddo
+      enddo
+
 # elif defined SWASH
       do j=JstrR,JendR
         do i=IstrR,IendR
@@ -539,6 +597,7 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
           if (xr(i,j).lt.16.57) h(i,j)=0.85               ! GLOBEX
         enddo
       enddo
+
 # elif defined RIP
 #  ifdef GRANDPOPO
 !
@@ -585,10 +644,11 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
      &       +1.35*(1+tanh(0.0253*(xx-xs)))
      &       +0.0032*(xx+log(cosh(alpha*(xx-xs))/cosh(alpha*xs))/alpha)
           per=eps*cos(2*pi*yy/lambda)*exp(-5*(((xx-xs-db)/db)**2))
-          h(i,j)=(1+per)*h0;
+          h(i,j)=(1+per)*h0!-0.8;
         enddo
       enddo
 #  endif
+
 # elif defined THACKER
       cff=80.e3
       do j=JstrR,JendR
@@ -601,6 +661,7 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
 #  endif
         enddo
       enddo
+
 # elif defined TANK
 #  ifndef MOVING_BATHY
       do j=JstrR,JendR
@@ -626,7 +687,9 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
 # endif
 
 !
+!----------------------------------------------------------------------
 !  Set masking at RHO-points.
+!----------------------------------------------------------------------
 !
 # ifdef MASKING
 #  ifdef RIVER

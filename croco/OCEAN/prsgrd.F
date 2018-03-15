@@ -100,7 +100,7 @@ c********************************************************************
 !           rho(T,S,z) = rho1(T,S) + (zeta-z) * qp1(T,S)
 !
 ! where rho1 is potential density at 1 atm and qp1 is compressibility
-! coefficient, which does not depend on z (or weakly dependens on z).
+! coefficient, which does not depend on z (or weakly dependent on z).
 ! In this case 
 !
 !          d rho     d rho1              d qp1            d z
@@ -113,7 +113,7 @@ c********************************************************************
 ! density, which is subject to harmonic averaging, while the last
 ! term is added in later. This approach quarantees that density
 ! profile reconstructed by cubic polynomial maintains its positive
-! statification in physical sense as long as discrete values of
+! stratification in physical sense as long as discrete values of
 ! density are positively stratified.
 !
 ! This scheme retains exact antisymmetry J(rho,z_r)=-J(z_r,rho)

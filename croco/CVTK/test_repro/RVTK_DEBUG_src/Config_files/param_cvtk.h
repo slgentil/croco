@@ -108,7 +108,9 @@
       parameter (LLm0=30,   MMm0=50,   N=30)   ! 20 km resolution
 # endif
 #elif defined SHOREFACE
-      parameter (LLm0=59,   MMm0=3,    N=20)   ! 20 m Planar Beach
+      parameter (LLm0=59,   MMm0=1,    N=20)   ! 20 m Planar Beach
+#elif defined FLUME
+      parameter (LLm0=59,   MMm0=1,    N=20)   ! .5 m Flume
 #elif defined SWASH
       parameter (LLm0=109,  MMm0=1,    N=10)   !  1 m  Swash
 !     parameter (LLm0=439,  MMm0=1,    N=10)   ! 25 cm Swash (GLOBEX)
@@ -134,7 +136,7 @@
       parameter (LLm0=1,    MMm0=50,   N=50)   ! 20 cm resolution
 #  endif
 # else
-      parameter (LLm0=4000,   MMm0=1,  N=30)  !  1 mm resolution
+      parameter (LLm0=4000, MMm0=1,    N=30)   !  1 mm resolution
 # endif
 #elif defined REGIONAL
 #  if   defined USWC0
@@ -246,10 +248,11 @@
       parameter (Ntides=1)
 # endif
 #endif
+!
 #ifdef WET_DRY
       real D_wetdry             ! Critical Depth for Drying cells
                                 ! ======== ===== === ====== =====
-# ifdef THACKER
+# if defined THACKER || defined FLUME
       parameter (D_wetdry=0.01)
 # elif defined SWASH
       parameter (D_wetdry=0.05)
@@ -257,6 +260,7 @@
       parameter (D_wetdry=0.10)
 # endif
 #endif
+!
 #if defined PSOURCE || defined PSOURCE_NCFILE
       integer Msrc               ! Number of point sources
       parameter (Msrc=10)        ! ====== == ===== =======
@@ -375,8 +379,10 @@
 ! NLAY           Number of layers in sediment bed
 !
       integer    NGRAV, NSAND, NMUD, NST, NLAY
-      parameter (NGRAV=0, NSAND=2, NMUD=0, 
-     &           NST=NGRAV+NSAND+NMUD, NLAY=2)
+      parameter (NGRAV=0, NSAND=2, NMUD=0) 
+!      parameter (NST=NGRAV+NSAND+NMUD) ! robustness?
+      parameter (NST=2)  ! NST=NGRAV+NSAND+NMUD
+      parameter (NLAY=1)
       parameter (ntrc_sed=NST)
 # else
       parameter (ntrc_sed=0)

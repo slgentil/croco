@@ -492,7 +492,7 @@ CDEBUG      write(*,*)'level',level
 
 # ifdef AGRIF
         endif  !Agrif_laststep
-# endif AGRIF
+# endif 
 
       endif  !diagfloats
 

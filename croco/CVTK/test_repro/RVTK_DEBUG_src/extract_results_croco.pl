@@ -36,7 +36,7 @@ print $mydate, "\n";
 # GIT version number
 $ligne = `grep -n vision gitinfos | cut -d: -f1` ;
 $ligne2 = $ligne +1 ;
-$GITnum = `head -$ligne2 gitinfos | tail -1 | tr -d '\n'` ; 
+$GITnum = `head -$ligne2 gitinfos | tail -1 | tr -d '\n' | tr -d ' '` ; 
 
 print $GITnum, "\n";
 #$numrev0 = `sed -n '/revision/{n;p;}' gitinfos` ;

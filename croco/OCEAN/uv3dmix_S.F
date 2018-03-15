@@ -247,7 +247,7 @@
         kp=min(k+1,N)
         do j=jstr,jend
           do i=istr,iend+1
-              FX(i,j)=0.25*
+              FX(i,j)=0.125*
      &                max(0.,visc2_r(i,j)+visc2_r(i-1,j)
 #ifdef SPONGE_VIS2
      &                      ,visc2_sponge_r(i,j)+visc2_sponge_r(i-1,j)
@@ -265,7 +265,7 @@
         enddo
         do j=jstr,jend+1
           do i=istr,iend
-              FE(i,j)=0.25*
+              FE(i,j)=0.125*
      &                max(0.,visc2_r(i,j)+visc2_r(i,j-1)
 #ifdef SPONGE_VIS2
      &                      ,visc2_sponge_r(i,j)+visc2_sponge_r(i,j-1)
@@ -288,7 +288,7 @@
             cff1=pm(i,j)*pn(i,j)
             wz(i,j,k,indx)=wz(i,j,k,indx)+dt*cff1
      &                     *(FX(i+1,j)-FX(i,j)+FE(i,j+1)-FE(i,j))
-     &                                    /(Hz(i,j,k)+Hz(i,j,kp))
+!    &                                    /(Hz(i,j,k)+Hz(i,j,kp))
           enddo
         enddo
       enddo ! <-- k

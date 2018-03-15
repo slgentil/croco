@@ -16,7 +16,7 @@
 
    <file_definition type="one_file" name="Go_Meddy" sync_freq="4d"> 
 
-       <file id="file0" name_suffix="_grid" output_freq="4d" enabled=".TRUE.">
+       <file id="file1" name_suffix="_grid" output_freq="4d" enabled=".TRUE.">
             
          <field_group id="grid_fields" operation="once">
            <field field_ref="hc" />
@@ -26,20 +26,8 @@
            <field field_ref="sc_w" />
          </field_group>
        </file>
-
-       <file id="file1" name_suffix="_init" output_freq="4d" enabled=".TRUE.">
-         <field_group id="init_fields" operation="once">
-           <field field_ref="u" name="u" />
-           <field field_ref="v" name="v" />
-           <field field_ref="w" name="w" />
-           <field field_ref="temp" name="temp" />
-           <field field_ref="salt" name="salt" />          
-           <field field_ref="AKv" name="AKv" />            
-           <field field_ref="AKt" name="AKt" />          
-         </field_group>
-       </file>
-
-       <file id="file2" name_suffix="_his" output_freq="4d" time_counter="instant" enabled=".TRUE.">
+        
+       <file id="file2" name_suffix="_his" output_freq="4d" enabled=".TRUE.">
          <field_group id="his_fields" operation="instant">
            <field field_ref="u" name="u" />
            <field field_ref="v" name="v" />

@@ -462,9 +462,6 @@
           do j=JstrR,JendR
             zetabry_west(j)=cff1*zetabry_west_dt(j,it1)
      &                     +cff2*zetabry_west_dt(j,it2)
-#   ifdef NBQ
-     &                                      +h(IstrR,j)
-#   endif
           enddo
 #  endif
 #  ifdef M2_FRC_BRY
@@ -506,9 +503,6 @@
           do j=JstrR,JendR
             zetabry_east(j)=cff1*zetabry_east_dt(j,it1)
      &                     +cff2*zetabry_east_dt(j,it2)
-#   ifdef NBQ
-     &                                      +h(IendR,j)
-#   endif
           enddo
 #  endif
 #  ifdef M2_FRC_BRY
@@ -550,9 +544,6 @@
           do i=IstrR,IendR
             zetabry_south(i)=cff1*zetabry_south_dt(i,it1)
      &                      +cff2*zetabry_south_dt(i,it2)
-#   ifdef NBQ
-     &                                        +h(i,JstrR)
-#   endif
           enddo
 #  endif
 #  ifdef M2_FRC_BRY
@@ -594,9 +585,6 @@
           do i=IstrR,IendR
             zetabry_north(i)=cff1*zetabry_north_dt(i,it1)
      &                      +cff2*zetabry_north_dt(i,it2)
-#   ifdef NBQ
-     &                                        +h(i,JendR)
-#   endif
           enddo
 #  endif
 #  ifdef M2_FRC_BRY

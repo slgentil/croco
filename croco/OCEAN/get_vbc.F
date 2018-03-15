@@ -50,8 +50,7 @@
 ! Initial wave periode, amplitude, direction and dissipation
 !---------------------------------------------------------------
 !
-# if (defined BBL || defined MRL_WCI) &&\
-     (!defined ANA_WWAVE && !defined WKB_WWAVE)
+# if (defined BBL || defined MRL_WCI) && defined WAVE_OFFLINE
 #  if defined  AGRIF && defined BBL
       if (Agrif_lev_sedim.EQ.0) call get_wwave
 #  else
@@ -302,7 +301,7 @@
 ! Flux correction to surface salt flux.
 !--------------------------------------------------------------
 !
-#  ifdef SFLX_CORR
+#  if defined SALINITY && defined SFLX_CORR
 #   ifdef ANA_SSS
       call ana_sss_tile (Istr,Iend,Jstr,Jend)
 #   else
@@ -585,8 +584,7 @@ C$OMP MASTER
 C$OMP END MASTER
 #endif
 #ifndef OW_COUPLING
-# if (defined BBL || defined MRL_WCI) &&\
-     (!defined ANA_WWAVE && !defined WKB_WWAVE)
+# if (defined BBL || defined MRL_WCI) && defined WAVE_OFFLINE
       call set_wwave_tile(Istr,Iend,Jstr,Jend)  
 # endif
 #endif

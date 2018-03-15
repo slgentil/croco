@@ -40,7 +40,7 @@
       common /wkb_diag_comm/ winfo, iwave, av_wac, av_wkn, thwave
 
 ! for CEW
-# if defined MRL_CEW || defined WKB_UNSTEADY
+# if defined MRL_CEW || !defined WKB_STEADY
       integer wint, interp_max, wavg, cewavg, wcew
       parameter (interp_max = 5)
       parameter (wavg = 1)

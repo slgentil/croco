@@ -1,17 +1,16 @@
 ! $Id: gls_mixing.F 1524 2014-04-14 17:00:06Z gcambon $
 !
 !======================================================================
-! ROMS_AGRIF is a branch of ROMS developped at IRD and INRIA, in France
+! CROCO is a branch of ROMS developped at IRD and INRIA, in France
 ! The two other branches from UCLA (Shchepetkin et al) 
 ! and Rutgers University (Arango et al) are under MIT/X style license.
-! ROMS_AGRIF specific routines (nesting) are under CeCILL-C license.
+! CROCO specific routines (nesting) are under CeCILL-C license.
 ! 
-! ROMS_AGRIF website : http://www.romsagrif.org/
+! CROCO website : http://www.croco-ocean.org
 !======================================================================
 #include "cppdefs.h"
 
 #if defined SOLVE3D && defined GLS_MIX2017 
-
    !!======================================================================
    !!                 ***  SUBROUTINE  gls_mixing  ***
    !!
@@ -147,6 +146,11 @@ c++ # define CANUTO_A
       PARAMETER( beta1 = 1.0, beta2 = 1.22, beta3m =  0.05, beta3p = 1.0 )
       PARAMETER( OneOverSig = (/ 1.25, 0.9345 /) ) 
 # endif
+# ifdef MRL_WCI
+      REAL :: cmu_fac, cb_wallE, gls_sigp_cb
+      REAL, PARAMETER :: zalp = 0.05     ! fraction of wave energy
+# endif
+
       REAL, PARAMETER :: e1 =  3.0 + 1.*rp / rn
       REAL, PARAMETER :: e2 =  1.5 + 1.*rm / rn
       REAL, PARAMETER :: e3 = -1.0 / rn
@@ -215,6 +219,16 @@ c++ # define CANUTO_A
       
       trb_min(itke) = tke_min
       trb_min(igls) = gls_min
+
+# ifdef MRL_WCI
+      cmu_fac=(1.5/OneOverSig(1))**(1./3.)
+     &             /(cm0**(4./3.))
+      cb_wallE=1.
+      gls_sigp_cb=vonKar**2/(cm0**2*beta2*cb_wallE)
+     &            *(rn**2-cff*rn/3.*(4.*rm+1.)
+     &                      +cff**2*rm/9.*(2.+4.*rm))
+# endif
+
       !--------------------------------------------------
       IF (FIRST_TIME_STEP) THEN
          DO k=0,N
@@ -346,9 +360,15 @@ c++ # define CANUTO_A
             ! Boundary conditions
             IF( ig == itke ) THEN
                DO i=imin,imax            
-                  ! surface                  
+                  ! surface
+# if defined MRL_WCI
+                  trb_sfc      = MAX( tke_min, cmu_fac*
+     &                       (zalp*wepb(i,j))**(2./3.) )
+                  flux_top=zalp*wepb(i,j)
+# else
                   trb_sfc      = MAX( tke_min, cm0inv2*ustar_sfc_sq(i,j) ) 
-                  flux_top     = 0.         
+                  flux_top     = 0.
+# endif
                   ! bottom                  
                   trb_bot      = MAX( tke_min, cm0inv2*ustar_bot_sq(i,j) )
                   flux_bot     = 0.              
@@ -362,21 +382,36 @@ c++ # define CANUTO_A
             ELSE
                DO i=imin,imax
                   ! surface
-                  z0_s    = MAX( 1.e-2 , chk*ustar_sfc_sq(i,j) )   !<-- Charnock                  
+# if !defined MRL_WCI
+                  z0_s    = MAX( 1.e-2 , chk*ustar_sfc_sq(i,j) )   !<-- Charnock
+# else
+                  z0_s=MAX(whrm(i,j)/2.,0.01)
+# endif
 !                  cff     = 30.*tanh( 0.6 / (28.*sqrt( ustar_sfc_sq(i,j) )) )
 !                  z0_s    = MAX( 1.e-2 , 
 !     &                       1.3*( 782.353/g )*ustar_sfc_sq(i,j)*(cff**1.5) )                 
                   cff         = 0.5*( trb( i,j,N-1,nnew,itke )
-     &                            +   trb( i,j,N  ,nnew,itke ) )  
+     &                            +   trb( i,j,N  ,nnew,itke ) )
                   lgthsc      = vonKar*(0.5*Hz(i,j,N)+z0_s)
+
                   trb_sfc     = MAX(gls_min,(cm0**rp)*(lgthsc**rn)
      &                                                 *(cff**rm))
                   flux_top    = -rn*cm0**(rp+1.)
      &                             *vonKar*OneOverSig(igls)
      &                             *(cff**(rm+0.5))*(lgthsc**rn)
+
+# ifdef MRL_WCI
+                  flux_top=flux_top-
+     &             OneOverSig(itke)*OneOverSig(igls)
+     &                 *   cm0**(rp+1.)
+     &                 *   rm
+     &                 *   cff**(rm-0.5)
+     &                 *   lgthsc** (rn+1.)
+     &                 *   zalp*   wepb(i,j)
+# endif 
                   ! bottom
                   z0_b        = MAX( Zob , 1.E-04 )
-                  cff         = 0.5*( trb( i,j,  1,nnew,itke )  
+                  cff         = 0.5*( trb( i,j,  1,nnew,itke )
      &                            +   trb( i,j,  0,nnew,itke ) )
                   lgthsc      = vonKar*(0.5*Hz(i,j,1)+z0_b)
                   trb_bot     = MAX(gls_min,(cm0**rp)*(lgthsc**rn)

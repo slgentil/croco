@@ -184,9 +184,6 @@ C$    integer  trd, omp_get_thread_num
         do j=JstrR,JendR
           do i=IstrR,IendR
             ssh(i,j)=cff1*sshg(i,j,it1)+cff2*sshg(i,j,it2)
-# ifdef NBQ
-     &                                             +h(i,j)
-# endif
           enddo
         enddo
 !

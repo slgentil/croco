@@ -23,7 +23,7 @@
       end
 
       subroutine diag_tile (Istr,Iend,Jstr,Jend, ke2d,pe2d)
-!     implicit none
+      implicit none     
 #include "param.h" 
 #include "grid.h"
 #ifdef SOLVE3D
@@ -33,6 +33,9 @@
 #endif
 #include "scalars.h"
 #include "mpi_roms.h"
+#if defined NBQ && defined DIAG_CFL
+# include "nbq.h"
+#endif 
       integer Istr,Iend,Jstr,Jend,    i,j,k, NSUB,
      &                                trd, omp_get_thread_num
       real ke2d(PRIVATE_2D_SCRATCH_ARRAY),
@@ -42,8 +45,19 @@
 #ifdef MPI
       include 'mpif.h'
       integer size, step, status(MPI_STATUS_SIZE), ierr
-      real*QUAD buff(6)
+      real*QUAD buff(9)
       common /xyz/ buff
+#endif
+
+#ifdef DIAG_CFL
+      real my_Cu_Adv, my_Cu_W, ciV, cx, cw
+# ifdef NBQ
+      real my_Cu_Nbq_X, my_Cu_Nbq_Y, my_Cu_Nbq_Z
+      real cx_nbq,cy_nbq,cz_nbq, alphax,alphay
+      real my_Cu_Nbq
+      real Cu_Nbq
+# endif
+      integer my_i_cmax, my_j_cmax, my_k_cmax
 #endif
 
 #ifdef ETALON_CHECK
@@ -92,6 +106,88 @@
 #  include "etalon_data.h"
 # endif
 #endif
+!
+#ifndef NBQ_MASS
+# define Hzr_half_nbq Hz
+#else
+# define Hzr_half_nbq Hzr
+#endif
+!
+#ifdef DIAG_CFL
+      my_Cu_Adv=0.  ;  my_Cu_W=0.
+# ifdef NBQ
+      my_Cu_Nbq_X=0.; my_Cu_Nbq_Y=0.; my_Cu_Nbq_Z=0.
+      my_Cu_Nbq =0.
+# endif
+      if (mod(iic-1,ninfo).eq.0) then
+
+        do j=jstr,jend
+          do k=N,1,-1
+            do i=istr,iend
+# ifdef MASKING
+              ciV=dt*rmask(i,j)*pm(i,j)*pn(i,j)/Hz(i,j,k)
+# else
+              ciV=dt*pm(i,j)*pn(i,j)/Hz(i,j,k)
+# endif
+              cw=ciV*( max( We(i,j,k  )
+# ifdef VADV_ADAPT_IMP     
+     &                     +Wi(i,j,k  )
+# endif     
+     &                          , 0.)
+     &                 -min(We(i,j,k-1)
+# ifdef VADV_ADAPT_IMP 
+     &                     +Wi(i,j,k-1)
+# endif        
+     &                            , 0.) )
+
+              cx=cw+ciV*( max(HUon(i+1,j,k), 0.)-min(HUon(i,j,k), 0.)
+     &                   +max(HVom(i,j+1,k), 0.)-min(HVom(i,j,k), 0.))
+
+              if (cx .gt. my_Cu_Adv) then
+                my_Cu_Adv=cx ; my_Cu_W=cw
+              endif
+
+# ifdef NBQ
+              cz_nbq=(soundspeed_nbq(i,j)*dtnbq/max(1.D-30,Hzr(i,j,k)))
+#  ifdef MASKING
+     &                *rmask(i,j) 
+#  endif    
+              my_Cu_Nbq_Z=max(my_Cu_Nbq_Z,cz_nbq)
+            
+              cx_nbq=soundspeed_nbq(i,j)*dtnbq*pm_u(i,j)
+#  ifdef MASKING
+     &                *umask(i,j) 
+#  endif
+              my_Cu_Nbq_X=max(my_Cu_Nbq_X,cx_nbq)
+          
+              cy_nbq=soundspeed_nbq(i,j)*dtnbq*pn_v(i,j)
+#  ifdef MASKING
+     &                *vmask(i,j) 
+#  endif
+
+              my_Cu_Nbq_Y=max(my_Cu_Nbq_Y,cy_nbq)
+          
+              alphax=(1/max(1.D-30,Hzr(i,j,k)))*
+     &               (0.5*(z_r(i+1,j,k)-z_r(i-1,j,k))*pm(i,j))
+#  ifdef MASKING
+     &                *rmask(i,j) 
+#  endif 
+
+              alphay=(1/max(1.D-30,Hzr(i,j,k)))*
+     &               (0.5*(z_r(i,j+1,k)-z_r(i,j-1,k))*pn(i,j))
+#  ifdef MASKING
+     &                *rmask(i,j) 
+#  endif 
+        
+              my_Cu_Nbq=max(my_Cu_Nbq,
+     &                (alphax*cz_nbq-cx_nbq)**2+(alphay*cz_nbq-cy_nbq)**2)
+# endif /* NBQ */
+              if (Hzr_half_nbq(i,j,k).lt.1.D-10) my_Cu_Nbq_Z=0.D0
+            enddo
+          enddo
+        enddo            
+      endif
+# endif /* DIAG_CFL */
 
 !
 ! Compute and report volume averaged kinetic, potential and total
@@ -195,6 +291,27 @@ C$OMP CRITICAL (diag_cr_rgn)
           avgke =avgke +my_avgke          ! summation among 
           avgpe =avgpe +my_avgpe          ! the threads
 
+#ifdef DIAG_CFL
+          if (tile_count.eq.0) then
+             Cu_Adv3d=my_Cu_Adv
+             Cu_W=my_Cu_W
+# ifdef NBQ
+             Cu_Nbq_X=my_Cu_Nbq_X
+             Cu_Nbq_Y=my_Cu_Nbq_Y
+             Cu_Nbq_Z=my_Cu_Nbq_Z
+             Cu_Nbq  = my_Cu_Nbq
+# endif             
+          else
+            if (my_Cu_Adv.gt.Cu_Adv3d) then
+               Cu_Adv3d=my_Cu_Adv
+               Cu_W=my_Cu_W
+            endif
+            if(my_Cu_Nbq_X.gt.Cu_Nbq_X)  Cu_Nbq_X = my_Cu_Nbq_X
+            if(my_Cu_Nbq_Y.gt.Cu_Nbq_Y)  Cu_Nbq_X = my_Cu_Nbq_Y
+            if(my_Cu_Nbq_Z.gt.Cu_Nbq_Z)  Cu_Nbq_X = my_Cu_Nbq_Z    
+            if(my_Cu_Nbq.gt.Cu_Nbq)      Cu_Nbq   = my_Cu_Nbq
+          endif
+#endif /* DIAG_CFL */
           tile_count=tile_count+1         ! This counter identifies
           if (tile_count.eq.NSUB) then    ! the last thread, whoever
             tile_count=0                  ! it is, not always master.
@@ -206,20 +323,46 @@ C$OMP CRITICAL (diag_cr_rgn)
                   buff(1)=volume
                   buff(2)=avgke           ! This is MPI_Reduce
                   buff(3)=avgpe
-                  call MPI_Send (buff,  6, MPI_DOUBLE_PRECISION,
+# ifdef SOLVE3D
+#  ifdef DIAG_CFL
+                  buff(4)=Cu_Adv3d
+                  buff(5)=Cu_W
+#   ifdef NBQ                  
+                  buff(6)=Cu_Nbq_X
+                  buff(7)=Cu_Nbq_Y
+                  buff(8)=Cu_Nbq_Z
+                  buff(9)=Cu_Nbq
+#   endif                  
+#  endif
+# endif
+                  call MPI_Send (buff,  9, MPI_DOUBLE_PRECISION,
      &                 mynode-step, 17, MPI_COMM_WORLD,      ierr)
                 elseif (mynode .lt. size-step) then
-                  call MPI_Recv (buff,  6, MPI_DOUBLE_PRECISION,
+                  call MPI_Recv (buff,  9, MPI_DOUBLE_PRECISION,
      &                 mynode+step, 17, MPI_COMM_WORLD, status, ierr)
                   volume=volume+buff(1)
                   avgke=avgke+  buff(2)
                   avgpe=avgpe+  buff(3)
+# ifdef SOLVE3D
+#  ifdef DIAG_CFL
+                  if (buff(4).gt.Cu_Adv3d) then
+                     Cu_Adv3d=buff(4)
+                     Cu_W=buff(5)
+                  endif
+#   ifdef NBQ  
+                  if(buff(6).gt.Cu_Nbq_X)  Cu_Nbq_X = buff(6)             
+                  if(buff(7).gt.Cu_Nbq_Y)  Cu_Nbq_Y = buff(7)   
+                  if(buff(8).gt.Cu_Nbq_Z)  Cu_Nbq_Z = buff(8)
+                  if(buff(9).gt.Cu_Nbq  )  Cu_Nbq   = buff(9)                  
+#   endif                
+#  endif
+# endif
                 endif
                size=step
               if (size.gt.1) goto 1
             endif
             if (mynode.eq.0) then
-#endif
+#endif /* MPI */
 
               avgke=avgke/volume          ! Compute and print global
               avgpe=avgpe/volume          ! diagnostics (last thread
@@ -234,6 +377,23 @@ C$OMP CRITICAL (diag_cr_rgn)
               trd=omp_get_thread_num()
               write(stdout,3)iic-1,tdays,avgke,avgpe,avgkp,volume,trd
    3          format(I8, F12.5, 1PE16.9, 3(1PE14.7), I3)
+#ifdef DIAG_CFL
+              if (mod(iic-1,10*ninfo).eq.0) then
+              write(stdout,4) 'CFL --  INT_3DADV  = ',Cu_adv3d,
+     &                             '   EXT_GWAVES = ',Cu_max
+              endif
+   4          format(10x,A,F6.2,A,F6.2)
+# ifdef NBQ
+              if (mod(iic-1,10*ninfo).eq.0) then
+              write(stdout,5) '        NBQ_HADV   = ',
+     &                                 sqrt(Cu_Nbq_X**2+Cu_Nbq_Y**2),
+     &                             '   NBQ_IMP    = ',sqrt(Cu_Nbq),
+     &                             '   NBQ_VSOUND = ',Cu_Nbq_Z
+ 
+              endif
+   5          format(10x,A,F6.2,A,F6.2,A,F8.2)
+# endif   
+#endif   
 !
 ! Raise may_day_flag to stop computations in the case of blowing up.
 ! [Criterion for blowing up here is the numerical overflow, so that
@@ -292,11 +452,11 @@ C$OMP CRITICAL (diag_cr_rgn)
             if (ninfo.eq.32 .and. iic.gt.256) ninfo=64
 */
           endif
-	  
+
 #if defined MPI && defined DEBUG && !defined AGRIF
       call flush
 #endif
-	  
+  
 C$OMP END CRITICAL (diag_cr_rgn)
       endif
       return

@@ -83,6 +83,8 @@ C$    trd=omp_get_thread_num()
      &                    ,A1dXI(1,15+9*NWEIGHT))
 #endif
 ! 
+#define OBC_COM_ZCHAPMAN
+!#define OBC_COM_ZORLANSKI
 #ifndef EW_COM_PERIODIC
 !
 !====================================================================
@@ -111,11 +113,7 @@ C$    trd=omp_get_thread_num()
 !                                           Western edge Chapman BC
 !                                           ======= ==== ======= ==
         do j=JstrV-1,Jend
-#  ifdef NBQ
-          cx=dtfast*pm(1,j)*sqrt(g*zeta(1,j,kstp))
-#  else
           cx=dtfast*pm(1,j)*sqrt(g*(h(1,j)+zeta(1,j,kstp)))
-#  endif
           zeta(0,j,knew)=(zeta(0,j,kstp)+cx*zeta(1,j,knew))/(1.+cx)
 #  ifdef MASKING
      &                      *rmask(0,j)
@@ -170,11 +168,7 @@ C$    trd=omp_get_thread_num()
 !                                           Eastern edge Chapman BC
 !                                           ======= ==== ======= ==
         do j=JstrV-1,Jend
-#  ifdef NBQ
-          cx=dtfast*pm(Iend,j)*sqrt(g*zeta(Iend,j,kstp))
-#  else
           cx=dtfast*pm(Iend,j)*sqrt(g*(h(Iend,j)+zeta(Iend,j,kstp)))
-#  endif
           zeta(Iend+1,j,knew)=(zeta(Iend+1,j,kstp)
      &                              +cx*zeta(Iend,j,knew))/(1.+cx)
 #  ifdef MASKING
@@ -233,11 +227,7 @@ C$    trd=omp_get_thread_num()
 !                                           Southern edge Chapman BC
 !                                           ======== ==== ======= ==
         do i=IstrU-1,Iend
-#  ifdef NBQ
-          cx=dtfast*pn(i,1)*sqrt(g*zeta(i,1,kstp))
-#  else
           cx=dtfast*pn(i,1)*sqrt(g*(h(i,1)+zeta(i,1,kstp)))
-#  endif
           zeta(i,0,knew)=(zeta(i,0,kstp)
      &                              +cx*zeta(i,1,knew))/(1.+cx)
 #  ifdef MASKING
@@ -293,11 +283,7 @@ C$    trd=omp_get_thread_num()
 !                                           Northern edge Chapman BC
 !                                           ======== ==== ======= ==
         do i=IstrU-1,Iend
-#  ifdef NBQ
-          cx=dtfast*pn(i,Jend)*sqrt(g*zeta(i,Jend,kstp))
-#  else
           cx=dtfast*pn(i,Jend)*sqrt(g*(h(i,Jend)+zeta(i,Jend,kstp)))
-#  endif
           zeta(i,Jend+1,knew)=(zeta(i,Jend+1,kstp)
      &                              +cx*zeta(i,Jend,knew))/(1.+cx)
 #  ifdef MASKING
@@ -373,7 +359,6 @@ C$    trd=omp_get_thread_num()
 ! Ensure that water level on boundary cells is above bed elevation.
 !====================================================================
 !
-# ifndef NBQ
 #  ifndef EW_COM_PERIODIC
       if (WESTERN_EDGE) then
         DO j=JstrV-1,Jend
@@ -441,63 +426,6 @@ C$    trd=omp_get_thread_num()
       END IF
 #  endif
 
-# else /* NBQ */
-
-#  ifndef EW_COM_PERIODIC
-      if (WESTERN_EDGE) then
-        DO j=JstrV-1,Jend
-          IF (zeta(Istr-1,j,knew).le.Dcrit(Istr-1,j)) THEN
-            zeta(Istr-1,j,knew)=Dcrit(Istr-1,j)-eps
-          END IF
-        END DO
-      END IF
-      if (EASTERN_EDGE) then
-        DO j=JstrV-1,Jend
-          IF (zeta(Iend+1,j,knew).le.Dcrit(Iend+1,j)) THEN
-            zeta(Iend+1,j,knew)=Dcrit(Iend+1,j)-eps
-          END IF
-        END DO
-      END IF
-#  endif
-#  ifndef NS_COM_PERIODIC
-      if (SOUTHERN_EDGE) then
-        DO i=IstrU-1,Iend
-          IF (zeta(i,Jstr-1,knew).le.Dcrit(i,Jstr-1)) THEN
-               zeta(i,Jstr-1,knew)=Dcrit(i,Jstr-1)-eps
-          END IF
-        END DO
-      END IF
-      if (NORTHERN_EDGE) then
-        DO i=IstrU-1,Iend
-          IF (zeta(i,Jend+1,knew).le.Dcrit(i,Jend+1)) THEN
-               zeta(i,Jend+1,knew)=Dcrit(i,Jend+1)-eps
-          END IF
-        END DO
-      END IF
-#  endif
-#  if !defined EW_COM_PERIODIC && !defined NS_COM_PERIODIC
-      if (SOUTHERN_EDGE .and. WESTERN_EDGE) then
-        IF (zeta(Istr-1,Jstr-1,knew).le.Dcrit(Istr-1,Jstr-1)) THEN
-            zeta(Istr-1,Jstr-1,knew)=Dcrit(Istr-1,Jstr-1)-eps
-        END IF
-      END IF
-      if (SOUTHERN_EDGE .and. EASTERN_EDGE) then
-        IF (zeta(Iend+1,Jstr-1,knew).le.Dcrit(Iend+1,Jstr-1)) THEN
-            zeta(Iend+1,Jstr-1,knew)=Dcrit(Iend+1,Jstr-1)-eps
-        END IF
-      END IF
-      if (NORTHERN_EDGE .and. WESTERN_EDGE) then
-        IF (zeta(Istr-1,Jend+1,knew).le.Dcrit(Istr-1,Jend+1)) THEN
-            zeta(Istr-1,Jend+1,knew)=Dcrit(Istr-1,Jend+1)-eps
-        END IF
-      END IF
-      if (NORTHERN_EDGE .and. EASTERN_EDGE) then
-        IF (zeta(Iend+1,Jend+1,knew).le.Dcrit(Iend+1,Jend+1)) THEN
-            zeta(Iend+1,Jend+1,knew)=Dcrit(Iend+1,Jend+1)-eps
-        END IF
-      END IF
-#  endif
-# endif /* NBQ */
 #endif /* WET_DRY */
 
 

@@ -80,7 +80,7 @@
      &   lmd_nu0c=0.1,    ! convective adjustment for viscosity
                           !              and diffusivity [m^2/s].
                           !
-     &   Ricr=0.45,       ! Critical bulk Richardson number (0.3).
+     &   Ricr=0.3,        ! Critical bulk Richardson number (0.3).
                           !
      &   Ri_inv=1./Ricr,  !
                           !

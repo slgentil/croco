@@ -25,6 +25,7 @@
 #
 
 HOSTNAME=`uname -n`
+UNAME=`uname -a`
 SOURCE=../../croco/OCEAN
 SCRDIR=./Compile
 RUNDIR=`pwd`
@@ -44,11 +45,12 @@ if [[ $OS == Linux ]] ; then
 	LINUX_FC=ifort
   elif [[ $HOSTNAME == *"curie"* ]]; then 
 	LINUX_FC=ifort
+  elif [[ $UNAME == *"Ubuntu"* ]]; then
+ 	LINUX_FC=gfortran
+ 	export OMPI_FC=gfortran
   else
-	LINUX_FC=ifort
-	export OMPI_FC=ifort
-#	LINUX_FC=gfortran
-#	export OMPI_FC=gfortran
+        LINUX_FC=ifort
+        export OMPI_FC=ifort
   fi
 #
 #	set 32 or 64 Bits executable
@@ -85,6 +87,9 @@ if [[ $HOSTNAME == *"datarmor"* ]]; then
 elif [[ $HOSTNAME == *"curie"* ]]; then 
   NETCDFLIB=$(nf-config --flibs) 
   NETCDFINC=-I$(nf-config --includedir)
+elif [[ $UNAME == *"Ubuntu"* ]]; then
+  NETCDFINC=-I/export/home/services/netcdf/include
+  NETCDFLIB="-L/export/home/services/netcdf/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lz -lcurl"
 else
   NETCDFLIB="-lnetcdf -lnetcdff -llapack -lfftw3 -lfftw3f"
   NETCDFINC=-I$(nf-config --includedir)
@@ -110,9 +115,10 @@ if [[ $HOSTNAME == *"datarmor"* ]]; then
   XIOS_ROOT_DIR='$(HOME)/lib/XIOS'
 elif [[ $HOSTNAME == *"curie"* ]]; then 
   XIOS_ROOT_DIR='$(HOME)/lib/XIOS'
+elif [[ $UNAME == *"Ubuntu"* ]]; then
+  XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_ubuntu16_LTS
 else
   XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_ifort
-# XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_gfortran
 fi
 
 #
@@ -156,7 +162,7 @@ AGRIF_SRC=${ROOT_DIR}/AGRIF
 # copy SOURCE code
 #
 /bin/cp -f ${SOURCE}/*.F90 $SCRDIR
-#/bin/cp -f ${SOURCE}/*.h90 $SCRDIR
+/bin/cp -f ${SOURCE}/*.h90 $SCRDIR
 /bin/cp -f ${SOURCE}/*.F   $SCRDIR
 /bin/cp -f ${SOURCE}/*.h   $SCRDIR
 /bin/cp -f ${SOURCE}/Make* $SCRDIR
@@ -176,8 +182,8 @@ fi
 #
 # overwrite with local files
 #
-#/bin/cp -f *.F90 $SCRDIR
-#/bin/cp -f *.h90 $SCRDIR
+/bin/cp -f *.F90 $SCRDIR
+/bin/cp -f *.h90 $SCRDIR
 /bin/cp -f *.F $SCRDIR
 /bin/cp -f *.h $SCRDIR
 /bin/cp -f Make* $SCRDIR

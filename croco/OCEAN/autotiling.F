@@ -50,8 +50,16 @@
 #endif
       if (associated(A2d)) then
       deallocate(A2d,A3d)
+#if defined SEDIMENT || defined LMD_MIXING
+      deallocate(B2d)
+#endif
       endif
-      allocate(A2d(N2d,NSA,0:NPP-1), A3d(N3d,4,0:NPP-1))
+
+      allocate(A2d(N2d,NSA,0:NPP-1), A3d(N3d,5,0:NPP-1))
+#if defined SEDIMENT || defined LMD_MIXING
+      allocate(B2d(N2d,0:NPP-1))
+#endif
+       
       return
       end
       
@@ -255,7 +263,7 @@
          j=1
          timemean(i,j)=sum(times(i,j,1:nbinst(i,j)))/nbinst(i,j)
 
-!         print *,'Gain = ',timemean(1,1)/timemean(min_X,min_E)
+         print *,'Gain = ',timemean(1,1)/timemean(min_X,min_E)
 !         print *,'temps diff = ',timemean(1,1),timemean(min_X,min_E)
 #ifdef AGRIF
          print *,'Current Grid = ',Agrif_Fixed()

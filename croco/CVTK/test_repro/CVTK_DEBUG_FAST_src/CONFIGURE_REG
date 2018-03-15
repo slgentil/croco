@@ -1,0 +1,8 @@
+#!/bin/bash
+
+TEST_TYPE="REG"
+
+dir_home="$HOME/GIT/croco/CVTK/test_repro/CVTK_DEBUG_FAST_src/Scripts_reg"
+dir_test="$DATAWORK/CVTK_DEBUG_REG_DEV/TESTROOT/REG"
+dir_datafile="$DATAWORK/CROCO_FILES_BCK"
+dir_web="/home/datawork-croco/public/ftp/CVTK_FAST"

@@ -19,7 +19,7 @@ MY_CONFIG_PATH=${CROCO_DIR}'/CONFIGS/'
 #
 # Name of the configuration directory defined by the user
 #
-MY_CONFIG_NAME='Run_MOZ'
+MY_CONFIG_NAME='BENGUELA_LR'
 #
 #
 # END USER SECTION
@@ -92,7 +92,7 @@ if [[ $copy_tag == 1 ]] ; then
     echo '         '
     
     cd $MY_CONFIG_PATH'/'$MY_CONFIG_NAME
-    mkdir Misc TEST_CASES NAMELIST_OANALYSIS CROCO_FILES
+    mkdir Misc TEST_CASES NAMELIST_OANALYSIS CROCO_FILES SCRATCH DATA
     
     #OCEAN
     DIRO='OCEAN'

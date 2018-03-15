@@ -61,7 +61,6 @@
           if (ierr.ne.nf_noerr) write(stdout,1) 'wke_west'
           ierr_all=ierr_all+ierr
 # endif
-
 # ifdef WKB_OBC_EAST
           ierr=nf_inq_varid (brywkb_id, 'wac_east', wacbry_east_id)
           if (ierr.ne.nf_noerr) write(stdout,1) 'wac_east'
@@ -73,7 +72,6 @@
           if (ierr.ne.nf_noerr) write(stdout,1) 'wke_east'
           ierr_all=ierr_all+ierr
 # endif
-
 # ifdef WKB_OBC_SOUTH
           ierr=nf_inq_varid (brywkb_id, 'wac_south', wacbry_south_id)
           if (ierr.ne.nf_noerr) write(stdout,1) 'wac_south'
@@ -85,7 +83,6 @@
           if (ierr.ne.nf_noerr) write(stdout,1) 'wke_south'
           ierr_all=ierr_all+ierr
 # endif
-
 # ifdef WKB_OBC_NORTH
           ierr=nf_inq_varid (brywkb_id, 'wac_north', wacbry_north_id)
           if (ierr.ne.nf_noerr) write(stdout,1) 'wac_north'
@@ -125,7 +122,7 @@
             itbrywkb=min(3-itbrywkb,ntbrywkb)
             brywkb_time(itbrywkb)=cff*day2sec + brywkb_cycle*brywkb_ncycle
             ierr_all=0
-#ifdef WKB_OBC_WEST
+# ifdef WKB_OBC_WEST
             ierr=nf_read_bry_EW (wacbry_west_dt(START_1D_ARRAYETA,itbrywkb
      &          ), brywkb_id,wacbry_west_id, brywkb_rec, r2dvar)
             if (ierr.ne.nf_noerr) write(stdout,2) 'wac_west'
@@ -139,7 +136,6 @@
             if (ierr.ne.nf_noerr) write(stdout,2) 'wke_west'
             ierr_all=ierr_all+ierr
 # endif
-
 # ifdef WKB_OBC_EAST
             ierr=nf_read_bry_EW (wacbry_east_dt(START_1D_ARRAYETA,itbrywkb
      &          ), brywkb_id,wacbry_east_id, brywkb_rec, r2dvar)
@@ -154,7 +150,6 @@
             if (ierr.ne.nf_noerr) write(stdout,2) 'wke_east'
             ierr_all=ierr_all+ierr
 # endif
-
 # ifdef WKB_OBC_SOUTH
             ierr=nf_read_bry_NS (wacbry_south_dt(START_1D_ARRAYXI,itbrywkb
      &          ), brywkb_id,wacbry_south_id, brywkb_rec,  r2dvar)
@@ -169,7 +164,6 @@
             if (ierr.ne.nf_noerr) write(stdout,2) 'wke_south'
             ierr_all=ierr_all+ierr
 # endif
-
 # ifdef WKB_OBC_NORTH
             ierr=nf_read_bry_NS (wacbry_north_dt(START_1D_ARRAYXI,itbrywkb
      &          ), brywkb_id,wacbry_north_id, brywkb_rec, r2dvar)
@@ -187,10 +181,10 @@
             ierr=ierr_all
             if (ierr.eq.0) then
               write(stdout,'(6x,A,9x,A,1x,G12.4,1x,I4)')
-     &       'GET_BRY_WKB    -- Read wave boundary data',
-     &                                 'for time =', cff 
+     &       'GET_BRY_WKB - Read wave boundary data',
+     &                                  'for time =', cff 
 #ifdef MPI
-     &                                             , mynode
+     &                                              , mynode
 #endif
             else
               write(stdout,'(1x,2A,I4/8x,3A)')
@@ -250,7 +244,6 @@
         cff=1./(cff1+cff2)                        ! interpolate
         cff1=cff1*cff                             ! boundary values 
         cff2=cff2*cff                             ! in time 
-
 # ifdef WKB_OBC_WEST
         if (WESTERN_EDGE) then
           do j=JstrR,JendR
@@ -263,7 +256,6 @@
           enddo
         endif  
 # endif
-
 # ifdef WKB_OBC_EAST
         if (EASTERN_EDGE) then
           do j=JstrR,JendR
@@ -276,7 +268,6 @@
           enddo
         endif
 # endif
-
 # ifdef WKB_OBC_SOUTH
         if (SOUTHERN_EDGE) then
           do i=IstrR,IendR
@@ -289,7 +280,6 @@
           enddo
         endif
 # endif
-
 # ifdef WKB_OBC_NORTH
         if (NORTHERN_EDGE) then
           do i=IstrR,IendR

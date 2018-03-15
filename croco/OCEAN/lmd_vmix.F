@@ -138,7 +138,8 @@ C$OMP BARRIER
      &     lmd_sdd2=1.85,    ! (Fedorov, 1988).
      &     lmd_sdd3=0.85)    !
      
-# undef LMD_NUW_GARGETT
+# undef  LMD_NUW_GARGETT
+
 # ifdef LMD_RIMIX
 #  define RI_HSMOOTH
 #  define RI_VSMOOTH
@@ -517,6 +518,9 @@ C$OMP BARRIER
 !
 !   Subroutine lmd_finalize
 !
+!   Finalize computation of viscosity/diffusivity coefficients,
+!   including boundary conditions, and copy into shared arrays
+!
 !====================================================================
 !
       subroutine lmd_finalize_tile (istr,iend,jstr,jend, Kv,Kt,Ks)
@@ -528,30 +532,67 @@ C$OMP BARRIER
 # include "mixing.h"
 # include "forces.h"
 # include "scalars.h"
+# include "coupling.h"
       integer istr,iend,jstr,jend, i,j,k
       real  Kv(PRIVATE_2D_SCRATCH_ARRAY,0:N),
      &      Kt(PRIVATE_2D_SCRATCH_ARRAY,0:N),
      &      Ks(PRIVATE_2D_SCRATCH_ARRAY,0:N)
+!
+# undef LMD_VMIX_MIN
+# ifdef LMD_VMIX_MIN
+      real  nuwm,nuws,my_Akv_bak,my_Akt_bak,my_Aks_bak
+      parameter (
+     &     nuwm=1.0e-4,  ! Interior viscosity and diffusivity
+     &     nuws=0.1e-4,  ! due to wave breaking, [m^2/s]
+     &     my_Akv_bak=nuwm,
+     &     my_Akt_bak=nuws,
+     &     my_Aks_bak=nuwm  )
+# endif
+# if defined WET_DRY && defined LMD_VMIX_SWASH
+      real Kv_swash,Kv0_swash
+      parameter(Kv0_swash = 1.e-2) ! Maximum swash zone viscosity
+# endif
 # ifdef MASKING
 #  define SWITCH *
 # else
 #  define SWITCH !
 # endif
 !
-!------------------------------------------------
-!  Finalize: copy into shared arrays 
-!------------------------------------------------
-!
       do j=jstr,jend
         do i=istr,iend
           do k=1,N-1
+!
+!------------------------------------------------
+!  First apply shallow condition effects
+!  (e.g., swash; used in Flume test case)
+!------------------------------------------------
+!
+# if defined WET_DRY && defined LMD_VMIX_SWASH
+            Kv_swash=Kv0_swash
+     &               *.5*(1.+tanh(1.+5.*min(-1.,log(Dcrit(i,j)))*
+     &                                  (z_w(i,j,N)-z_w(i,j,0))))
+            Kv(i,j,k)=Kv(i,j,k) + Kv_swash
+!            Kt(i,j,k)=Kt(i,j,k) + 0.1*Kv_swash
+!#  ifdef SALINITY
+!            Ks(i,j,k)=Ks(i,j,k) + 0.1*Kv_swash
+!#  endif
+# endif /* WET_DRY && LMD_VMIX_SWASH */
+!
+!------------------------------------------------
+!  Copy into shared arrays 
+!------------------------------------------------
+!
             Akv(i,j,k)       =Kv(i,j,k) SWITCH rmask(i,j)
             Akt(i,j,k,itemp) =Kt(i,j,k) SWITCH rmask(i,j)
 # ifdef SALINITY
             Akt(i,j,k,isalt) =Ks(i,j,k) SWITCH rmask(i,j)
 # endif
           enddo
-
+!
+!------------------------------------------------
+!  Apply surface conditions
+!------------------------------------------------
+!
           Akv(i,j,N)       =max(1.5*Kv(i,j,N-1)-0.5*Kv(i,j,N-2),0.)
           Akt(i,j,N,itemp) =max(1.5*Kt(i,j,N-1)-0.5*Kt(i,j,N-2),0.)
 # ifdef SALINITY
@@ -571,6 +612,11 @@ C$OMP BARRIER
 #  endif
           enddo
 # endif
+!
+!------------------------------------------------
+!  Apply bottom conditions
+!------------------------------------------------
+!
           Akv(i,j,0)       =0.
           Akt(i,j,0,itemp) =0.
 # ifdef SALINITY
@@ -580,7 +626,26 @@ C$OMP BARRIER
       enddo
 !
 !------------------------------------------------
-!  Apply boundary conditions
+!  Apply background small viscosity
+!------------------------------------------------
+!
+# ifdef LMD_VMIX_MIN
+      do j=jstr,jend
+        do i=istr,iend
+          do k=1,N
+            Akv(i,j,k)       =max(Akv(i,j,k)       ,my_Akv_bak)
+            Akt(i,j,k,itemp) =max(Akt(i,j,k,itemp) ,my_Akt_bak)
+#  ifdef SALINITY
+            Akt(i,j,k,isalt) =max(Akt(i,j,k,isalt) ,my_Aks_bak)
+#  endif
+          enddo
+
+        enddo
+      enddo
+# endif
+!
+!------------------------------------------------
+!  Apply lateral boundary conditions
 !------------------------------------------------
 !
 # define k0 0 

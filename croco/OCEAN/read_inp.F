@@ -101,6 +101,8 @@
       fname='TEST_CASES/croco.in.ShoreFace'
 #elif defined RIP
       fname='TEST_CASES/croco.in.Rip'
+#elif defined FLUME
+      fname='TEST_CASES/croco.in.Flume'
 #elif defined THACKER
       fname='TEST_CASES/croco.in.Thacker'
 #elif defined TANK
@@ -144,6 +146,31 @@
         lstr=lenstr(fname)
       endif
 #endif
+#ifdef LOGFILE
+# ifndef AGRIF
+      MPI_master_only stdout=80
+# else 
+      stdout=Agrif_Get_Unit()     
+      if (.Not.Agrif_Root()) then
+        if(mynode.eq.0) then
+         open (stdout,file='croco.log.' / / Agrif_Cfixed(),
+     &   status='REPLACE',form='formatted',err=98)
+        else
+         stdout=6
+        endif
+      else          
+# endif 
+      if(mynode.eq.0) then      
+      open (stdout,file='croco.log',
+     & status='REPLACE',form='formatted',err=98)   
+      else  
+      stdout=6
+      endif
+# ifdef AGRIF
+      endif
+# endif      
+#endif  
+
 !
       wrthis(indxTime)=.false.
 #ifdef AVERAGES
@@ -235,6 +262,7 @@
       elseif (keyword(1:kwlen).eq.'time_stepping') then
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) ntimes,dt,ndtfast, ninfo
+
         MPI_master_only write(stdout,
      & '(I10,2x,A,1x,A /F10.2,2x,A,2(/I10,2x,A,1x,A)/F10.4,2x,A)')
      &    ntimes,  'ntimes   Total number of timesteps for',
@@ -269,8 +297,12 @@
      &   csound_nbq,'csound_nbq  Sound wave celerity.',
      &   visc2_nbq, 'visc2_nbq   Second viscosity coefficient for',
      &                                      'compressible fluids.'
-
+# ifndef NBQ_ZETAW
         dtnbq=dtfast/float(ndtnbq)     ! set nbq time step.
+# else
+        dtnbq=dtfast
+        ndtnbq=1
+# endif
 #endif
 
 #ifdef SOLVE3D
@@ -331,30 +363,34 @@
      &                   'Grid File:', grdname(1:lstr)
 #endif
 
-#if (!defined BULK_FLUX && !defined ANA_SMFLUX && \
-                           !defined OA_COUPLING)  \
-        || (defined TIDES) \
-        || (defined MRL_WCI     && !defined ANA_WWAVE   && \
-                                   !defined WKB_WWAVE && \
-                                   !defined OW_COUPLING) \
-        || (defined SOLVE3D && !defined OA_COUPLING    && (\
-                                  (!defined ANA_STFLUX  && !defined BULK_FLUX) \
-        ||                         !defined ANA_BTFLUX   \
-        || (defined BBL         && !defined ANA_BSEDIM  && !defined SEDIMENT) \
-        || (defined BBL         && !defined ANA_WWAVE   && \
-                                   !defined WKB_WWAVE && \
-                                   !defined OW_COUPLING) \
-        || (defined QCORRECTION && !defined ANA_SST)   \
-        || (defined SALINITY    && !defined ANA_SSFLUX  && \
-                                   !defined BULK_FLUX   && !defined BULK_EP) \
-        || (defined SALINITY    &&  defined QCORRECTION && \
-                                    defined SFLX_CORR   && !defined ANA_SSS) \
-        || (defined LMD_SKPP    && !defined ANA_SRFLUX  && \
-                                   !defined BULK_FLUX ) \
-        || (defined BULK_FLUX   && \
-                                  (!defined BULK_SMFLUX || !defined BULK_EP)) \
-                                   )\
-           )
+
+! forcing file for tides
+#if !defined NO_FRCFILE  && \
+        ( defined TIDES \
+          || (defined MRL_WCI     && !defined ANA_WWAVE && \
+                                     !defined WKB_WWAVE && \
+                                     !defined OW_COUPLING) \
+          || (defined SFLX_CORR   && !defined ANA_SSS   && \
+                                   !defined BULK_EP   && \
+                                   !defined OA_COUPLING) \
+          || (defined QCORRECTION && !defined ANA_SST   && \
+                                   !defined BULK_FLUX && \
+                                   !defined OA_COUPLING) \
+          || (defined BBL         && !defined ANA_BSEDIM  && \
+                                   !defined SEDIMENT) \
+          || (!defined ANA_STFLUX && !defined BULK_FLUX && \
+                                   !defined OA_COUPLING && \
+                                   defined SOLVE3D) \
+          || (defined SALINITY    && !defined ANA_SSFLUX && \
+                                   !defined BULK_EP && \
+                                   !defined OA_COUPLING && \
+                                    defined SOLVE3D) \
+          || (!defined ANA_SRFLUX && !defined BULK_FLUX && \
+                                   !defined OA_COUPLING && \
+                                   defined SOLVE3D) \
+          || (!defined ANA_SMFLUX && !defined BULK_FLUX && \
+                                   !defined OA_COUPLING) \
+        )
 !
 !
 ! Forcing file name. Check its availability.
@@ -371,7 +407,7 @@
         frcname=fname(1:lstr)
         MPI_master_only write(stdout,'(2x,A,2x,A)')
      &             'Forcing Data File:', frcname(1:lstr)
-#endif
+#endif  /* !defined NO_FRCFILE */
 !
 ! Biology forcing: iron dust deposition. 
 !
@@ -1748,6 +1784,7 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
      &                              'Wave-induced bottom stress.'
 
 #endif /* BBL */
+
 #ifdef MRL_WCI
 !
 ! MRL wave-current interaction variables history fields
@@ -1796,7 +1833,7 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
           wrtavg(indxSUP)=wrthis(indxSUP)
           wrtavg(indxUST2D)=wrthis(indxUST2D)
           wrtavg(indxVST2D)=wrthis(indxVST2D)
-# ifdef SOLVE3D
+#  ifdef SOLVE3D
           wrtavg(indxUST)=wrthis(indxUST)
           wrtavg(indxVST)=wrthis(indxVST)
           wrtavg(indxWST)=wrthis(indxWST)
@@ -1805,37 +1842,15 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
           wrtavg(indxKVF)=wrthis(indxKVF)
           wrtavg(indxCALP)=wrthis(indxCALP)
           wrtavg(indxKAPS)=wrthis(indxKAPS)
-# endif
+#  endif
 # endif /* AVERAGES */
 #endif /* MRL_WCI */
 
-#ifdef OW_COUPLING
+#if defined WKB_WWAVE || defined OW_COUPLING || defined WAVE_OFFLINE
 !
-! coupled wave history fields
+! Wave history fields
 !
-      elseif (keyword(1:kwlen).eq.'wkb_history_fields') then
-        call cancel_kwd (keyword(1:kwlen), ierr)
-        read(input,*,err=95) (wrthis(i), i=indxHRM,indxHRM+8)
-        MPI_master_only write(stdout,'(/1x,A,9(/6x,l1,2x,A))')
-     &    'Fields to be saved in wave history  (T/F)',
-     &    wrthis(indxHRM), 'write WHRM  RMS wave height (m)',
-     &    wrthis(indxFRQ), 'write WFRQ  intrinsic frequency (rad/s)',
-     &    wrthis(indxWAC), 'write WAC  primary wave action (m3/s)',
-     &    wrthis(indxWKX), 'write WDRX  cosine of wave direction',
-     &    wrthis(indxWKE), 'write WDRE  sine of wave direction',
-     &    wrthis(indxEPB), 'write WDSP  breaking dissipation (m3/s3)',
-     &    wrthis(indxEPD), 'write WDRG  frictional dissipation (m3/s3)',
-     &    wrthis(indxWAR), 'write WAR  roller wave action (m3/s)',
-     &    wrthis(indxEPR),
-     &              'write RDSP  roller dissipation (m3/s3): [0,1]'
-
-#endif /* OW_COUPLING */
- 
-#ifdef WKB_WWAVE
-!
-! WKB wave history fields
-!
-      elseif (keyword(1:kwlen).eq.'wkb_history_fields') then
+      elseif (keyword(1:kwlen).eq.'wave_history_fields') then
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) (wrthis(i), i=indxHRM,indxHRM+8)
         MPI_master_only write(stdout,'(/1x,A,9(/6x,l1,2x,A))')
@@ -1849,7 +1864,7 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
      &    wrthis(indxEPD), 'write EPD  frictional dissipation (m3/s3)',
      &    wrthis(indxWAR), 'write WAR  roller wave action (m3/s)',
      &    wrthis(indxEPR), 
-     &              'write EPR  roller dissipation (m3/s3): [0,1]'
+     &                   'write EPR  roller dissipation (m3/s3): [0,1]'
 # ifdef AVERAGES
 !
 ! WKB wave average field follows its history field.
@@ -1862,6 +1877,9 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
           wrtavg(indxHRM+i-1)=wrthis(indxHRM+i-1)
         enddo
 # endif
+#endif /* WKB_WWAVE || OW_COUPLING || WAVE_OFFLINE */
+
+#ifdef WKB_WWAVE
 !
 ! WKB primary waves and empirical breaking model parameters
 !
@@ -1876,15 +1894,15 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
      &   wkb_ang,   'wkb_ang    offshore wave angle [deg]',
      &   wkb_prd,   'wkb_prd    offshore wave period [s]',
      &   wkb_tide,  'wkb_tide   constant offshore water level [m]',
-#  ifdef WAVE_BREAK_TG86
+# ifdef WAVE_BREAK_TG86
      &  'breaking model (Thornton & Guza, 1983a) is specifield.',
-#  elif defined WAVE_BREAK_TG86A
+# elif defined WAVE_BREAK_TG86A
      &  'breaking model (Thornton & Guza, 1983b) is specifield.',
-#  elif defined WAVE_BREAK_CT93
+# elif defined WAVE_BREAK_CT93
      &  'breaking model (Church & Thornton, 1993) is specifield.',
-#  else
+# else
      &  'breaking model (Church & Thornton, 1993) is default.',
-#  endif
+# endif
      &   wkb_btg,   'wkb_btg    B parameter',
      &   wkb_gam,   'wkb_gam    gamma paramemer (Hrms/h ratio)'
 
@@ -1900,7 +1918,7 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
      &   wkb_rsb,   'wkb_rsb     sin(beta) roller dissipation',
      &   wkb_roller,'wkb_roller  breaking contrib to roller: [0,1]'
 # endif
-#endif  /* WKB_WWAVE */
+#endif /* WKB_WWAVE */
 
 #ifdef ANA_PSOURCE
 !
@@ -1975,9 +1993,11 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
         MPI_master_only write(stdout,'(/6x,i6,2x,A,1x,A)')
      &                               Nsrc, 'Number of point sources'
         do is=1,Nsrc
-          read(input,*,err=95) Isrc(is), Jsrc(is), Dsrc(is), Qbar(is),
-     &                                     (Lsrc(is,itrc), itrc=1,NT),
-     &                                    (Tsrc0(is,itrc), itrc=1,NT)
+          read(input,*,err=95) Isrc(is), Jsrc(is), Dsrc(is), Qbar(is)
+#  ifdef SOLVE3D
+     &                                    ,(Lsrc(is,itrc), itrc=1,NT)
+     &                                    ,(Tsrc0(is,itrc), itrc=1,NT)
+#  endif
           MPI_master_only write(stdout,'(3(/6x,i6,2x,A))')
      &    Isrc(is), 'I point source indice'
      &  , Jsrc(is), 'J point source indice'
@@ -2054,6 +2074,10 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
       goto 99 
   97  write(stdout,'(/1x,4A/)') 'READ_INP ERROR: Cannot find input ',
      &                                'file ''', fname(1:lstr), '''.'
+#ifdef LOGFILE
+  98  write(6,'(/1x,4A/)') 'READ_INP ERROR: Cannot open log file ',
+     &                                'file   , croco.log', '''.'
+#endif
       ierr=ierr+1
   99  close (input) 
 !

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+SOURCE_CROCO="$HOME/GIT/croco/OCEAN"
+

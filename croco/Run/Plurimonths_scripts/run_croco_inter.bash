@@ -49,6 +49,7 @@ BULK_FILES=1
 FORCING_FILES=0
 CLIMATOLOGY_FILES=0
 BOUNDARY_FILES=1
+RUNOFF_FILES=0
 #
 # Atmospheric surface forcing dataset used for the bulk formula (NCEP)
 #
@@ -62,9 +63,21 @@ ATMOS_FRC=QSCAT
 #
 OGCM=SODA
 #
+# Runoff dataset (Daie and Trenberth,...)
+#
+RUNOFF_DAT=DAI
+#
 # Model time step [seconds]
 #
 DT=3600
+#
+# Output frequency [days]
+#   average
+ND_AVG=3
+#   history (if = -1 set equal to NUMTIMES)
+ND_HIS=-1
+#   restart (if = -1 set equal to NUMTIMES)
+ND_RST=-1
 #
 # Number of barotropic time steps within one baroclinic time step [number], NDTFAST in croco.in
 #
@@ -73,6 +86,10 @@ NFAST=60
 # Number total of grid levels (1: No child grid)
 #
 NLEVEL=1
+#
+# AGRIF nesting refinement coefficient
+#
+AGRIF_REF=3
 #
 NY_START=2000
 NY_END=2000
@@ -115,6 +132,7 @@ BLKFILE=${MODEL}_blk
 INIFILE=${MODEL}_ini
 CLMFILE=${MODEL}_clm
 BRYFILE=${MODEL}_bry
+RNFFILE=${MODEL}_runoff
 #
 if [ ! -e $MSSOUT ] ; then
  mkdir $MSSOUT
@@ -228,6 +246,11 @@ while [ $NY != $NY_END ]; do
         echo "Getting ${BLKFILE}_${ATMOS_BULK}_${TIME}.nc${ENDF} from $MSSDIR"
         $CP -f $MSSDIR/${BLKFILE}_${ATMOS_BULK}_${TIME}.nc${ENDF} ${BLKFILE}.nc${ENDF}
       fi
+     if [[ ${RNF_FILES} == 1 ]]; then
+        echo "Getting ${RNFFILE}_${RUNOFF_DAT}_${TIME}.nc${ENDF} from $MSSDIR"
+        $CP -f $MSSDIR/${RNFFILE}_${RUNOFF_DAT}_${TIME}.nc${ENDF} ${RNFFILE}.nc${ENDF}
+      fi
+      
       LEVEL=$((LEVEL + 1))
     done
 #
@@ -283,31 +306,66 @@ while [ $NY != $NY_END ]; do
         fi
       fi
     fi
+    #
+    # Put the number of time steps in the .in files
+    #
+    echo "YEAR = $NY MONTH = $NM DAYS = $NDAYS DT = $DT NTIMES = $NUMTIMES"
     NUMTIMES=$((NDAYS * 24 * 3600))
     NUMTIMES=$((NUMTIMES / DT))
-    echo "YEAR = $NY MONTH = $NM DAYS = $NDAYS DT = $DT NTIMES = $NUMTIMES"
-# 
-    echo "Writing in ${MODEL}_${TIME}_inter.in"
+    
     LEVEL=0
     while [[ $LEVEL != $NLEVEL ]]; do
-      if [[ ${LEVEL} == 0 ]]; then
-        ENDF=
-      else
-        ENDF=.${LEVEL}
-	NUMTIMES=$((3 * NUMTIMES))
-      fi
-      echo "USING NUMTIMES = $NUMTIMES"
-      sed -e 's/NUMTIMES/'$NUMTIMES'/' -e 's/TIMESTEP/'$DT'/' -e 's/NFAST/'$NFAST'/' -e 's/NYONLINE/'$NY'/' -e 's/NMONLINE/'$NM'/' < ${MODEL}_inter.in${ENDF} > ${MODEL}_${TIME}_inter.in${ENDF}
-      LEVEL=$((LEVEL + 1))
+	if [[ ${LEVEL} == 0 ]]; then
+            ENDF=
+	else
+            ENDF=.${LEVEL}
+	    NUMTIMES=$((AGRIF_REF * NUMTIMES))
+	    DT=$((DT / AGRIF_REF))
+	fi
+	NUMAVG=$((ND_AVG * 86400 / DT ))
+	if [[ ${ND_HIS} -ne -1 ]]; then
+	    NUMHIS=$((ND_HIS * 86400 / DT ))
+	else
+	    NUMHIS=$NUMTIMES
+	fi
+	if [[ ${ND_RST} -ne -1 ]]; then
+	    NUMRST=$((ND_RST * 86400 / DT ))
+	else
+	    NUMRST=$NUMTIMES
+	fi
+	
+	echo " "
+	echo "Writing in ${MODEL}_inter.in${ENDF}"
+	echo "USING DT       = $DT"
+	echo "USING NFAST    = $NFAST"
+	echo "USING NUMTIMES = $NUMTIMES"
+	echo "USING NUMAVG   = $NUMAVG"
+	echo "USING NUMHIS   = $NUMHIS"
+	echo "USING NUMRST   = $NUMRST"
+	
+	if [ ! -f ${MODEL}_inter.in${ENDF} ]; then
+	    echo "=="
+	    echo "=> ERROR : miss the ${MODEL}_inter.in${ENDF} file"
+	  echo "=="
+	  exit 1
+	fi
+	sed -e 's/NUMTIMES/'$NUMTIMES'/' -e 's/TIMESTEP/'$DT'/' -e 's/NFAST/'$NFAST'/' \
+	    -e 's/NUMAVG/'$NUMAVG'/' -e 's/NUMHIS/'$NUMHIS'/' -e 's/NUMRST/'$NUMRST'/' \
+	    -e 's/NYONLINE/'$NY'/' -e 's/NMONLINE/'$NM'/' < ${MODEL}_inter.in${ENDF} > ${MODEL}_${TIME}_inter.in${ENDF}
+	
+	LEVEL=$((LEVEL + 1))
     done
-#
-#  COMPUTE
-#
+    #
+    #  COMPUTE
+    #
+    echo " "
+    echo "Computing for $TIME"
     date
     ${RUNCMD}$CODFILE  ${MODEL}_${TIME}_inter.in > ${MODEL}_${TIME}.out
     date
-#
-# Test if the month has finised properly
+    #
+    
+    # Test if the month has finised properly
     echo "Test ${MODEL}_${TIME}.out"
     status=`tail -2 ${MODEL}_${TIME}.out | grep DONE | wc -l`
     if [[ $status == 1 ]]; then

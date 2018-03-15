@@ -11,7 +11,7 @@
 !
 #include "cppdefs.h"
 #if defined ZNUDGING || defined M2NUDGING || defined M3NUDGING\
-    || defined TNUDGING || defined SPONGE
+    || defined TNUDGING || defined NBQ_NUDGING || defined SPONGE
 
       subroutine set_nudgcof (tile)
       implicit none
@@ -37,6 +37,9 @@
 # include "scalars.h"
 # include "ocean3d.h"
 # include "mpi_roms.h"
+# ifdef NBQ_NUDGING
+#  include "nbq.h"
+# endif
       integer Istr,Iend,Jstr,Jend, i, j, k, isp, itrc, ibnd
       real    wrk(PRIVATE_2D_SCRATCH_ARRAY)
 # if defined CANARY  || defined IBERIA
@@ -111,6 +114,11 @@
           wrk(i,j)=.5*(cos(pi*float(ibnd)/float(isp))+1.) ! cosine profile
 !         wrk(i,j)=float(isp-ibnd)/float(isp)             ! linear profile
 # endif
+
+# ifdef SPONGE_SED
+          if (i.gt.0 .and. j.gt.0)
+     &      cff_sponge(i,j)=float(ibnd)/float(isp)
+# endif
         enddo
       enddo
 !
@@ -131,6 +139,9 @@
 # endif
 # ifdef M3NUDGING
           M3nudgcof(i,j)=tauM_out*wrk(i,j)
+# endif
+# ifdef NBQ_NUDGING
+          NBQnudgcof(i,j)=tauM_out*wrk(i,j)
 # endif
         enddo
       enddo
@@ -193,7 +204,7 @@
 !
       do j=JstrR,JendR
         do i=IstrR,IendR
-          visc2_sponge_r(i,j)=(0.01/(pm(i,j)*pn(i,j)*dt))*wrk(i,j)
+          visc2_sponge_r(i,j)=(0.01 /(pm(i,j)*pn(i,j)*dt))*wrk(i,j)
 #   ifdef UV_VIS4
           visc4_sponge_r(i,j)=visc2_sponge_r(i,j)/(pm(i,j)*pn(i,j))
 #   endif
@@ -204,7 +215,7 @@
 !
       do j=Jstr,JendR
         do i=Istr,IendR
-          visc2_sponge_p(i,j)=0.25*(0.01/(pm(i,j)*pn(i,j)*dt))*
+          visc2_sponge_p(i,j)=0.25*(0.01 /(pm(i,j)*pn(i,j)*dt))*
      &                              ( wrk(i,j  )+wrk(i-1,j  )
      &                               +wrk(i,j-1)+wrk(i-1,j-1) ) 
 #   ifdef UV_VIS4
@@ -221,7 +232,7 @@
        do itrc=1,NT
         do j=JstrR,JendR
           do i=IstrR,IendR
-            diff2_sponge(i,j)=(0.01/(pm(i,j)*pn(i,j)*dt))*wrk(i,j)
+            diff2_sponge(i,j)=(0.01 /(pm(i,j)*pn(i,j)*dt))*wrk(i,j)
 #   ifdef TS_DIF4
             diff4_sponge(i,j)=diff2_sponge(i,j)/(pm(i,j)*pn(i,j))
 #   endif

@@ -198,12 +198,8 @@ C$    trd=omp_get_thread_num()
 !                                           Southern edge Flather BC
 !                                           ======== ==== ======= ==
         do i=Istr,Iend
-#    ifdef NBQ
-          cff=-sqrt(2.*g/(zeta(i,Jstr,kstp)+zeta(i,Jstr-1,kstp)))
-#    else
           cff=-sqrt(2.*g/(h(i,Jstr)+h(i,Jstr-1)+
      &                    zeta(i,Jstr,kstp)+zeta(i,Jstr-1,kstp)))
-#    endif
           vbar(i,Jstr,knew)=cff
      &               *(0.5*(zeta(i,Jstr-1,knew)+zeta(i,Jstr,knew))
 #   ifdef Z_FRC_BRY
@@ -225,14 +221,8 @@ C$    trd=omp_get_thread_num()
 !                                            Southern edge Characteristic BC
 !                                            ======= ==== ======= ==
         do i=Istr,Iend
-#   ifdef NBQ
-!         cff=0.5*(zeta(i,Jstr,kstp)+zeta(i,Jstr-1,kstp))
-          cff=0.5*(zeta(i,Jstr  ,kstp)/rhobar_nbq(Istr  ,j,kstp)
-     &            +zeta(i,Jstr-1,kstp)/rhobar_nbq(Istr  ,j,kstp))
-#   else
           cff=0.5*(h(i,Jstr-1)+h(i,Jstr)
      &            +zeta(i,Jstr,kstp)+zeta(i,Jstr-1,kstp))
-#   endif
           hx=sqrt(g/cff)
           cx=dtfast*cff*hx*0.5*(pn(i,Jstr-1)+pn(i,Jstr))
   
@@ -241,29 +231,12 @@ C$    trd=omp_get_thread_num()
 !          else
 !            zx=(0.5*zeta(i,Jstr,kstp)+(cx-0.5)*zeta(i,Jstr,knew))/cx
 !          endif
-#   ifndef NBQ
           zx=(0.5+cx)*zeta(i,jstr,kstp)+(0.5-cx)*zeta(i,jstr-1,kstp)
           if (cx .gt. 0.292893218813452) then
             zx=zx + ( zeta(i,jstr,knew) +cx*zeta(i,jstr-1,kstp)
      &                               -(1.+cx)*zeta(i,jstr,kstp)
      &                           )*(1.-0.292893218813452/cx)**2
           endif
-#   else
-          zx=(0.5+cx)*(zeta(i,jstr  ,kstp)/rhobar_nbq(i,jstr  ,kstp)
-     &                   -h(i,jstr))
-     &      +(0.5-cx)*(zeta(i,jstr-1,kstp)/rhobar_nbq(i,jstr-1,kstp)
-     &                   -h(i,jstr-1))
-
-          if (cx .gt. 0.292893218813452) then
-            zx=zx + ( zeta(i,jstr  ,knew)/rhobar_nbq(i,jstr,knew)
-     &                  -h(i,jstr)
-     &           +cx*(zeta(i,jstr-1,kstp)/rhobar_nbq(i,jstr-1,kstp)
-     &                  -h(i,jstr-1))
-     &      -(1.+cx)*(zeta(i,jstr  ,kstp)/rhobar_nbq(i,jstr  ,kstp)
-     &                  -h(i,jstr))
-     &                           )*(1.-0.292893218813452/cx)**2
-          endif
-#   endif
           vbar(i,Jstr,knew)= 0.5*( (1.-cx)*vbar(i,Jstr,kstp)
      &                                     +cx*vbar(i,Jstr+1,kstp)
 #   ifdef M2_FRC_BRY
@@ -276,9 +249,6 @@ C$    trd=omp_get_thread_num()
      &                                           -zetabry_south(i)
 #   elif defined ZCLIMATOLOGY
      &                                              -ssh(i,Jstr-1)
-#    ifdef NBQ
-     &                                              +h(i,Jstr-1)
-#    endif
 #   endif
      &                           ) ) !*grad(i,Jstr)
 #   ifdef MASKING
@@ -307,12 +277,14 @@ C$    trd=omp_get_thread_num()
      &                      *vmask(i,Jstr)
 #   endif
         enddo
-#  endif
+
+#  endif /* OBC_COM_ORLANSKI */
 # else
         do i=Istr,Iend                        ! Southern edge closed
           vbar(i,Jstr,knew)=0.                ! ======== ==== ======
         enddo                                 !  (no-flux, default)
 # endif          /* OBC_COM_SOUTH */
+
       endif   !<-- SOUTHERN_EDGE
 !
 !====================================================================
@@ -384,12 +356,8 @@ C$    trd=omp_get_thread_num()
 !                                           Northern edge Flather BC
 !                                           ======== ==== ======= ==
         do i=Istr,Iend
-#   ifdef NBQ
-        cff=sqrt(2.*g/(zeta(i,Jend,kstp)+zeta(i,Jend+1,kstp)))
-#   else
         cff=sqrt(2.*g/(h(i,Jend)+h(i,Jend+1)
      &                +zeta(i,Jend,kstp)+zeta(i,Jend+1,kstp)))
-#   endif
           vbar(i,Jend+1,knew)=cff
      &               *(0.5*( zeta(i,Jend,knew)+zeta(i,Jend+1,knew))
 #   ifdef Z_FRC_BRY
@@ -411,14 +379,8 @@ C$    trd=omp_get_thread_num()
 !                                            Northern edge Characteristic BC
 !                                            ======= ==== ======= ==
         do i=Istr,Iend
-#   ifdef NBQ
-!         cff=0.5*(zeta(i,Jend,kstp)+zeta(i,Jend+1,kstp))
-          cff=0.5*(zeta(i,Jend  ,kstp)/rhobar_nbq(i,Jend  ,kstp)
-     &            +zeta(i,Jend+1,kstp)/rhobar_nbq(i,Jend+1,kstp))
-#   else
           cff=0.5*(h(i,Jend)+h(i,Jend+1)+
      &             zeta(i,Jend,kstp)+zeta(i,Jend+1,kstp))
-#   endif
           hx=sqrt(g/cff)
           cx=dtfast*cff*hx*0.5*(pn(i,Jend)+pn(i,Jend+1))
   
@@ -427,28 +389,12 @@ C$    trd=omp_get_thread_num()
 !          else
 !            zx=(0.5*zeta(i,Jend,kstp)+(cx-0.5)*zeta(i,Jend,knew))/cx
 !          endif
-#   ifndef NBQ
           zx=(0.5+cx)*zeta(i,jend,kstp)+(0.5-cx)*zeta(i,jend+1,kstp)
           if (cx .gt. 0.292893218813452) then
             zx=zx + ( zeta(i,jend,knew) +cx*zeta(i,jend+1,kstp)
      &                               -(1.+cx)*zeta(i,jend,kstp)
      &                           )*(1.-0.292893218813452/cx)**2
           endif
-#   else
-          zx=(0.5+cx)*(zeta(i,jend  ,kstp)/rhobar_nbq(i,jend  ,kstp)
-     &                   -h(i,jend))
-     &      +(0.5-cx)*(zeta(i,jend+1,kstp)/rhobar_nbq(i,jend+1,kstp)
-     &                   -h(i,jend+1))
-          if (cx .gt. 0.292893218813452) then
-            zx=zx + ( zeta(i,jend  ,knew)/rhobar_nbq(i,jend  ,knew)
-     &                  -h(i,jend)
-     &           +cx*(zeta(i,jend+1,kstp)/rhobar_nbq(i,jend+1,kstp)
-     &                  -h(i,jend+1))
-     &       -(1.+cx)*(zeta(i,jend  ,kstp)/rhobar_nbq(i,jend  ,kstp)
-     &                  -h(i,jend))
-     &                           )*(1.-0.292893218813452/cx)**2
-          endif
-#   endif
 
           vbar(i,Jend+1,knew)= 0.5*( (1.-cx)*vbar(i,Jend+1,kstp)
      &                                       +cx*vbar(i,Jend,kstp)
@@ -462,9 +408,6 @@ C$    trd=omp_get_thread_num()
      &                                          -zetabry_north(i)
 #   elif defined ZCLIMATOLOGY
      &                                               -ssh(i,Jend) 
-#    ifdef NBQ
-     &                                                 +h(i,Jend)
-#    endif
 #   endif
      &                            ) )  !*grad(i,Jend+1)
 #   ifdef MASKING
@@ -493,7 +436,8 @@ C$    trd=omp_get_thread_num()
      &                        *vmask(i,Jend+1)
 #   endif
         enddo
-#  endif
+
+#  endif /* OBC_COM_ORLANSKI */
 # else
         do i=Istr,Iend                        ! Northern edge closed
           vbar(i,Jend+1,knew)=0.              ! ======== ==== ======
@@ -569,18 +513,16 @@ C$    trd=omp_get_thread_num()
 !                                             Western edge Chapman BC
 !                                             ======= ==== ======= ==
         do j=JstrV,Jend
-#   ifdef NBQ
-          cff=sqrt(0.5*g*(zeta(Istr-1,j-1,kstp)+zeta(Istr-1,j,kstp)))
-#   else
           cff=sqrt(0.5*g*(h(Istr-1,j-1)+h(Istr-1,j)+
      &                    zeta(Istr-1,j-1,kstp)+zeta(Istr-1,j,kstp)))
-#   endif
+
           cx=dtfast*cff*0.5*(pm(Istr-1,j-1)+pm(Istr-1,j))
           vbar(Istr-1,j,knew)=( vbar(Istr-1,j,kstp)
      &                         +cx*vbar(Istr,j,knew) )/(1.+cx)
 #   ifdef MASKING
      &                        *vmask(Istr-1,j)
 #   endif
+
         enddo
 #  elif defined OBC_COM_M2CHARACT0
 !                                      Western edge Characteristic BC
@@ -702,12 +644,8 @@ C$    trd=omp_get_thread_num()
 !                                           Eastern edge Chapman BC
 !                                           ======= ==== ======= ==
         do j=JstrV,Jend
-#   ifdef NBQ
-          cff=sqrt(0.5*g*(zeta(Iend+1,j-1,kstp)+zeta(Iend+1,j,kstp)))
-#   else
           cff=sqrt(0.5*g*(h(Iend+1,j-1)+h(Iend+1,j)+
      &                    zeta(Iend+1,j-1,kstp)+zeta(Iend+1,j,kstp)))
-#   endif
           cx=dtfast*cff*0.5*(pm(Iend+1,j-1)+pm(Iend+1,j))
           vbar(Iend+1,j,knew)=( vbar(Iend+1,j,kstp)
      &                         +cx*vbar(Iend,j,knew) )/(1.+cx)
@@ -772,7 +710,8 @@ C$    trd=omp_get_thread_num()
 # endif            /* OBC_COM_EAST */
       endif      !<-- EASTERN_EDGE
 #endif             /* !EW_COM_PERIODIC */
- 
+
+!====================================================================
                            ! Corners between adjacent open boundaries
                            ! ======= ======= ======== ==== ==========
  
@@ -895,6 +834,92 @@ C$    trd=omp_get_thread_num()
       END IF
 # endif
 #endif  /* WET_DRY */
+
+#if defined NBQ && defined NBQ_ZETAW
+!
+!=======================================================================
+!  Computes normal boundary values of DU_nbq for NBQ OBCs
+!=======================================================================
+!
+# ifndef NS_COM_PERIODIC
+      if (SOUTHERN_EDGE) then
+#  ifdef OBC_COM_SOUTH
+        do i=Istr,Iend
+          DV_nbq(i,Jstr)=vbar(i,Jstr,knew)
+     &                   *0.5*(h(i,Jstr  )+zeta(i,Jstr  ,knew)
+     &                       + h(i,Jstr-1)+zeta(i,Jstr-1,knew))
+#   ifdef NBQ_MASS
+     &                         *0.5*(rhobar_nbq(i,Jstr  ,knew)
+     &                              +rhobar_nbq(i,Jstr-1,knew))
+#   endif
+        enddo
+#  else
+        do i=Istr,Iend
+          DV_nbq(i,Jstr)=0.  ! closed boundary
+        enddo
+#  endif
+      endif
+!
+      if (NORTHERN_EDGE) then
+#  ifdef OBC_COM_NORTH
+        do i=Istr,Iend
+          DV_nbq(i,Jend+1)=vbar(i,Jend+1,knew)
+     &                   *0.5*(h(i,Jend+1)+zeta(i,Jend+1,knew)
+     &                       + h(i,Jend  )+zeta(i,Jend  ,knew))
+#   ifdef NBQ_MASS
+     &                           *0.5*(rhobar_nbq(i,Jend+1,knew)
+     &                                +rhobar_nbq(i,Jend  ,knew))
+#   endif
+        enddo
+#  else
+        do i=Istr,Iend
+          DV_nbq(i,Jend+1)=0.
+        enddo
+#  endif
+      endif
+# endif /* NS_COM_PERIODIC */
+!
+# ifndef EW_COM_PERIODIC
+      if (WESTERN_EDGE) then
+#  ifdef OBC_COM_WEST
+        do j=JstrV,Jend
+          DV_nbq(Istr-1,j)=vbar(Istr-1,j,knew)
+     &                 *0.5*(h(Istr-1,j  )+zeta(Istr-1,j,knew)
+     &                      +h(Istr-1,j-1)+zeta(Istr-1,j,knew))
+#   ifdef NBQ_MASS
+     &                         *0.5*(rhobar_nbq(Istr-1,j,knew)
+     &                              +rhobar_nbq(Istr-1,j,knew))
+#   endif
+
+        enddo
+#  else
+        do j=JstrV,Jend
+          DV_nbq(Istr-1,j)=gamma2*DV_nbq(Istr,j)  ! slip/noslip boundary
+        enddo
+#  endif
+      endif
+!
+      if (EASTERN_EDGE) then
+#  ifdef OBC_COM_EAST
+        do j=JstrV,Jend
+          DV_nbq(Iend+1,j)=vbar(Iend+1,j,knew)
+     &                 *0.5*(h(Iend+1,j  )+zeta(Iend+1,j,knew)
+     &                      +h(Iend+1,j-1)+zeta(Iend+1,j,knew))
+#   ifdef NBQ_MASS
+     &                         *0.5*(rhobar_nbq(Iend+1,j,knew)
+     &                              +rhobar_nbq(Iend+1,j,knew))
+#   endif
+        enddo
+#  else
+        do j=JstrV,Jend
+          DV_nbq(Iend+1,j)=gamma2*DV_nbq(Iend,j)  ! slip/noslip boundary
+        enddo
+#  endif
+      endif
+# endif /* EW_COM_PERIODIC */
+!
+#endif /* NBQ */
+
 
       return
       end

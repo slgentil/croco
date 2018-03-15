@@ -29,16 +29,3 @@
       real DVom(GLOBAL_2D_ARRAY)
 #endif
 
-#ifdef OXYGEN
-      real u10(GLOBAL_2D_ARRAY)
-      real Kv_O2(GLOBAL_2D_ARRAY)
-      real O2satu(GLOBAL_2D_ARRAY)
-      common /gasexc_O2_u10/ u10 
-      common /gasexc_O2_Kv_O2/ Kv_O2
-      common /gasexc_O2_O2satu/ O2satu
-#endif /* OXYGEN */
-
-# if defined BIOLOGY && defined BIO_BioEBUS
-      real wind10(GLOBAL_2D_ARRAY)
-      common /ocean_wind10/wind10      
-# endif 

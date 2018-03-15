@@ -173,7 +173,7 @@ AGRIF_SRC=${ROOT_DIR}/AGRIF
 if [[ -e "namelist_pisces" ]] ; then
 	echo "  file namelist_pisces exists in Run directory"
 else
-	/bin/cp -f ${SOURCE}/PISCES/namelist_pisces* $RUNDIR
+	/bin/cp -f ${ROOT_DIR}/PISCES/namelist_pisces* $RUNDIR
 	echo "  file namelist_pisces copied from source directory"
 fi
 #
@@ -201,7 +201,7 @@ if [[ $OS == Linux ]] ; then           # ===== LINUX =====
 	if [[ $LINUX_FC == ifort || $LINUX_FC == ifc ]] ; then
 		CPP1="cpp -traditional -DLinux -DIfort"
 		CFT1=ifort
-		FFLAGS1="-O3 -72 -fno-alias -i4 -r8 -extend-source -fp-model precise $CPPFLAGS1"
+		FFLAGS1="-O3 -extend-source -fno-alias -i4 -r8 -extend-source -fp-model precise $CPPFLAGS1"
 		LDFLAGS1="$LDFLAGS1"
 	elif [[ $LINUX_FC == gfortran ]] ; then
 		CPP1="cpp -traditional -DLinux"
@@ -220,7 +220,7 @@ elif [[ $OS == Darwin ]] ; then        # ===== DARWIN =====
 #			-fbounds-check -finit-real=nan -finit-integer=8888"
 	else
 		CFT1="ifort"
-		FFLAGS1="-O2 -r8 -i4 -g -72"
+		FFLAGS1="-O2 -r8 -i4 -g -extend-source"
 #		FFLAGS1="-O0 -g -traceback -debug all -r8 -i4 -g -72"
 	fi
 elif [[ $OS == CYGWIN_NT-10.0 ]] ; then  # ======== CYGWIN =======

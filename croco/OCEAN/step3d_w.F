@@ -1,4 +1,4 @@
-! $Id: step3d_uv2.F 1480 2014-02-18 14:56:20Z rblod $
+! $Id:$
 !
 !======================================================================
 ! CROCO is a branch of ROMS developped at IRD and INRIA, in France
@@ -12,26 +12,36 @@
 #include "cppdefs.h"
 #if defined SOLVE3D && defined NBQ
 
-      subroutine step3d_w (tile)
-      implicit none
+# define NBQ_WDIF
+
+      SUBROUTINE step3d_w (tile)
+
+!======================================================================
+!                       ***  Subroutine STEP3D_W  ***
+! NBQ mode :  Advance the vertical velocity wz to time n+1 
+!======================================================================
+! History :   2016-11  (F. Lemarié)  Original code
+!----------------------------------------------------------------------
+      
+      IMPLICIT NONE
       integer tile, trd, omp_get_thread_num
 # include "param.h"
 # include "private_scratch.h"
 # include "compute_tile_bounds.h"
       trd=omp_get_thread_num()
 
-      call step3d_w_tile (Istr,Iend,Jstr,Jend, A3d(1,5,trd),
-     &                                  A2d(1,1,trd), A2d(1,2,trd),
-     &                                  A2d(1,3,trd), A2d(1,4,trd))
+      CALL step3d_w_tile (Istr,Iend,Jstr,Jend, A3d(1,3,trd), !<-- A3d(1,3,trd) contains rw
+     &                           A2d(1,1,trd), A2d(1,2,trd),
+     &                           A2d(1,3,trd), A2d(1,4,trd)  )
 
       return
-      end
-
-      subroutine step3d_w_tile (Istr,Iend,Jstr,Jend,rw,BC,CF,FC,DC)
+      END
 !
-!-------------------------------------------------------------------- 
-!
-      implicit none
+!----------------------------------------------------------------------        
+      SUBROUTINE step3d_w_tile (Istr,Iend,Jstr,Jend, rw, BC,CF,FC,DC)
+!----------------------------------------------------------------------
+!     
+      IMPLICIT NONE
 # include "param.h"
 # include "grid.h"
 # include "ocean2d.h"
@@ -47,45 +57,52 @@
 # ifdef DIAGNOSTICS_UV
 #  include "diagnostics.h"
 # endif
-#ifdef NBQ
-# include "nbq.h"
-#endif
-      integer Istr,Iend,Jstr,Jend, i,j,k
+# ifdef NBQ
+#  include "nbq.h"
+# endif
+      INTEGER Istr,Iend,Jstr,Jend, i,j,k
 # ifdef PSOURCE
      &       ,is
 # endif
-      real BC(PRIVATE_1D_SCRATCH_ARRAY,0:N),
-     &     CF(PRIVATE_1D_SCRATCH_ARRAY,0:N),
-     &     FC(PRIVATE_1D_SCRATCH_ARRAY,0:N), cff,
-     &     DC(PRIVATE_1D_SCRATCH_ARRAY,0:N),
-     &     rw(PRIVATE_2D_SCRATCH_ARRAY,0:N)       
-      real grad(PRIVATE_2D_SCRATCH_ARRAY)
-      real dpth
-!
+      REAL  ::  BC   (PRIVATE_1D_SCRATCH_ARRAY,0:N  )
+      REAL  ::  CF   (PRIVATE_1D_SCRATCH_ARRAY,0:N  )
+      REAL  ::  FC   (PRIVATE_1D_SCRATCH_ARRAY,0:N+1)
+      REAL  ::  DC   (PRIVATE_1D_SCRATCH_ARRAY,0:N  )
+      REAL  ::  rw   (PRIVATE_2D_SCRATCH_ARRAY,0:N  )       
+      REAL  ::  grad (PRIVATE_2D_SCRATCH_ARRAY      )
+      REAL  ::  dpth,cff,cff1,cff2
+      REAL  ::  my_cadv_max   
+      INTEGER :: jzi,jzj,jzk 
+      !
 # include "compute_auxiliary_bounds.h"
-!
+      !
 # ifdef MASKING
 #  define SWITCH *
 # else
 #  define SWITCH !
 # endif
 !
-!<-- Apply right-hand-side
+!---------------------------------------------------------------------- 
+!  Apply right-hand-side
+!---------------------------------------------------------------------- 
 !
-# if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI
-      call exchange_w3d_tile (Istr,Iend,Jstr,Jend,
-     &                           rw_nbq_avg2(START_2D_ARRAY,0))
-#endif
-      do j=Jstr,Jend
-        do k=1,N
-          do i=Istr,Iend
+      DO j=Jstr,Jend
+        DO k=1,N
+          DO i=Istr,Iend
             wz(i,j,k,nnew)=wz(i,j,k,nnew)
-     &            +dt*pn(i,j)*pm(i,j)*(rw(i,j,k)+rw_nbq_avg2(i,j,k))
-          enddo
-        enddo
-      enddo
+     &                +dt*pn(i,j)*pm(i,j)*(rw(i,j,k)+rw_nbq_avg2(i,j,k))
+          ENDDO
+        ENDDO
+      ENDDO  
 
-# define NBQ_WDIF
+# ifdef NBQ_FREESLIP
+!      DO j=Jstr,Jend
+!        DO i=Istr,Iend
+!          wz(i,j,0,nnew)=qdmw_nbq(i,j,0)    !*2./Hz(i,j,1)
+!        ENDDO
+!      ENDDO  
+# endif
+  
 # ifdef NBQ_WDIF
 !
 !====================================================================     
@@ -94,82 +111,106 @@
 !== The implicit integration contains a division by rho.Hz
 !==================================================================== 
 !
-      do j=Jstr,Jend
-!
-        do k=1,N-1
-          do i=Istr,Iend
-            FC(i,k)=-0.5*dt*( Akv(i,j,k+1)+Akv(i,j,k) )
-     &                 /    ( z_w(i,j,k+1)-z_w(i,j,k) )
-          enddo
-        enddo
-        do i=Istr,Iend
-          FC(i,0)=0.
-          FC(i,N)=0.
-        enddo
-
-        k=1
-        do i=Istr,Iend
-          DC(i,k)=wz(i,j,k,nnew)                                    !<-- rhs
-          BC(i,k)=0.5*(Hz(i,j,k)+Hz(i,j,k+1)) - FC(i,k) 
-     &            +0.5*dt*( Akv(i,j,k)+Akv(i,j,k) )
-     &                 /    ( z_w(i,j,k)-z_w(i,j,k-1) )
-        enddo
-        do k=2,N-1
-          do i=Istr,Iend
+      DO j=Jstr,Jend
+      
+        ! Off-diagonal terms
+        DO k=1,N
+          DO i=Istr,Iend
+            FC(i,k) = -0.5*dt*Hz(i,j,k)*( Akv(i,j,k)+Akv(i,j,k-1) )
+     &                             /    ( z_w(i,j,k)-z_w(i,j,k-1) )**2
+          ENDDO
+        ENDDO
+        
+        DO i=Istr,Iend
+          FC(i,0  )=0.
+          FC(i,N+1)=0.
+        ENDDO
+         
+        ! Rhs and diagonal term         
+        DO k=1,N-1
+          DO i=Istr,Iend  
             DC(i,k)=wz(i,j,k,nnew)                                    !<-- rhs
-            BC(i,k)=0.5*(Hz(i,j,k)+Hz(i,j,k+1)) - FC(i,k) - FC(i,k-1) !<-- diagonal term
-          enddo
-        enddo  
-        do i=Istr,Iend            
-          BC(i,N)=0.5*Hz(i,j,N) - FC(i,N) - FC(i,N-1)    !<-- Hz contains rho.Hz
+            BC(i,k)=0.5*(Hz(i,j,k)+Hz(i,j,k+1)) - FC(i,k+1) - FC(i,k) !<-- diagonal term                
+          ENDDO
+        ENDDO  
+         
+        DO i=Istr,Iend            
+          BC(i,N)=0.5*Hz(i,j,N) - FC(i,N+1) - FC(i,N)    !<-- Hz contains rho.Hz
           DC(i,N)=wz(i,j,N,nnew)
-        enddo 
+          BC(i,0)=1.  !0.5*Hz(i,j,1) - FC(i,  1) - FC(i,0)    !<-- Hz contains rho.Hz
+#  ifdef NBQ_FREESLIP
+          DC(i,0)=wz(i,j,0,nnew)  
+#  else    
+          DC(i,0)=0.
+#  endif                 
+        ENDDO 
         
-! Gauss elimination
-        do i=Istr,Iend
-          cff=1./BC(i,1)
-          CF(i,1)=cff*FC(i,1)
-          DC(i,1)=cff*DC(i,1)
-        enddo
-        do k=2,N-1
-          do i=Istr,Iend
-            cff=1./(BC(i,k)-FC(i,k-1)*CF(i,k-1))
-            CF(i,k)=cff*FC(i,k)
-            DC(i,k)=cff*(DC(i,k)-FC(i,k-1)*DC(i,k-1))
-          enddo
-        enddo
-        do i=Istr,Iend
-          wz(i,j,N,nnew)=(DC(i,N)-FC(i,N-1)*DC(i,N-1))
-     &                  /(BC(i,N)-FC(i,N-1)*CF(i,N-1))
-        enddo
-        do k=N-1,1,-1
-          do i=Istr,Iend
-             wz(i,j,k,nnew)=DC(i,k)-CF(i,k)*wz(i,j,k+1,nnew)  !<-- wz in m.s-1
-          enddo
-        enddo      !--> discard FC,BC; keep DC,CF(:,0)
-        
-      enddo      ! <-- j
+         ! Gaussian elimination
+        DO i=Istr,Iend
+!         cff1    = 0.               
+!         CF(i,0) = cff*FC(i,1)             !<-- q(0) = c(0) / b(0)
+!         CF(i,0) = cff* FC(i,0)            !<-- q(0) = c(0) / b(0)        
+          cff     = 1.                      !<-- 1./b(0)
+          CF(i,0) = 0.                      !<-- q(0) = c(0) / b(0)
+          DC(i,0) = cff*DC(i,0)             !<-- f(0) = f(0) / b(0)
+        ENDDO
+         
+        DO k=1,N
+          DO i=Istr,Iend 
+!           cff1    = 0.
+!           cff2    = 0.              
+!           cff     = 1./(BC(i,k)-( FC(i,k) - cff1 )*CF(i,k-1))
+!           CF(i,k) = cff*( FC(i,k+1) + cff2 )
+!           DC(i,k) = cff*(DC(i,k)-( FC(i,k) - cff1 )*DC(i,k-1))
+            cff     = 1./(BC(i,k)-FC(i,k)*CF(i,k-1))
+            CF(i,k) = cff* FC(i,k+1) 
+            DC(i,k) = cff*(DC(i,k)-FC(i,k)*DC(i,k-1))
+          ENDDO
+        ENDDO
+         
+        DO k=N-1,1,-1
+          DO i=Istr,Iend
+            DC(i,k)=DC(i,k)-CF(i,k)*DC(i,k+1) 
+          ENDDO
+        ENDDO
+         
+        DO k=1,N         
+          DO i=Istr,Iend
+            wz(i,j,k,nnew)=DC(i,k)
+          ENDDO
+        ENDDO
 
-#else
-      do j=Jstr,Jend
-        do k=1,N-1
-          do i=Istr,Iend
+#  if defined NBQ_FREESLIP || defined NBQ_SBBC
+        DO i=Istr,Iend  
+          wz(i,j,0,nnew)=2.*wz(i,j,0,nnew)/Hz(i,j,1)
+        ENDDO
+#  endif
+
+      ENDDO      ! <-- j
+
+# else
+
+      DO j=Jstr,Jend
+        DO k=1,N-1
+          DO i=Istr,Iend
             wz(i,j,k,nnew)=2.*wz(i,j,k,nnew)/(Hz(i,j,k)+Hz(i,j,k+1))
-          enddo
-        enddo
-        do i=Istr,Iend
+          ENDDO
+        ENDDO
+        DO i=Istr,Iend
           wz(i,j,N,nnew)=2.*wz(i,j,N,nnew)/Hz(i,j,N)
-        enddo
-      enddo
-#endif
-#undef NBQ_WDIF
+#  ifdef NBQ_FREESLIP || defined NBQ_SBBC
+          wz(i,j,0,nnew)=2.*wz(i,j,0,nnew)/Hz(i,j,1)
+#  endif
+        ENDDO
+      ENDDO
 
+# endif /* NBQ_WDIF */
 !
 !--------------------------------------------------------------------
 ! Set PHYSICAL lateral boundary conditions.
 !--------------------------------------------------------------------
 !
-      call w3dbc_tile (Istr,Iend,Jstr,Jend, grad)   
+      call w3dbc_tile (Istr,Iend,Jstr,Jend, grad)  
 !
 !--------------------------------------------------------------------
 ! Exchange periodic boundaries and computational margins.
@@ -177,9 +218,8 @@
 !
 # if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI
       call exchange_w3d_tile (Istr,Iend,Jstr,Jend,
-     &                                 wz(START_2D_ARRAY,0,nnew))
+     &                        wz(START_2D_ARRAY,0,nnew))
 # endif
-
       return
       end
 #else

@@ -33,6 +33,8 @@
       implicit none
       integer Istr,Iend,Jstr,Jend, i,j,k
      &       ,imin,imax,jmin,jmax
+      real cu,rr,rrm,rrp,limiter,Cr,cdt
+      integer kp2,kp1,km1
 # include "param.h"
 # ifdef DIAGNOSTICS_UV
 #  include "diagnostics.h"
@@ -107,6 +109,8 @@
 !
 # include "compute_auxiliary_bounds.h"
 !
+
+
 #ifdef MASKING
 # define SWITCH *
 #else
@@ -316,6 +320,15 @@
 
 
 # ifdef UV_ADV
+
+      if(nrhs.eq.3) then
+        cdt =     dt                 !<-- Corrector
+      elseif(FIRST_TIME_STEP) then
+        cdt = 0.5*dt
+      else
+        cdt = (1.-2*gamma)*dt        !<-- Predictor
+      endif
+
 !
 !======================================================================
 !
@@ -328,7 +341,7 @@
 !
 #  if !(defined UV_HADV_UP3 || defined UV_HADV_C4  || \
         defined UV_HADV_C2  || defined UV_HADV_UP5 || \
-        defined UV_HADV_C6  || defined UV_HADV_WENO5)
+        defined UV_HADV_C6  || defined UV_HADV_WENO5 )
 #   define UV_HADV_UP3
 #  endif
 
@@ -384,7 +397,10 @@
 
         endif
 !
-#  elif defined UV_HADV_UP3 || defined UV_HADV_C4
+
+#  elif defined UV_HADV_UP3 || defined UV_HADV_C4 
+
+
 !
 !----------------------------------------------------------
 ! Fourth or Third order advection scheme (default)
@@ -446,11 +462,12 @@
 
         do j=Jstr,Jend
           do i=IstrU-1,Iend
-#   ifdef UV_HADV_C4
+#   if defined UV_HADV_C4
             UFx(i,j)=0.25*( u(i,j,k,nrhs)+u(i+1,j,k,nrhs)
      &                         -0.125*(uxx(i,j)+uxx(i+1,j))
      &                  )*( Huon(i,j,k)+Huon(i+1,j,k)
      &                      -0.125*(Huxx(i,j)+Huxx(i+1,j)))
+
 #   else
             cffX=u(i,j,k,nrhs)+u(i+1,j,k,nrhs)
             if (cffX.gt.0.) then
@@ -520,11 +537,12 @@
 #   endif
         do j=JstrV-1,Jend
           do i=Istr,Iend
-#   ifdef UV_HADV_C4
+#   if defined UV_HADV_C4
             VFe(i,j)=0.25*( v(i,j,k,nrhs)+v(i,j+1,k,nrhs)
      &                        -0.125*(vee(i,j)+vee(i,j+1))
      &                  )*( Hvom(i,j,k)+Hvom(i,j+1,k)
      &                      -0.125*(Hvee(i,j)+Hvee(i,j+1)))
+
 #   else
             cffE=v(i,j,k,nrhs)+v(i,j+1,k,nrhs)
             if (cffE.gt.0.) then
@@ -594,11 +612,12 @@
         enddo
         do j=Jstr,Jend+1
           do i=IstrU,Iend
-#   ifdef UV_HADV_C4
+#   if defined UV_HADV_C4
             UFe(i,j)=0.25*( u(i,j,k,nrhs)+u(i,j-1,k,nrhs)
      &                        -0.125*(uee(i,j)+uee(i,j-1))
      &                  )*( Hvom(i,j,k)+Hvom(i-1,j,k)
      &                     -0.125*(Hvxx(i,j)+Hvxx(i-1,j)))
+	
 #   else
             cffX=u(i,j,k,nrhs)+u(i,j-1,k,nrhs)
             cffE=Hvom(i,j,k)+Hvom(i-1,j,k)
@@ -670,11 +689,12 @@
         enddo
         do j=JstrV,Jend
           do i=Istr,Iend+1
-#   ifdef UV_HADV_C4
+#   if defined  UV_HADV_C4
             VFx(i,j)=0.25*( v(i,j,k,nrhs)+v(i-1,j,k,nrhs)
      &                        -0.125*(vxx(i,j)+vxx(i-1,j))
      &                  )*( Huon(i,j,k)+Huon(i,j-1,k)
      &                     -0.125*(Huee(i,j)+Huee(i,j-1)))
+
 #   else
             cffE=v(i,j,k,nrhs)+v(i-1,j,k,nrhs)
             cffX=Huon(i,j,k)+Huon(i,j-1,k)
@@ -722,6 +742,10 @@
           enddo
         enddo
 #  endif /* UV_HADV_UP3 */
+
+#ifdef UV_HADV_TVD
+#   include "uvhadv_tvd.h"
+#endif
 !
 !----------------------------------------------------------
 ! Finalize horizontal advection: compute flux divergences
@@ -879,6 +903,33 @@
 #   endif
           FC(i,N)=0.
         enddo
+
+#  elif defined UV_VADV_WENO5
+
+        if (nnew.eq.3) then  ! predictor
+
+#   define FLUX5 flux6
+#   define FLUX3 flux4
+!
+          cdif=0. 
+#   include "uvadv_order5.h"
+!
+#   undef FLUX5
+#   undef FLUX3
+
+        else                 ! corrector
+
+#    define FLUX5 flux5_weno
+#    define FLUX3 flux3_weno
+          cdif=1.
+!
+#   include "uvadv_order5.h"
+!
+#   undef FLUX5
+#   undef FLUX3
+
+        endif
+
 #  else
 !
 !----------------------------------------------------------
@@ -922,6 +973,37 @@
 #   endif
         enddo
 #  endif
+
+#  if defined UV_VADV_TVD
+!
+!----------------------------------------------------------
+!  Compute vertical advective fluxes 
+!  using Second order advection scheme
+!----------------------------------------------------------
+!
+        do k=1,N-1
+        kp2=MIN(N,k+2)
+        kp1=MIN(N,k+1)
+        km1=MAX(1,k-1)
+          do i=IstrU,Iend
+            cff = 0.5 *(We(i,j,k)+We(i-1,j,k) )
+              cu = cff*pm_u(i,j)*pn_u(i,j)
+     &           * cdt*2/(-z_r(i  ,j,k)+z_r(i  ,j,k+1)
+     &                    -z_r(i-1,j,k)+z_r(i-1,j,k+1))      
+!              cu = cff*pm_u(i,j)*pn_u(i,j)
+!     &           * cdt*2/(-z_r(i  ,j,k)+z_r(i  ,j,k+1)
+!     &                    -z_r(i-1,j,k)+z_r(i-1,j,k+1))      
+            rrp= (u(i,j,kp2,nrhs) -u(i,j,kp1,nrhs)) 
+            rr = (u(i,j,kp1,nrhs) -u(i ,j,k,nrhs)) 
+            rrm= (u(i,j,k  ,nrhs) -u(i ,j,km1,nrhs))                 
+            cff1=( cff*(u(i,j,k,nrhs) + u(i,j,kp1,nrhs))
+     &        -abs(cff)*rr )*0.5
+            Cr=limiter(cu,FC(i,k),cff1,rrm,rr,rrp)
+            FC(i,k) = cff1*(1-cr) + Cr*FC(i,k)
+          enddo
+        enddo
+#  endif        
+
 !
 !----------------------------------------------------------
 ! Finalize U vertical advection: compute flux divergences
@@ -1055,6 +1137,33 @@
 #   endif
             FC(i,N)=0.
           enddo
+
+#  elif defined UV_VADV_WENO5
+
+        if (nnew.eq.3) then  ! predictor
+
+#   define FLUX5 flux6
+#   define FLUX3 flux4
+!
+          cdif=0. 
+#   include "vvadv_order5.h"
+!
+#   undef FLUX5
+#   undef FLUX3
+
+        else                 ! corrector
+
+#    define FLUX5 flux5_weno
+#    define FLUX3 flux3_weno
+          cdif=1.
+!
+#   include "vvadv_order5.h"
+!
+#   undef FLUX5
+#   undef FLUX3
+
+        endif
+
 #  else
 !
 !----------------------------------------------------------
@@ -1095,7 +1204,33 @@
 #   else
           FC(i,0)=0.
 #   endif
-           enddo
+          enddo
+#  endif
+
+#  if defined UV_VADV_TVD
+!
+!----------------------------------------------------------
+!  Total variation diminushing
+!----------------------------------------------------------
+!
+          do k=1,N-1
+            kp2=min(N,k+2)
+            kp1=min(N,k+1)
+            km1=max(1,k-1)
+            do i=Istr,Iend
+              cff = 0.5*(We(i,j,k)+We(i,j-1,k))
+              cu = cff*pm_v(i,j)*pn_v(i,j)
+     &           * cdt*2/(-z_r(i  ,j,k)+z_r(i  ,j,k+1)
+     &                    -z_r(i,j-1,k)+z_r(i  ,j-1,k+1))      
+              rrp= v(i,j,kp2,nrhs)-v(i,j,kp1,nrhs) 
+              rr = v(i,j,kp1,nrhs)-v(i,j,k  ,nrhs) 
+              rrm= v(i,j,k  ,nrhs)-v(i,j,km1,nrhs)                    
+              cff1=( cff*(v(i,j,k,nrhs) + v(i,j,kp1,nrhs))
+     &        -abs(cff)*rr )*0.5
+              Cr=limiter(cu,FC(i,k),cff1,rrm,rr,rrp)
+              FC(i,k) = cff1*(1-cr) + Cr*FC(i,k)
+            enddo
+          enddo         
 #  endif
 !
 !----------------------------------------------------------
@@ -1243,6 +1378,42 @@ ccc            dvde =0.5*( v(i,j-1,k,nrhs) -v(i,j+1,k,nrhs) )
 
       return
       end
+      
+      function limiter(nu,hf,lf,rrm,rr,rrp)      
+      implicit none
+      real    :: cff,limiter,Rj,nu,hf,lf,rrm,rr,rrp
+      
+C Upwind        Limiter(Cr)=0.
+C Lax-Wendroff  Limiter(Cr)=1.
+C Min-Mod       Limiter(Cr)=max(0.,min(1.,Cr))
+C Suberbee      Limiter(Cr)=max(0.,max(min(1.,2*Cr*(1-nu)/nu),min(2.,Cr)))
+      if (abs(rr).gt.1.e-20) THEN
+        if (nu .gt. 1.e-20) THEN
+          Rj=rrm/rr
+        else
+          Rj=rrp/rr
+        endif
+      else
+        if (nu.gt.1.e-20) then
+          Rj=Rrm*1.E20
+        else
+          Rj=Rrp*1.E20
+        endif
+      endif
+       
+!        limiter=max(0., min(1.,(hf-lf)/rr,(1-abs(nu))/abs(nu)*Rj) )
+      cff=(1-nu)/max(nu,1.e-30)
+! ajouter la condition de stbilite/tvd Rj => Rj*cff
+#ifdef SUPERBEE
+       limiter=max(0.,max(min(1.,2.*Rj),
+     &                         min(2.,Rj)))
+#elif defined MINMOD
+       limiter=max(0.,min(1.,Rj))
+#else
+       limiter=(Rj+abs(Rj))/(1+abs(Rj))
+#endif       
+      end function
+
 #else
       subroutine rhs3d_empty
       end

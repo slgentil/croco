@@ -41,7 +41,7 @@
 #  include "ocean3d.h"
 #  include "ocean2d.h"
 #  include "scalars.h"
-#  include "zoom.h"	
+#  include "zoom.h"
 #  include "coupling.h"
 !      real tabtemp(GLOBAL_2D_ARRAY,4)
       external updateubar,updatevbar,updatezeta
@@ -66,6 +66,7 @@
       real,dimension(:,:), allocatable :: duavg2parentold
       real,dimension(:,:), allocatable :: dvavg2parentold 
       integer :: pngrid
+      external :: updatermask_child
 
       
 !$AGRIF_DO_NOT_TREAT
@@ -116,6 +117,13 @@ C$OMP MASTER
 #if defined AGRIF_UPDATE_DECAL
        Call Agrif_Update_Variable(updatezetaid,
      &         locupdate=(/1,4/),procname = updatezeta)
+# ifdef WET_DRY
+#  ifdef MASKING
+       Agrif_UseSpecialValueInUpdate = .false.
+#  endif
+       Call Agrif_Update_Variable(rmask_wetid,
+     &        locupdate=(/1,4/), procname = updatermask_child)
+# endif
 
       Agrif_UseSpecialValueInUpdate = .FALSE.
             
@@ -132,7 +140,14 @@ C$OMP MASTER
      &         locupdate=(/0,1/),procname = updatezeta)
 
       Agrif_UseSpecialValueInUpdate = .FALSE.
-            
+#ifdef WET_DRY
+#ifdef MASKING
+      Agrif_UseSpecialValueInUpdate = .false.
+#endif
+        Call Agrif_Update_Variable(rmask_wetid,
+     &         procname = updatermask_child)
+#endif
+                 
       Call Agrif_Update_Variable(updateubarid,
      &     locupdate1=(/0,1/),locupdate2=(/0,1/),
      &     procname = updateubar)
@@ -368,6 +383,65 @@ C$OMP END MASTER
       
       return
       end 
+
+#ifdef WET_DRY
+      Subroutine updatermask_child(tabres,i1,i2,j1,j2,before,nb,ndir)
+      implicit none
+#  include "param.h"
+#  include "grid.h"
+#  include "ocean2d.h"
+#  include "coupling.h"
+#  include "scalars.h"
+#  include "zoom.h"
+      integer i1,i2,j1,j2
+      real tabres(i1:i2,j1:j2)
+      logical before
+      integer nb, ndir
+      real hzu
+      real t1,t2,t3
+      
+      integer i,j
+       real t4,t8
+      integer :: iter, iifparent
+      integer :: oldindupdate
+      real :: cff, cff1, cff2
+      logical :: western_side, eastern_side,northern_side,southern_side
+!$AGRIF_DO_NOT_TREAT
+      logical global_update_2d
+      common/globalupdate/global_update_2d
+      integer :: iiffine, irhotfine, nbgrid
+      common/updateubar2val/iiffine,irhotfine,
+     &   nbgrid
+!$AGRIF_END_DO_NOT_TREAT  
+
+      real eps
+      parameter (eps=1.e-10)
+       
+      IF (before) THEN
+      do j=j1,j2
+      do i=i1,i2
+        IF ((zeta(i,j,knew)+h(i,j)).lt. Dcrit(i,j)) THEN
+          tabres(i,j)=1.
+        ELSE
+          tabres(i,j)=0.
+        ENDIF
+      enddo
+      enddo
+      
+      ELSE
+      do j=j1,j2
+      do i=i1,i2
+        if (tabres(i,j) > 0.) then
+          rmask_childs(i,j)=0.
+        else
+          rmask_childs(i,j)=1.
+        endif
+      enddo
+      enddo
+      ENDIF
+      
+      end subroutine updatermask_child
+#endif
       
       Subroutine Updatezeta(tabres,i1,i2,j1,j2,k1,k2,before,nb,ndir)
       implicit none
@@ -501,7 +575,13 @@ C$OMP END MASTER
      &           * rmask(i,j)
 #endif
           zeta(i,j,knew) = t2
-         indupdate = indupdate + 1
+#if defined WET_DRY && defined MASKING
+! Modify new free-surface to ensure that depth is > Dcrit
+! for masked cells.
+          zeta(i,j,knew) = zeta(i,j,knew)+ 
+     &                   (Dcrit(i,j)-h(i,j))*(1.-rmask(i,j))
+#endif
+          indupdate = indupdate + 1
           coarsevalues(indupdate,iif) = tabtemp(i,j)
               
           ENDDO

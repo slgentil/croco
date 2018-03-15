@@ -39,7 +39,7 @@
 **                                                                  **
 ** Parameters for sediment model:                                   **
 **                                                                  **
-**  Csed     Sediment concentration (mg/l), used during analytical  **
+**  Csed     Sediment concentration (kg/m3), used during analytical **
 **             initialization.                                      **
 **  Erate    Surface erosion rate (kg/m2/s).                        **
 **  Sd       Sediment grain diameter per size class (m).            **
@@ -109,6 +109,16 @@
 # ifdef AVERAGES
       real bed_frac_avg(GLOBAL_2D_ARRAY,NLAY,NST)
       common /sediment_frac_avg/ bed_frac_avg
+#  ifdef SUSPLOAD
+      real settling_flux_avg(GLOBAL_2D_ARRAY,NST)
+      real ero_flux_avg(GLOBAL_2D_ARRAY,NST)
+      common /sed_settling_avg/ settling_flux_avg,ero_flux_avg
+#  endif
+#  ifdef BEDLOAD
+      real bedldu_avg(GLOBAL_2D_ARRAY,NST)
+      real bedldv_avg(GLOBAL_2D_ARRAY,NST)
+      common /sed_bedload_avg/ bedldu_avg, bedldv_avg
+#  endif
 # endif
 
       character*80 Stitle

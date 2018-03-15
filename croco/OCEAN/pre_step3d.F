@@ -25,14 +25,14 @@
 # include "compute_tile_bounds.h"
       trd=omp_get_thread_num()
       call pre_step3d_tile (Istr,Iend,Jstr,Jend,
-     &                A3d(1,1,trd), A3d(1,2,trd), A3d(1,5,trd),
+     &                A3d(1,1,trd), A3d(1,2,trd), A3d(1,3,trd),
      &                A2d(1,1,trd), A2d(1,2,trd), A2d(1,3,trd),
 # ifdef VADV_ADAPT_IMP     
      &                                            A2d(1,4,trd), 
 # endif           
      &                A2d(1,1,trd), A2d(1,2,trd), A2d(1,3,trd)
 # ifndef NBQ
-     &                                          , A3d(1,3,trd)
+     &                                          , A3d(1,4,trd)         
 # endif
      &                                                        )
       return
@@ -67,8 +67,6 @@
 !--------------------------------------------------------------------
 !
 #ifdef NBQ
-      use module_nh
-      use module_nbq
 #endif
       implicit none
 # include "param.h"
@@ -95,6 +93,9 @@
 # ifdef WET_DRY
       real cff3,cff4,cff5
 #  endif
+# ifdef NBQ
+      real qdm_nstp,qdm_indx
+# endif
       parameter (gamma=1./6., epsil=1.E-16)
 # include "grid.h"
 # include "ocean3d.h"
@@ -113,6 +114,19 @@
 #  define SWITCH *
 # else
 #  define SWITCH !
+# endif
+
+# if defined NBQ && defined M2FILTER_NONE 
+#  define ru_nbq_avg1 ru_nbq
+#  define rv_nbq_avg1 rv_nbq
+#  define rw_nbq_avg1 rw_nbq
+# endif
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!   Caution : version NBQ_MASS && ZETA2D not available
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# if !defined NBQ_ZETAW 
+#      define  Hzr_half_nbq Hz_half
 # endif
 !
 !--------------------------------------------------------------------
@@ -185,84 +199,84 @@
      &                                  +Wi(i,j,k)-Wi(i,j,k-1)     
 # endif     
      &                                                       )
+
+!# if defined NBQ && defined NBQ_MASS && !defined NBQ_ZETAW
+!           Hzr_half_nbq(i,j,k)=Hz_half(i,j,k)
+!    &                         /(rho_nbq_avg1(i,j,k))
+!#  endif
+
           enddo
         enddo
       enddo
 !
 !--------------------------------------------------------------------
 !
-# ifdef NBQ
-      do k=1,N
-        do j=JstrV-1,Jend
-          do i=IstrU-1,Iend
-            Hzr_half_nbq(i,j,k)=Hz_half(i,j,k)/
-     &                          (2.*rho_nbq_avg1(i,j,k)
-     &                          -rho_nbq_avg2(i,j,k))
-          enddo
-        enddo
-      enddo
+
 !
 !  Set lateral boundary conditions for Hz_half
 !
-#  ifndef EW_PERIODIC
+#if defined NBQ && !defined NBQ_ZETAW
+# ifndef EW_PERIODIC
       if (WESTERN_EDGE) then
-        do k=0,N
+        do k=1,N
           do j=Jstr,Jend
             Hzr_half_nbq(0,j,k)=Hzr_half_nbq(1,j,k)
           enddo
         enddo
       endif
       if (EASTERN_EDGE) then
-        do k=0,N
+        do k=1,N
           do j=Jstr,Jend
             Hzr_half_nbq(LOCALLM+1,j,k)=Hzr_half_nbq(LOCALLM,j,k)
           enddo
         enddo
       endif
-#  endif
-#  ifndef NS_PERIODIC
+# endif
+# ifndef NS_PERIODIC
       if (SOUTHERN_EDGE) then
-        do k=0,N
+        do k=1,N
           do i=Istr,Iend
             Hzr_half_nbq(i,0,k)=Hzr_half_nbq(i,1,k)
           enddo
         enddo
       endif
       if (NORTHERN_EDGE) then
-        do k=0,N
+        do k=1,N
           do i=Istr,Iend
             Hzr_half_nbq(i,LOCALMM+1,k)=Hzr_half_nbq(i,LOCALMM,k)
           enddo
         enddo
       endif
-#  endif
-#  ifndef EW_PERIODIC
+# endif
+# ifndef EW_PERIODIC
       if (WESTERN_EDGE .and. SOUTHERN_EDGE) then
-        do k=0,N
+        do k=1,N
           Hzr_half_nbq(0,0,k)=Hzr_half_nbq(1,1,k)
         enddo
       endif
       if (WESTERN_EDGE .and. NORTHERN_EDGE) then
-        do k=0,N
+        do k=1,N
           Hzr_half_nbq(0,LOCALMM+1,k)=Hzr_half_nbq(1,LOCALMM,k)
         enddo
       endif
       if (EASTERN_EDGE .and. SOUTHERN_EDGE) then
-        do k=0,N
+        do k=1,N
           Hzr_half_nbq(LOCALLM+1,0,k)=Hzr_half_nbq(LOCALLM,1,k)
         enddo
       endif
       if (EASTERN_EDGE .and. NORTHERN_EDGE) then
-        do k=0,N
+        do k=1,N
           Hzr_half_nbq(LOCALLM+1,LOCALMM+1,k)=
      &                     Hzr_half_nbq(LOCALLM,LOCALMM,k)
         enddo
       endif
-#  endif
-#  if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI
+# endif
+# if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI
       call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
      &                        Hzr_half_nbq(START_2D_ARRAY,1))
-#  endif
+# endif
+#endif   
+
 !
 !  Set extended range
 !
@@ -295,7 +309,11 @@
       else
         jmax=Jend+2
       endif
+
 #  endif
+
+#  if !defined NBQ_ZETAW && defined NBQ
+
 !
 !  Compute other vertical grid variables at n+1/2
 !
@@ -304,11 +322,9 @@
            zw_half_nbq(i,j,0)=-h(i,j)
            zr_half_nbq(i,j,1)=zw_half_nbq(i,j,0)
      &                        +0.5*Hzr_half_nbq(i,j,1)
-          Hzr_half_nbq(i,j,0  )=0.
-          Hzr_half_nbq(i,j,N+1)=0.
-          Hzw_half_nbq(i,j,0  )=z_r(i,j,1)-z_w(i,j,0)
-          Hzw_half_nbq(i,j,N  )=z_w(i,j,N)-z_r(i,j,N)
-          zw_half_nbq(i,j,1)   =zw_half_nbq(i,j,0)+Hzr_half_nbq(i,j,1)
+!          Hzr_half_nbq(i,j,0  )=0.
+!          Hzr_half_nbq(i,j,N+1)=0.
+           zw_half_nbq(i,j,1)   =zw_half_nbq(i,j,0)+Hzr_half_nbq(i,j,1)
         enddo
       enddo
       do k=2,N
@@ -316,20 +332,33 @@
           do i=imin,imax
             zw_half_nbq(i,j,k)=zw_half_nbq(i,j,k-1)+Hzr_half_nbq(i,j,k)
             zr_half_nbq(i,j,k)=zr_half_nbq(i,j,k-1)
-     &                  +0.5*(Hzr_half_nbq(i,j,k)+Hzr_half_nbq(i,j,k-1))
+     &                 +0.5*(Hzr_half_nbq(i,j,k)+Hzr_half_nbq(i,j,k-1))
           enddo
         enddo
       enddo
-	  
+
       do k=1,N-1
         do j=jmin,jmax
           do i=imin,imax
-            Hzw_half_nbq(i,j,k)=z_r(i,j,k+1)-z_r(i,j,k)
+            Hzw_half_nbq(i,j,k)=zr_half_nbq(i,j,k+1)-zr_half_nbq(i,j,k)
           enddo
         enddo
       enddo
-	  
-# endif /* NBQ */
+      
+      do j=jmin,jmax
+        do i=imin,imax
+          Hzw_half_nbq(i,j,0  )=zr_half_nbq(i,j,1)-zw_half_nbq(i,j,0)
+          Hzw_half_nbq(i,j,N  )=zw_half_nbq(i,j,N)-zr_half_nbq(i,j,N)
+        enddo
+      enddo    
+
+!      do j=Jstr-1,Jend+1
+!      do i=Istr-1,Iend+1
+!        qdmw_nbq(i,j,0)=wz(i,j,0,nstp)*0.5*(Hz(i,j,1))
+!      enddo
+!      enddo
+#  endif /* NBQ_ZETAW */
+
 !
 !--------------------------------------------------------------------
 !  Start computation of the auxiliary tracer field
@@ -492,8 +521,8 @@
       endif 
 
 #ifdef NBQ
-      qdm_u_ext(:,:) = 0.
-      qdm_v_ext(:,:) = 0.
+      ru_int_nbq_2d(:,:) = 0.
+      rv_int_nbq_2d(:,:) = 0.
 #endif
 
       do j=Jstr,Jend
@@ -573,39 +602,36 @@
 # else
               cff = 2./(Hz_half(i,j,k)+Hz_half(i-1,j,k))
 # endif           
-              
               u(i,j,k,nnew)=(u(i,j,k,nstp)*0.5*(Hz(i,j,k)+Hz(i-1,j,k))
      &                                           +cdt*DC(i,0)*ru(i,j,k)
      &                      )*cff
-
 # ifdef NBQ
-              qdm_u(i,j,k,1) = 0.
-              qdm_u(i,j,k,2) = u(i,j,k,nstp)*0.5*(Hz(i,j,k)+Hz(i-1,j,k))
-              ruint_nbq(i,j,k) = qdm_u(i,j,k,2)/dt
-              qdm_u_ext(i,j) = qdm_u_ext(i,j) + ruint_nbq(i,j,k)
+              ru_int_nbq(i,j,k) = 0.
+!              ru_int_nbq_2d(i,j)=ru_int_nbq_2d(i,j)+ru_int_nbq(i,j,k)
 # endif
-
               u(i,j,k,indx)=u(i,j,k,nstp)*0.5*(Hz(i,j,k)+
      &                                         Hz(i-1,j,k))
             enddo
           enddo
 
-# ifdef NBQ
+# ifdef NBQXXX
           do k=1,N
             do i=IstrU,Iend
-               ruint_nbq(i,j,k)=ruint_nbq(i,j,k)
-     &            - qdm_u_ext(i,j) *(Hz(i,j,k)+Hz(i-1,j,k))
-     &                               /(Zt_avg1(i,j)+Zt_avg1(i-1,j))
+               ru_int_nbq(i,j,k)=ru_int_nbq(i,j,k)
+     &            - ru_int_nbq_2d(i,j) *(Hz(i,j,k)+Hz(i-1,j,k))
+     &                               /( Zt_avg1(i  ,j)+H(i  ,j)
+     &                                 +Zt_avg1(i-1,j)+H(i-1,j))
             enddo
           enddo
 # endif
 
-        else !!!!!!!!!!!!!!!!!!!!! ANY OTHER STEP BUT FIRST ONE!!!!!!!!!!!!!!!!!!!!!
+        else 
 
           cff1=0.5+gamma
           cff2=0.5-gamma
           do k=1,N
             do i=IstrU,Iend
+
 # ifdef VADV_ADAPT_IMP              
               cff = 1.
 # else
@@ -613,28 +639,26 @@
 # endif 
 
 # ifdef NBQ
-              u(i,j,k,nnew)=( cff1*u(i,j,k,nstp)*0.5*(Hz(i,j,k)+
-     &                                                Hz(i-1,j,k))
-     &                       +cff2*u(i,j,k,indx)*0.5*(Hz_bak(i,j,k)+
-     &                                                Hz_bak(i-1,j,k))
+              qdm_nstp = u(i,j,k,nstp)*0.5*(Hz(i  ,j,k)+
+     &                                      Hz(i-1,j,k))
+              qdm_indx = u(i,j,k,indx)*0.5*(Hz_bak(i  ,j,k)+
+     &                                      Hz_bak(i-1,j,k))
+              u(i,j,k,nnew)=( cff1*qdm_nstp
+     &                       +cff2*qdm_indx
      &                       +cdt*DC(i,0)*(ru(i,j,k)+ru_nbq_avg1(i,j,k))
      &                                                     )*cff
-              qdm_u(i,j,k,1) = qdm_u(i,j,k,2)
-              qdm_u(i,j,k,2) = u(i,j,k,nstp)*0.5*(Hz(i,j,k)+
-     &                                            Hz(i-1,j,k))
-              ruint_nbq(i,j,k) = (qdm_u(i,j,k,2)-qdm_u(i,j,k,1))/dt
-     &                           -DC(i,0)*ru_nbq_avg2(i,j,k)
-              qdm_u_ext(i,j) =  qdm_u_ext(i,j) + ruint_nbq(i,j,k)
+              ru_int_nbq(i,j,k) = (qdm_nstp-qdm_indx) /dt
+     &                                -DC(i,0)*ru_nbq_avg2(i,j,k)
+       
+              ru_int_nbq_2d(i,j)=ru_int_nbq_2d(i,j)+ru_int_nbq(i,j,k)
 # else
-              u(i,j,k,nnew)=( cff1*u(i,j,k,nstp)*0.5*(Hz(i,j,k)+
-     &                                              Hz(i-1,j,k))
-     &                       +cff2*u(i,j,k,indx)*0.5*(Hz_bak(i,j,k)+
-     &                                              Hz_bak(i-1,j,k))
+              u(i,j,k,nnew)=( cff1*u(i,j,k,nstp)*0.5*(Hz(i  ,j,k)+
+     &                                                Hz(i-1,j,k))
+     &                       +cff2*u(i,j,k,indx)*0.5*(Hz_bak(i  ,j,k)+
+     &                                                Hz_bak(i-1,j,k))
      &                       +cdt*DC(i,0)*ru(i,j,k)
      &                                                     )*cff
-
 # endif
-
               u(i,j,k,indx)=u(i,j,k,nstp)*0.5*(Hz(i,j,k)+
      &                                         Hz(i-1,j,k))
 
@@ -644,13 +668,13 @@
 # ifdef NBQ
           do k=1,N
             do i=IstrU,Iend
-               ruint_nbq(i,j,k)=ruint_nbq(i,j,k)
-     &            - qdm_u_ext(i,j) *(Hz(i,j,k)+Hz(i-1,j,k))
-     &                               /(Zt_avg1(i,j)+Zt_avg1(i-1,j))
+               ru_int_nbq(i,j,k)=ru_int_nbq(i,j,k)
+     &            - ru_int_nbq_2d(i,j) *(Hz(i,j,k)+Hz(i-1,j,k))
+     &                               /( Zt_avg1(i  ,j)+H(i  ,j)
+     &                                 +Zt_avg1(i-1,j)+H(i-1,j))
             enddo
           enddo
 # endif
-     
          endif
 !
 !======================================================================
@@ -683,29 +707,26 @@
      &                           )*cff
 
 # ifdef NBQ
-              qdm_v(i,j,k,1) = 0.
-              qdm_v(i,j,k,2) = v(i,j,k,nstp)*0.5*(Hz(i,j,k)
-     &                                           +Hz(i,j-1,k))
-              rvint_nbq(i,j,k) = qdm_v(i,j,k,2)/dt
-
-              qdm_v_ext(i,j) = qdm_v_ext(i,j) + rvint_nbq(i,j,k)
+                rv_int_nbq(i,j,k) = 0.
+!                rv_int_nbq_2d(i,j)=rv_int_nbq_2d(i,j)+rv_int_nbq(i,j,k)
 # endif
                 v(i,j,k,indx)=v(i,j,k,nstp)*0.5*(Hz(i,j  ,k)+
      &                                           Hz(i,j-1,k))
               enddo
             enddo
 
-# ifdef NBQ
+# ifdef NBQXXX
           do k=1,N
             do i=Istr,Iend
-               rvint_nbq(i,j,k)=rvint_nbq(i,j,k)
-     &            - qdm_v_ext(i,j) *(Hz(i,j,k)+Hz(i,j-1,k))
-     &                               /(Zt_avg1(i,j)+Zt_avg1(i,j-1))
+               rv_int_nbq(i,j,k)=rv_int_nbq(i,j,k)
+     &            - rv_int_nbq_2d(i,j) *(Hz(i,j,k)+Hz(i,j-1,k))
+     &                               /( Zt_avg1(i,j  )+H(i,j  )
+     &                                 +Zt_avg1(i,j-1)+H(i,j-1))
             enddo
           enddo
 # endif
 
-          else!!!!!!!!!!!!!!!!!!!!! ANY OTHER STEP BUT FIRST ONE!!!!!!!!!!!!!!!!!!!!!
+          else
 
             cff1=0.5+gamma
             cff2=0.5-gamma
@@ -719,23 +740,24 @@
 # endif              
 
 # ifdef NBQ
-                v(i,j,k,nnew)=( cff1*v(i,j,k,nstp)*0.5*(Hz(i,j,k)+
-     &                                                  Hz(i,j-1,k))
-     &                         +cff2*v(i,j,k,indx)*0.5*(Hz_bak(i,j,k)+
-     &                                              Hz_bak(i,j-1,k))
+                qdm_nstp = v(i,j,k,nstp)*0.5*(Hz(i,j  ,k)+
+     &                                        Hz(i,j-1,k))
+                qdm_indx = v(i,j,k,indx)*0.5*(Hz_bak(i  ,j,k)+
+     &                                        Hz_bak(i,j-1,k))
+                v(i,j,k,nnew)=( cff1*qdm_nstp
+     &                         +cff2*qdm_indx
      &                     +cdt*DC(i,0)*(rv(i,j,k)+rv_nbq_avg1(i,j,k))
      &                                                           )*cff
-              qdm_v(i,j,k,1) = qdm_v(i,j,k,2)
-              qdm_v(i,j,k,2) = v(i,j,k,nstp)*0.5*(Hz(i,j,k)+
-     &                                            Hz(i,j-1,k))
-              rvint_nbq(i,j,k) = (qdm_v(i,j,k,2)-qdm_v(i,j,k,1))/dt
-     &                           -DC(i,0)*rv_nbq_avg2(i,j,k)
-              qdm_v_ext(i,j) =  qdm_v_ext(i,j) + rvint_nbq(i,j,k)
+
+                rv_int_nbq(i,j,k) = (qdm_nstp-qdm_indx)/dt
+     &                                 -DC(i,0)*rv_nbq_avg2(i,j,k)
+
+                rv_int_nbq_2d(i,j)=rv_int_nbq_2d(i,j)+rv_int_nbq(i,j,k)
 # else
-                v(i,j,k,nnew)=( cff1*v(i,j,k,nstp)*0.5*(Hz(i,j,k)+
-     &                                                Hz(i,j-1,k))
-     &                         +cff2*v(i,j,k,indx)*0.5*(Hz_bak(i,j,k)+
-     &                                                Hz_bak(i,j-1,k))
+                v(i,j,k,nnew)=( cff1*v(i,j,k,nstp)*0.5*(Hz(i,j  ,k)+
+     &                                                  Hz(i,j-1,k))
+     &                         +cff2*v(i,j,k,indx)*0.5*(Hz_bak(i,j  ,k)+
+     &                                                  Hz_bak(i,j-1,k))
      &                         +cdt*DC(i,0)*rv(i,j,k)
      &                                                           )*cff
 # endif
@@ -748,9 +770,10 @@
 # ifdef NBQ
           do k=1,N
             do i=Istr,Iend
-               rvint_nbq(i,j,k)=rvint_nbq(i,j,k)
-     &            - qdm_v_ext(i,j) *(Hz(i,j,k)+Hz(i,j-1,k))
-     &                               /(Zt_avg1(i,j)+Zt_avg1(i,j-1))
+               rv_int_nbq(i,j,k)=rv_int_nbq(i,j,k)
+     &            - rv_int_nbq_2d(i,j) *(Hz(i,j,k)+Hz(i,j-1,k))
+     &                               /( Zt_avg1(i,j  )+H(i,j  )
+     &                                 +Zt_avg1(i,j-1)+H(i,j-1))
             enddo
           enddo
 # endif
@@ -772,111 +795,138 @@
 !======================================================================
 !
       enddo     !<-- j
-
       
 # ifdef NBQ
 !----------------------------------------------------------
 !<-- at this point 
 !<-- rw            contains internal 3D advection + Coriolis
-!<-- rw_nbq_avg1   contains NBQ pressure gradient + gravity 
+!<-- rw_nbq_avg1   contains NBQ pressure gradient (+ gravity) 
 !                                        + second viscosity 
 !----------------------------------------------------------
       do j=Jstr,Jend
-!==
+!**************************************
       if (FIRST_TIME_STEP) then
-!==        
+!**************************************
         do k=1,N-1
           do i=Istr,Iend
             wz(i,j,k,nnew)=( wz(i,j,k,nstp)*(Hz(i,j,k)+Hz(i,j,k+1))
      &                                          +dt*pn(i,j)*pm(i,j)
      &                              *(rw(i,j,k)+rw_nbq_avg1(i,j,k))
-     &                     )   /  (Hz_half(i,j,k)+Hz_half(i,j,k+1)) !<-- wz has units m.s-1
+     &                     )   /  (Hz_half(i,j,k)+Hz_half(i,j,k+1)) 
 
-#ifdef NBQ
-            qdm_w(i,j,k,1)=0.
-            qdm_w(i,j,k,2)=wz(i,j,k,nstp)*(Hz(i,j,k)+Hz(i,j,k+1))/2.
-            rwint_nbq(i,j,k)= qdm_w(i,j,k,2)/dt
-     &                      - pn(i,j)*pm(i,j)*rw_nbq_avg2(i,j,k)
-#endif
-
+            rw_int_nbq(i,j,k)= 0.
             wz(i,j,k,indx)=wz(i,j,k,nstp)*0.5*(Hz(i,j,k  )+
-     &                                         Hz(i,j,k+1)) !<-- wz(indx) has units kg.m-1.s-1
-
+     &                                         Hz(i,j,k+1))
           enddo
-
         enddo
-!== Special treatment for k=N because the control volume at the top is Hz/2       
+!==       
         do i=Istr,Iend
+!== Special treatment for k=N because the control volume at the top is Hz(N)/2 
             wz(i,j,N,nnew)=( wz(i,j,N,nstp)*Hz(i,j,N)
      &                            +dt*pn(i,j)*pm(i,j)
      &                *(rw(i,j,N)+rw_nbq_avg1(i,j,N))
      &                     )        /  Hz_half(i,j,N) !<-- wz has units m.s-1
-
-#ifdef NBQ
-            qdm_w(i,j,N,1)=0.
-            qdm_w(i,j,N,2)=wz(i,j,N,nstp)*Hz(i,j,N)/2.
-            rwint_nbq(i,j,N)=(qdm_w(i,j,N,2)-qdm_w(i,j,N,1))/dt
-     &                      - pn(i,j)*pm(i,j)*rw_nbq_avg2(i,j,N)
-
-#endif
-
+            rw_int_nbq(i,j,N)= 0. 
             wz(i,j,N,indx)=wz(i,j,N,nstp)*0.5*Hz(i,j,N) !<-- wz(indx) has units kg.m-1.s-1
 
-        enddo        
-!==        
-      else !!!!!!!!!!!!!!!!!!!!!!!!!!NOT FIRST STEP!!!!!!!!!!!!!!!!!
-!==      
+!== Special treatment for k=0 because the control volume at the top is Hz(1)/2
+#  ifdef NBQ_FREESLIP
+!           wz(i,j,0,nnew)=( wz(i,j,0,nstp)*Hz(i,j,1)
+!     &                            +dt*pn(i,j)*pm(i,j)
+!     &                *(rw(i,j,0)+ rw_nbq_avg1(i,j,0))
+!     &                     )        /  Hz_half(i,j,1) !<-- wz has units m.s-1
+!           rw_int_nbq(i,j,0)=pn(i,j)*pm(i,j)*rw(i,j,0) ! ! Francis: switch from k=0 to k=1 here
+
+            rw_int_nbq(i,j,0)=0.
+
+            wz(i,j,0,nnew)=  ( u(i,j,1,nnew) * pm_u(i,j) 
+     &                                    * ( z_w(i  ,j,0)-z_w(i-1,j,0) )
+     &                        +v(i,j,1,nnew) * pm_v(i,j) 
+     &                                    * ( z_w(i,j  ,0)-z_w(i,j-1,0) )  )
+            wz(i,j,0,indx)=wz(i,j,0,nnew)*0.5*Hz(i,j,1) !<-- wz(indx) has units kg.m-1.s-1
+# else
+            wz(i,j,0,nnew)=0.
+            wz(i,j,0,indx)=0.
+# endif
+        enddo      
+
+!**************************************
+      else
+!**************************************
         cff1=0.5+gamma
         cff2=0.5-gamma
 !==        
         do k=1,N-1
           do i=Istr,Iend
-             wz(i,j,k,nnew)=( cff1*wz(i,j,k,nstp)*(Hz(i,j,k  )+         ! n      
-     &                                             Hz(i,j,k+1))         !
-     &                       +cff2*wz(i,j,k,indx)*(Hz_bak(i,j,k  )+     ! n - 1
-     &                                             Hz_bak(i,j,k+1))     !
-     &                       +2.*cdt*pn(i,j)*pm(i,j)                    ! n - 1/2
-     &                              *(rw(i,j,k)+rw_nbq_avg1(i,j,k))     !
-     &                      ) / (Hz_half(i,j,k)+Hz_half(i,j,k+1))  !<-- wz has units m.s-1
+            qdm_nstp = wz(i,j,k,nstp)*(Hz(i,j,k  )+             
+     &                                             Hz(i,j,k+1))
+            qdm_indx = wz(i,j,k,indx)*(Hz_bak(i,j,k  )+     
+     &                                             Hz_bak(i,j,k+1))
+            wz(i,j,k,nnew)=( cff1*qdm_nstp         !
+     &                      +cff2*qdm_indx         !
+     &                      +2.*cdt*pn(i,j)*pm(i,j)                 ! n - 1/2
+     &                             *(rw(i,j,k)+rw_nbq_avg1(i,j,k))  !
+     &                     ) / (Hz_half(i,j,k)+Hz_half(i,j,k+1))  !<-- wz has units m.s-1
 
-#ifdef NBQ
-             qdm_w(i,j,k,1)=qdm_w(i,j,k,2)
-             qdm_w(i,j,k,2)=wz(i,j,k,nstp)*(Hz(i,j,k  )+
-     &                                      Hz(i,j,k+1))/2.
-             rwint_nbq(i,j,k)=(qdm_w(i,j,k,2)-qdm_w(i,j,k,1))/dt
-     &                      - pn(i,j)*pm(i,j)*rw_nbq_avg2(i,j,k)
-#endif
-
-             wz(i,j,k,indx)=wz(i,j,k,nstp)*0.5*(Hz(i,j,k  )+
+            rw_int_nbq(i,j,k)=(qdm_nstp-qdm_indx)*0.5/dt
+     &                       - pn(i,j)*pm(i,j)*rw_nbq_avg2(i,j,k)
+            wz(i,j,k,indx)=wz(i,j,k,nstp)*0.5*(Hz(i,j,k  )+
      &                                          Hz(i,j,k+1)) !<-- wz(indx) has units kg.m-1.s-1
-
           enddo
-       enddo              
+        enddo
+           
+        do i=Istr,Iend
 
-!== Special treatment for k=N because the control volume at the top is Hz/2             
-       do i=Istr,Iend
-             wz(i,j,N,nnew)=( cff1*wz(i,j,N,nstp)*Hz    (i,j,N)
-     &                       +cff2*wz(i,j,N,indx)*Hz_bak(i,j,N)
-     &                       +2.*cdt*pn(i,j)*pm(i,j)
-     &                          *(rw(i,j,N)+rw_nbq_avg1(i,j,N))
-     &                      )/ Hz_half(i,j,N)                !<-- wz has units m.s-1
+!== Special treatment for k=N because the control volume at the top is Hz(N)/2  
+          qdm_nstp = wz(i,j,N,nstp)*Hz    (i,j,N)
+          qdm_indx = wz(i,j,N,indx)*Hz_bak(i,j,N)
+          wz(i,j,N,nnew)=( cff1*qdm_nstp
+     &                    +cff2*qdm_indx
+     &                    +2.*cdt*pn(i,j)*pm(i,j)
+     &                       *(rw(i,j,N)+rw_nbq_avg1(i,j,N))
+     &                   )/ Hz_half(i,j,N)          !<-- wz has units m.s-1
 
-#ifdef NBQ
-             qdm_w(i,j,N,1)=qdm_w(i,j,N,2)
-             qdm_w(i,j,N,2)=wz(i,j,N,nstp)*Hz(i,j,N)/2.
-             rwint_nbq(i,j,N)=(qdm_w(i,j,N,2)-qdm_w(i,j,N,1))/dt
-     &                      -  pn(i,j)*pm(i,j)*rw_nbq_avg2(i,j,N)
-#endif
+          rw_int_nbq(i,j,N)=(qdm_nstp-qdm_indx)*0.5/dt
+     &                     -  pn(i,j)*pm(i,j)*rw_nbq_avg2(i,j,N)
+          wz(i,j,N,indx)=wz(i,j,N,nstp)*0.5*Hz(i,j,N)   !<-- wz(indx) has units kg.m-1.s-1
 
-             wz(i,j,N,indx)=wz(i,j,N,nstp)*0.5*Hz(i,j,N)   !<-- wz(indx) has units kg.m-1.s-1
+!== Special treatment for k=0 because the control volume at the bottom
+!    is Hz(1)/2  
+#  ifdef NBQ_FREESLIP
+!         wz(i,j,0,nnew)=( cff1*wz(i,j,0,nstp)*Hz    (i,j,1)
+!     &                   +cff2*wz(i,j,0,indx)*Hz_bak(i,j,1)
+!     &                   +2.*cdt*pn(i,j)*pm(i,j)
+!     &                   *(rw(i,j,0)+rw_nbq_avg1(i,j,0))
+!     &                  )/ Hz_half(i,j,1)         !<-- wz has units m.s-1
+!        rw_int_nbq(i,j,0)=pn(i,j)*pm(i,j)*rw(i,j,0)  !! Francis: switch from k=0 to k=1 here
 
-       enddo            
+          rw_int_nbq(i,j,0)=0.
+
+          wz(i,j,0,nnew)= (  u(i,j,1,nnew) * pm_u(i,j) 
+     &                                  * ( z_w(i  ,j,0)-z_w(i-1,j,0) )
+     &                     + v(i,j,1,nnew) * pm_v(i,j) 
+     &                                  * ( z_w(i,j  ,0)-z_w(i,j-1,0) )  )
+          wz(i,j,0,indx)=wz(i,j,0,nnew)*0.5*Hz(i,j,1)   !<-- wz(indx) has units kg.m-1.s-1 
+#  else
+          wz(i,j,0,nnew)=0.
+          wz(i,j,0,indx)=0.
+#  endif
+        enddo    
 !==                  
       endif
 
-      enddo
+      enddo  
+!==  
+
 !==
-# endif /* NBQ */     
+# endif /* NBQ */   
+  
+# if defined NBQ && defined M2FILTER_NONE 
+#  undef ru_nbq_avg1 
+#  undef rv_nbq_avg1 
+#  undef rw_nbq_avg1 
+# endif
+
 !
 !======================================================================
 ! Set PHYSICAL lateral boundary conditions for tracers.
@@ -923,104 +973,6 @@
 #  define JV_RANGE Jstr,JendR
 # endif
 !
-      do j=JU_RANGE                      ! XI-component
-        do i=IU_RANGE
-          DC(i,0)=0.
-          CF(i,0)=0.
-        enddo
-        do k=1,N,+1
-          do i=IU_RANGE
-            DC(i,k)=0.5*(Hz(i,j,k)+Hz(i-1,j,k))*on_u(i,j)
-            DC(i,0)=DC(i,0)+DC(i,k)
-            CF(i,0)=CF(i,0)+DC(i,k)*u(i,j,k,nnew)
-          enddo
-        enddo
-        if (FIRST_TIME_STEP) then
-          cff1=1.
-          cff2=0.
-        else
-          cff1=1.5
-          cff2=0.5
-        endif
-        do i=IU_RANGE
-          CF(i,0)=( CF(i,0)-cff1*DU_avg1(i,j,nstp)
-     &                     +cff2*DU_avg1(i,j,indx) )/DC(i,0)
-        enddo
-        do k=N,1,-1
-          do i=IU_RANGE
-            u(i,j,k,nnew)=(u(i,j,k,nnew)-CF(i,0))
-# ifdef MASKING
-     &                                 *umask(i,j)
-# endif
-# ifdef WET_DRY
-            cff3=wetdry(i-1,j)+wetdry(i,j)
-            IF (cff3.eq.1.) THEN
-              cff3=wetdry(i-1,j)-wetdry(i,j)
-            END IF
-            cff4=ABS(ABS(cff3)-1.)
-            cff5=0.5+SIGN(0.5,(cff1*DU_avg1(i,j,nstp)
-     &                        -cff2*DU_avg1(i,j,indx)))*cff3
-            umask_wet(i,j)=0.5*cff3*cff4+cff5*(1.-cff4)
-!            IF (cff1*DU_avg1(i,j,nstp)
-!     &         -cff2*DU_avg1(i,j,indx).eq.0. .and.
-!     &          wetdry(i-1,j)+wetdry(i,j).le.1.) THEN
-!              umask_wet(i,j)=0.
-!            END IF
-            u(i,j,k,nnew)=u(i,j,k,nnew)*umask_wet(i,j)
-# endif
-          enddo
-        enddo
-      enddo
-
-      do j=JV_RANGE
-        do i=IV_RANGE                   ! ETA-component
-          DC(i,0)=0.
-          CF(i,0)=0.
-        enddo
-        do k=1,N,+1
-          do i=IV_RANGE
-            DC(i,k)=0.5*(Hz(i,j,k)+Hz(i,j-1,k))*om_v(i,j)
-            DC(i,0)=DC(i,0)+DC(i,k)
-            CF(i,0)=CF(i,0)+DC(i,k)*v(i,j,k,nnew)
-          enddo
-        enddo
-        if (FIRST_TIME_STEP) then
-          cff1=1.
-          cff2=0.
-        else
-          cff1=1.5
-          cff2=0.5
-        endif
-        do i=IV_RANGE
-          CF(i,0)=( CF(i,0)-cff1*DV_avg1(i,j,nstp)
-     &                     +cff2*DV_avg1(i,j,indx) )/DC(i,0)
-        enddo
-        do k=N,1,-1
-          do i=IV_RANGE
-            v(i,j,k,nnew)=(v(i,j,k,nnew)-CF(i,0))
-# ifdef MASKING
-     &                                  *vmask(i,j)
-# endif
-# ifdef WET_DRY
-            cff3=wetdry(i,j-1)+wetdry(i,j)
-            IF (cff3.eq.1.) THEN
-              cff3=wetdry(i,j-1)-wetdry(i,j)
-            END IF
-            cff4=ABS(ABS(cff3)-1.)
-            cff5=0.5+SIGN(0.5,(cff1*DV_avg1(i,j,nstp)
-     &                        -cff2*DV_avg1(i,j,indx)))*cff3
-            vmask_wet(i,j)=0.5*cff3*cff4+cff5*(1.-cff4)
-!            IF (cff1*DV_avg1(i,j,nstp)
-!     &         -cff2*DV_avg1(i,j,indx).eq.0. .and.
-!     &          wetdry(i,j-1)+wetdry(i,j).le.1.) THEN
-!              vmask_wet(i,j)=0.
-!            END IF
-            v(i,j,k,nnew)=v(i,j,k,nnew)*vmask_wet(i,j)
-# endif
-          enddo
-        enddo
-      enddo
-!
 !======================================================================
 ! Set PHYSICAL lateral boundary conditions for momentum.
 !======================================================================
@@ -1039,7 +991,7 @@
 #  endif
 #  ifdef NBQ    
       call exchange_w3d_tile (Istr,Iend,Jstr,Jend,
-     &                        wz(START_2D_ARRAY,0,nnew))     
+     &                        wz(START_2D_ARRAY,0,nnew))   
 #  endif
 # endif
 !
@@ -1050,20 +1002,22 @@
 ! to the time step n (nstp).
 !======================================================================
 !
-# ifdef MPI
+# ifndef M2FILTER_NONE 
+#  if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI
       do j=JU_RANGE
         do i=IV_RANGE
           zeta(i,j,knew)=Zt_avg1(i,j)
         enddo
       enddo
-      call exchange_r2d_tile (Istr,Iend,Jstr,Jend,
+       call exchange_r2d_tile (Istr,Iend,Jstr,Jend,
      &                          zeta(START_2D_ARRAY,knew))
-# else
+#  else
       do j=JstrR,JendR
         do i=IstrR,IendR
           zeta(i,j,knew)=Zt_avg1(i,j)
         enddo
-      enddo
+      enddo     
+#  endif
 # endif
 !
 # undef IU_RANGE

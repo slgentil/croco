@@ -13,9 +13,9 @@
    <!-- ========================================================================== -->
    <!-- ========================================================================== -->
 
-   <file_definition type="one_file"  name="CROCO_FILES/moz" sync_freq="1ts" min_digits="4">
+   <file_definition type="one_file"  name="CROCO_FILES/moz" sync_freq="1d" min_digits="4">
 
-     <file_group id="1d" output_freq="1ts"  output_level="10" enabled=".TRUE." >  <!-- 1d files -->
+     <file_group id="1d" output_freq="1d"  output_level="10" enabled=".TRUE." >  <!-- 1d files -->
       <file id="file1" name_suffix="_his" >
        <field_group id="grid_fields" operation="once">
         <field field_ref="hc"         name= "hc" />
@@ -92,6 +92,7 @@
           <variable id="using_server"              type="boolean">true</variable>
           <variable id="using_oasis"               type="boolean">false</variable>
           <variable id="oasis_codes_id"            type="string" >oceanx</variable>
+          <variable id="print_file"                type="bool"   >true</variable>
       </variable_definition>
   </context>
 

@@ -32,6 +32,8 @@ close all
 floats=1;
 step=2;
 vname='salt';
+makemovie=0;
+makepdf=0;
 %
 % Read data
 %
@@ -54,6 +56,13 @@ if floats==1
   nf=netcdf('floats.nc','r');
   nflt=length(nf('drifter'));
   hflt=0*(1:nflt);
+end
+
+
+if makemovie==1
+  tstart=1;
+else 
+  tstart=length(tis);  
 end
 
 for tndx=1:length(tis)
@@ -100,8 +109,9 @@ for tndx=1:length(tis)
   hold off
   title(['RIVER: ',vname,' - day = ',num2str(tis(tndx)/(24*3600))])
 
-  MOV(tndx) = getframe;
-
+  if makemovie==1
+    MOV(tndx) = getframe;
+  end  
 end
 
 close(nc)
@@ -109,7 +119,11 @@ if floats==1
   close(nf)
 end
 
-movie(MOV,1);
-
-
+if makemovie==1
+  movie(MOV,1);
+end
+if makepdf
+ print -dpdf river_salt.pdf
+ eval('!pdfcrop river_salt.pdf river_salt.pdf')
+end
 

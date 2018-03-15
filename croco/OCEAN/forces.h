@@ -77,7 +77,8 @@
       integer itbms,      bmstid,busid, bvsid,     tbmsindx
       logical bmscycle,   bms_onerec,   lbusgrd,   lbvsgrd
       common /bmsdat1/bms_tintrp, bustrp,       bvstrp,    tbms
-      common /bmsdat2/bmsclen,    bms_tstart,   bms_tend,  tsbms,   sclbms
+      common /bmsdat2/bmsclen,    bms_tstart,   bms_tend,  tsbms,
+     &               sclbms
       common /bmsdat3/itbms,      bmstid,busid, bvsid,     tbmsindx
       common /bmsdat4/bmscycle,   bms_onerec,   lbusgrd,   lbvsgrd
 
@@ -382,7 +383,8 @@
       integer itsrf, srf_ncycle, srf_rec
       integer lsrfgrd, srf_tid, srf_id 
       common /srfdat1/ srflxp, srf_time, srf_cycle, srf_scale
-      common /srfdat2/ itsrf, srf_ncycle, srf_rec, lsrfgrd, srf_tid, srf_id
+      common /srfdat2/ itsrf, srf_ncycle, srf_rec, lsrfgrd, srf_tid,
+     &                 srf_id
 
 # ifdef DIURNAL_INPUT_SRFLX
       real srflxbiog(GLOBAL_2D_ARRAY,2)
@@ -407,15 +409,19 @@
 ! wdrx | MRL     | cosine of wave direction [non dimension]
 ! wdre | MRL     | sine of   wave direction [non dimension]
 ! whrm | MRL     | (RMS) wave height (twice the wave amplitude) [m]
-! wdsp | MRL     | breaking dissipation rate (\epsilon_b term) [m3/s3]
-! wdrg | MRL     | frictional dissipation rate (\epsilon_d term) [m3/s3]
-! rdsp | ROLLER  | roller dissipation rate (\epsilon_r term) [m3/s3]
+! wepb | MRL     | breaking dissipation rate (\epsilon_b term) [m3/s3]
+! wepd | MRL     | frictional dissipation rate (\epsilon_d term) [m3/s3]
+! wepr | ROLLER  | roller dissipation rate (\epsilon_r term) [m3/s3]
 ! wbst | MRL/BKPP| frictional dissipation stress (e_d k/sigma) [m2/s2]
 !--------------------------------------------------------------------
 
 #if defined BBL || defined MRL_WCI || defined OW_COUPLING 
       real wfrq(GLOBAL_2D_ARRAY)
       common /forces_wfrq/wfrq
+      real wwkx(GLOBAL_2D_ARRAY)
+      common /forces_wkx/wwkx
+      real wwke(GLOBAL_2D_ARRAY)
+      common /forces_wke/wwke
 #endif
 
 #ifdef BBL
@@ -426,20 +432,16 @@
 
 #if defined MRL_WCI || defined OW_COUPLING
       real whrm(GLOBAL_2D_ARRAY)
-      real wdsp(GLOBAL_2D_ARRAY)
-      real wdrg(GLOBAL_2D_ARRAY)
-      real wbst(GLOBAL_2D_ARRAY)
+      real wepb(GLOBAL_2D_ARRAY)
+      real wepd(GLOBAL_2D_ARRAY)
       real wdrx(GLOBAL_2D_ARRAY)
       real wdre(GLOBAL_2D_ARRAY)
-      common /forces_whrm/whrm 
-      common /forces_wdsp/wdsp
-      common /forces_wdrx/wdrx 
-      common /forces_wdre/wdre
-      common /forces_wdrg/wdrg 
-      common /forces_wbst/wbst
+      common /forces_whrm/whrm /forces_wepb/wepb 
+     &       /forces_wdrx/wdrx /forces_wdre/wdre
+     &       /forces_wepd/wepd
 # ifdef WAVE_ROLLER
-      real rdsp(GLOBAL_2D_ARRAY)
-      common /forces_rdsp/rdsp
+      real wepr(GLOBAL_2D_ARRAY)
+      common /forces_wepr/wepr
 # endif
 !
 !--------------------------------------------------------------------
@@ -518,11 +520,11 @@
       real Pwave(GLOBAL_2D_ARRAY)
       common /bbl_Awave/Awave /bbl_Dwave/Dwave /bbl_Pwave/Pwave
 
-# if !defined ANA_WWAVE && !defined WKB_WWAVE
+# ifdef WAVE_OFFLINE
 !--------------------------------------------------------------------
-!  Eb    |                    | breaking dissipation [m3/s3]
-!  wved  |  for present time  | frictional dissipation [m3/s3]
-!  wvqb  |  step              | fraction of breaking waves [ND]
+!  wweb  |                    | breaking dissipation [m3/s3]
+!  wwed  |  for present time  | frictional dissipation [m3/s3]
+!  wwer  |  step              | roller dissipation [m3/s3]
 !--------------------------------------------------------------------
 !wwv_time|                    | time of wind-induced waves
 !--------------------------------------------------------------------
@@ -533,12 +535,10 @@
 !  wwfrq |  Two-time-level    | wave frequency [rad/s]
 !  wwuob |  point data        | xi-orbital velocity [m/s]
 !  wwvob |  for wind induced  ! eta-orbital velocity [m/s]
-!  wwdrx |                    | cosine wave direction [ND]
-!  wwdre |                    ! sine wave direction [ND]
 !  wwhrm |                    ! (RMS) wave height [m]
 !  wweb  |                    ! breaking dissipation [m3/s3]
 !  wwed  |                    ! frictional dissipation [m3/s3]
-!  wwqb  |                    ! fraction of breaking waves [ND]
+!  wwer  |                    ! roller dissipation [m3/s3]
 !--------------------------------------------------------------------
 !
       real wwag(GLOBAL_2D_ARRAY,2)
@@ -548,64 +548,59 @@
       real wwfrq(GLOBAL_2D_ARRAY)
       common /wwf_wwfrq/wwfrq
 #  ifdef BBL_OFFLINE 
-#   ifdef WAVE_OFFLINE
       real wwub(GLOBAL_2D_ARRAY,2)
       common /wwf_wwub/wwub
-#   endif /* WAVE_OFFLINE */
       real wwuob(GLOBAL_2D_ARRAY,2)
       real wwvob(GLOBAL_2D_ARRAY,2)
       common /wwf_wwuob/wwuob /wwf_wwvob/wwvob
-#  endif /* BBL */
-#  ifdef MRL_WCI 
-      real wwhrm(GLOBAL_2D_ARRAY)
-      real wwdrx(GLOBAL_2D_ARRAY)
-      real wwdre(GLOBAL_2D_ARRAY)
+#  endif /* BBL_OFFLINE */
+#  ifdef MRL_WCI
+#   ifdef WAVE_OFFLINE_BREAKING
       real wweb(GLOBAL_2D_ARRAY,2)
-      real Eb  (GLOBAL_2D_ARRAY)
-      common /wwf_wwhrm/wwhrm 
-      common /wwf_wwdrx/wwdrx 
-      common /wwf_wwdre/wwdre 
-      common /wwf_wweb/wweb 
-      common /forces_Eb/Eb
-#   if defined WAVE_OFFLINE || defined OW_COUPLING
-      real wved(GLOBAL_2D_ARRAY)
+      common /wwf_wweb/wweb
+#   endif
+#   ifdef WAVE_OFFLINE_FRICTION
       real wwed(GLOBAL_2D_ARRAY,2)
-      common /forces_wved/wved /wwf_wwed/wwed
-#   endif /* WAVE_OFFLINE */
-#   if defined WAVE_OFFLINE && defined WAVE_ROLLER
-      real wvqb(GLOBAL_2D_ARRAY)
-      real wwqb(GLOBAL_2D_ARRAY,2)
-      common /forces_wvqb/wvqb /wwf_wwqb/wwqb
+      common /wwf_wwed/wwed
 #   endif
-#  endif 
-      real ww_cycle,wwv_time(2),wwap(2), wwdp(2),wwpp(2),wwep(2)
-      real wwa_scale, wwd_scale, wwp_scale,wwe_scale
-      real wwagrd,   wwdgrd,    wwpgrd, wwegrd
-      integer ww_ncycle,  ww_rec,  itww
-      integer ww_file_id, ww_tid,  wwa_id, wwp_id, wwd_id
-#   if defined BBL && defined WAVE_OFFLINE
-      integer wwu_id
-#   endif 
-#   if defined MRL_WCI && defined WAVE_OFFLINE
-      integer wwe_id, wwq_id, wwf_id
+#   ifdef WAVE_OFFLINE_ROLLER
+      real wwer(GLOBAL_2D_ARRAY,2)
+      common /wwf_wwer/wwer
 #   endif
-      common /wwdat1/ ww_cycle, wwv_time
-      common /wwdat2/ wwap, wwdp,wwpp,wwep
-      common /wwdat3/ wwa_scale, wwd_scale, wwp_scale,wwe_scale
-      common /wwdat4/ wwagrd, wwdgrd, wwpgrd, wwegrd
-      common /wwdat5/ ww_ncycle, ww_rec, itww
-      common /wwdat6/ ww_file_id, ww_tid,  wwa_id, wwp_id, wwd_id 
-#   if defined BBL && defined WAVE_OFFLINE
-      common /wwdat7/ wwu_id
+#  endif /* MRL_WCI */
+      real    ww_cycle,wwv_time(2),
+     &        wwap(2),wwdp(2),wwpp(2),
+     &        wwebp(2),wwedp(2),wwerp(2),
+     &        wwa_scale,wwd_scale,wwp_scale,
+     &        wweb_scale,wwed_scale,wwer_scale,
+     &        wwagrd,wwdgrd,wwpgrd,
+     &        wwebgrd,wwedgrd,wwergrd
+      integer ww_ncycle, ww_rec, itww,
+     &        ww_file_id, ww_tid,  
+     &        wwa_id, wwp_id, wwd_id
+#   ifdef MRL_WCI
+     &       ,wweb_id, wwed_id, wwer_id
 #   endif
-#   if defined MRL_WCI && defined WAVE_OFFLINE
-      common /wwdat8/ wwe_id, wwq_id, wwf_id
+#   ifdef BBL
+     &       ,wwu_id
 #   endif
-# elif defined MRL_WCI
-      real Eb(GLOBAL_2D_ARRAY)
-      real wved(GLOBAL_2D_ARRAY)
-      common /forces_Eb/Eb /forces_wved/wved
-# endif /* ANA_WWAVE && !WKB_WWAVE */
+      common /wwdat/ ww_cycle, wwv_time,
+     &       wwap,wwdp,wwpp,
+     &       wwebp,wwedp,wwerp,
+     &       wwa_scale,wwd_scale,wwp_scale,
+     &       wweb_scale,wwed_scale,wwer_scale,
+     &       wwagrd,wwdgrd,wwpgrd, 
+     &       wwebgrd,wwedgrd,wwergrd,
+     &       ww_ncycle,ww_rec,itww,
+     &       ww_file_id,ww_tid, 
+     &       wwa_id, wwp_id, wwd_id
+#   ifdef MRL_WCI
+     &       ,wweb_id, wwed_id, wwer_id
+#   endif
+#   ifdef BBL
+     &       ,wwu_id
+#   endif
+# endif /* WAVE_OFFLINE */
 #endif /* BBL || MRL_WCI */
 
 

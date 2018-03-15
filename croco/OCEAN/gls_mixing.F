@@ -584,7 +584,7 @@
      &                                       *crgban_cw**(2./3.) )
 # elif defined TKE_WAVEDISS
           tke(i,j,N,nnew)=max( gls_Kmin, cmu_fac4
-     &                       *(sz_alpha*wdsp(i,j)*rho0)**(2./3.) )
+     &                       *(sz_alpha*wepb(i,j)*rho0)**(2./3.) )
 # else
           tke(i,j,N,nnew)=max( gls_Kmin, cmu_fac3*0.5
      &                           *sqrt((sustr(i,j)+sustr(i+1,j))**2 
@@ -620,7 +620,7 @@
      &              *( 0.5*sqrt((sustr(i,j)+sustr(i+1,j))**2
      &                           +(svstr(i,j)+svstr(i,j+1))**2) )**1.5
 # elif defined TKE_WAVEDISS
-          tke_fluxt(i)=dt*sz_alpha*wdsp(i,j)*rho0
+          tke_fluxt(i)=dt*sz_alpha*wepb(i,j)*rho0
 # else
           tke_fluxt(i)=0.
 # endif
@@ -665,7 +665,7 @@
           gls_fluxt(i)=gls_fluxt(i)-dt*gls_m*(gls_cmu0**gls_p)
      &                   *cff**(gls_m-1.)*((Zos_eff(i)+0.5*Hz(i,j,N))
      &                                *L_sft)**gls_n*gls_sigk*ogls_sigp
-     &                                         *sz_alpha*wdsp(i,j)*rho0
+     &                                         *sz_alpha*wepb(i,j)*rho0
 # endif
           cff=0.5*(tke(i,j,0,nnew)+tke(i,j,1,nnew))
           gls_fluxb(i)=dt*gls_fac2*(cff**gls_m)*(0.5*Hz(i,j,1)+Zob_min)

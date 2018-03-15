@@ -36,7 +36,7 @@ CROCO - Sediment - Test
 
   Sd        Diameter of grain size class [mm].
 
-  CSED      Initial concentration (spatially uniform) [mg/l].  
+  CSED      Initial concentration (spatially uniform) [kg/m3].  
   
   SRHO      Density of sediment material of size class [kg/m3]. 
             Quartz: SRHO=2650 kg/m3  

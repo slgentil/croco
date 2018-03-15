@@ -57,22 +57,29 @@
 ! indxHi,indxHS   depth of ice cover and depth of snow cover
 ! indxTIsrf       temperature of ice surface
 !
+! ** SEDIMENT **
 ! indxBSD,indxBSS bottom sediment grain Density and Size 
 !                 to be read from file if(!defined ANA_BSEDIM, 
 !                 && !defined SEDIMENT) 
-!
 ! indxBTHK,       sediment bed thickness, porosity, size class fractions 
 ! indxBPOR,indxBFRA
 !
+! ** WAVE input data to be read from file if !defined WKB_WWAVE or OW_COUPLING 
 ! indxWWA          wind induced wave Amplitude
 ! indxWWD          wind induced wave Direction
 ! indxWWP          wind induced wave Period
-! indxWEB          wave dissipation by breakig,
-!                 
-! ** WKB model ** or ** OW COUPLING **
-! indxHRM,indxFRQ  RMS wave height and frequency
-! indxWAC,indxWKX,indxWKE   wave action density, XI/ETA-dir wavenumber
+! indxWEB          wave dissipation by breaking,
+! indxWED          wave dissipation by friction,
+! indxWER          wave dissipation by roller breaking,
 !
+! ** WAVE history if WKB model or OW COUPLING or WAVE OFFLINE **
+! indxHRM,indxFRQ  RMS wave height and frequency
+! indxWKX,indxWKE  XI/ETA-dir wavenumber
+! indxEPB,indxEPD  wave breaking and frictional dissipation
+! indxWAC,indxWAR  wave action and roller action density
+! indxEPR          wave roller dissipation
+!
+! ** MRL_WCI **
 ! indxSUP          wave set-up 
 ! indxUST2D        vertically integrated stokes velocity in xi  direction
 ! indxVST2D        vertically integrated stokes velocity in eta direction 
@@ -86,25 +93,25 @@
 ! indxKAPS         Bernoulli head
 !
 ! ** DIAGNOSTICS_UV **
-!  indxMXadv,indxMYadv,indxMXadv : xi-, eta-, and s- advection terms
-!  indxMCor                      : Coriolis term,
-!  indxMPrsgrd                   : Pressure gradient force term
-!  indxMHmix, indxMVmix          : horizontal and vertical mixinig terms 
-!  indxMrate                     : tendency term
-!  indxMBtcr                     : forth-order truncation error
-!  indxMswd, indxMbdr            : surface wind & bed shear stresses (m2/s2)
-!  indxMvf, indxMbrk             : vortex force & breaking body force terms
-!  indxMStCo                     : Stokes-Coriolis terms
-!  indxMVvf                      : vertical vortex force terms (in prsgrd.F)
-!  indxMPrscrt                   : pressure correction terms (in prsgrd.F)
-!  indxMsbk, indxMbwf            : surface breaking & bed wave friction (m2/s2)
-!  indxMfrc                      : near-bed frictional wave streaming as body force (m2/s2)
+! indxMXadv,indxMYadv,indxMVadv : xi-, eta-, and s- advection terms
+! indxMCor                      : Coriolis term,
+! indxMPrsgrd                   : Pressure gradient force term
+! indxMHmix, indxMVmix          : horizontal and vertical mixinig terms 
+! indxMrate                     : tendency term
+! indxMBtcr                     : forth-order truncation error
+! indxMswd, indxMbdr            : surface wind & bed shear stresses (m2/s2)
+! indxMvf, indxMbrk             : vortex force & breaking body force terms
+! indxMStCo                     : Stokes-Coriolis terms
+! indxMVvf                      : vertical vortex force terms (in prsgrd.F)
+! indxMPrscrt                   : pressure correction terms (in prsgrd.F)
+! indxMsbk, indxMbwf            : surface breaking & bed wave friction (m2/s2)
+! indxMfrc                      : frictional wave streaming as bodyforce (m2/s2)
 !
 ! ** DIAGNOSTICS_TS **
-!  indxTXadv,indxTYadv,indxTVadv : xi-, eta-, and s- advection terms
-!  indxTHmix,indxTVmix           : horizontal and vertical mixinig terms
-!  indxTbody                     : body force term
-!  indxTrate                     : tendency term
+! indxTXadv,indxTYadv,indxTVadv : xi-, eta-, and s- advection terms
+! indxTHmix,indxTVmix           : horizontal and vertical mixinig terms
+! indxTbody                     : body force term
+! indxTrate                     : tendency term
 
 !=======================================================================
 ! Output file codes
@@ -433,22 +440,24 @@
      &           indxLrip  =indxAbed+2, indxZbnot =indxAbed+3, 
      &           indxZbapp =indxAbed+4, indxBostrw=indxAbed+5)
 # ifndef ANA_WWAVE
-      integer indxWWA,indxWWD,indxWWP,indxWEB
+      integer indxWWA,indxWWD,indxWWP,indxWEB,indxWED,indxWER
       parameter (indxWWA=indxAbed+6, indxWWD=indxWWA+1, 
      &           indxWWP=indxWWA+2
 #  ifdef MRL_WCI
-     &          ,indxWEB=indxWWA+3
+     &          ,indxWEB=indxWWA+3,indxWED=indxWWA+4,
+     &           indxWER=indxWWA+5
 #  endif
      &                             )                                            
 # endif
 # ifndef ANA_BSEDIM
 # endif
 #else /* BBL */
-      integer indxWWA,indxWWD,indxWWP,indxWEB
+      integer indxWWA,indxWWD,indxWWP,indxWEB,indxWED,indxWER
       parameter (indxWWA=indxSUSTR+32, indxWWD=indxWWA+1, 
      &           indxWWP=indxWWA+2
 #  ifdef MRL_WCI
-     &          ,indxWEB=indxWWA+3
+     &          ,indxWEB=indxWWA+3,indxWED=indxWWA+4,
+     &           indxWER=indxWWA+5
 #  endif
      &                             )                                            
 #endif  /* BBL */
@@ -477,15 +486,13 @@
      &           indxMPrscrt=indxMvf+8,indxMsbk=indxMvf+10,
      &           indxMbwf=indxMvf+12,indxMfrc=indxMvf+14) 
 # endif
-# if defined WKB_WWAVE || defined OW_COUPLING
-      integer indxHRM,indxFRQ,indxWAC, indxWKX,indxWKE, indxEPB
-     &       ,indxEPD,indxWAR,indxEPR
-      parameter (indxHRM=indxSUP+30,
+      integer indxHRM,indxFRQ,indxWKX,indxWKE,indxEPB
+     &       ,indxEPD,indxWAC,indxWAR,indxEPR
+      parameter (indxHRM=indxSUP+30, 
      &           indxFRQ=indxHRM+1, indxWAC=indxHRM+2,
-     &           indxWKX=indxHRM+3, indxWKE=indxHRM+4,
+     &           indxWKX=indxHRM+3, indxWKE=indxHRM+4, 
      &           indxEPB=indxHRM+5, indxEPD=indxHRM+6,
      &           indxWAR=indxHRM+7, indxEPR=indxHRM+8 )
-# endif
 #endif  /* MRL_WCI */
 
 #ifdef PSOURCE_NCFILE
@@ -635,9 +642,9 @@
 #ifdef BBL
       integer rstBBL(2)
 #endif
-#if defined WKB_WWAVE || defined OW_COUPLING
-      integer rstWKB(3),hisWKB(9)
-      common /ncvars/ rstWKB,hisWKB
+#ifdef WAVE_IO
+      integer rstWAVE(3),hisWAVE(9)
+      common /ncvars/ rstWAVE,hisWAVE
 #endif
 #ifdef MRL_WCI
       integer hisSUP, hisUST2D, hisVST2D
@@ -737,6 +744,9 @@
      &      , avgTime, avgTime2, avgTstep, avgZ, avgUb,  avgVb
      &      , avgBostr, avgWstr, avgUwstr, avgVwstr
      &      , avgShflx, avgSwflx, avgShflx_rsw
+# ifdef MOVING_BATHY
+     &      , avgHm
+# endif
 # ifdef SOLVE3D
      &      , avgU,   avgV,   avgR,    avgHbl, avgHbbl
      &      , avgO,   avgW,   avgVisc, avgDiff
@@ -764,14 +774,21 @@
       integer avgSST_skin
 #  endif
 #  ifdef SEDIMENT
-      integer avgSed(NST+2)
+      integer avgSed(NST+2
+#  ifdef SUSPLOAD
+     &      +2*NST
+#   endif
+#  ifdef BEDLOAD
+     &      +2*NST
+#   endif
+     & )
 #  endif
 # endif
 # ifdef BBL
       integer avgBBL(6)
 # endif
-# if defined WKB_WWAVE || defined OW_COUPLING
-      integer avgWKB(9)
+# ifdef WAVE_IO
+      integer avgWAVE(9)
 # endif
 # ifdef MRL_WCI
       integer avgSUP, avgUST2D, avgVST2D
@@ -979,6 +996,9 @@
      &      , avgTime, avgTime2, avgTstep, avgZ,    avgUb,  avgVb
      &      , avgBostr, avgWstr, avgUWstr, avgVWstr
      &      , avgShflx, avgSwflx, avgShflx_rsw
+# ifdef MOVING_BATHY
+     &      , avgHm
+# endif
 # ifdef SOLVE3D
      &      , avgU,    avgV,     avgT,     avgR
      &      , avgO,    avgW,     avgVisc,  avgDiff
@@ -1012,8 +1032,8 @@
 # ifdef BBL
      &      , avgBBL
 # endif
-# if defined WKB_WWAVE || defined OW_COUPLING
-     &      , avgWKB
+# ifdef WAVE_IO
+     &      , avgWAVE
 # endif
 # ifdef MRL_WCI
      &      , avgSUP, avgUST2D, avgVST2D

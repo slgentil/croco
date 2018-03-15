@@ -73,8 +73,8 @@
 #endif
 
 #if defined AGRIF && defined AUTOTILING
-      MAX_NSUB_X=Lm/6
-      MAX_NSUB_E=Mm/6 
+      MAX_NSUB_X=Lm/10
+      MAX_NSUB_E=Mm/10
 #endif
 
 #if !defined MPI

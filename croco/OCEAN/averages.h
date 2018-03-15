@@ -119,15 +119,17 @@
       real wac_avg(GLOBAL_2D_ARRAY)
       real wkx_avg(GLOBAL_2D_ARRAY)
       real wke_avg(GLOBAL_2D_ARRAY)
-      real wdsp_avg(GLOBAL_2D_ARRAY)
-      real wdrg_avg(GLOBAL_2D_ARRAY)
-      common /avg_hrm/hrm_avg /avg_frq/frq_avg
+      real wepb_avg(GLOBAL_2D_ARRAY)
+      real wepd_avg(GLOBAL_2D_ARRAY)
+      common /avg_whrm/whrm_avg /avg_wfrq/wfrq_avg
      &       /avg_wac/wac_avg /avg_wkx/wkx_avg
-     &       /avg_wke/wke_avg /avg_wdsp/wdsp_avg
-     &       /avg_wdrg/wdrg_avg
+     &       /avg_wke/wke_avg /avg_wepb/wepb_avg
+     &       /avg_wepd/wepd_avg
 #  ifdef WAVE_ROLLER 
       real war_avg(GLOBAL_2D_ARRAY)
-      real rdsp_avg(GLOBAL_2D_ARRAY)
+      real wepr_avg(GLOBAL_2D_ARRAY)
+      common /avg_war/war_avg
+     &       /avg_wepr/wepr_avg
 #  endif    
 # endif
 # ifdef MRL_WCI

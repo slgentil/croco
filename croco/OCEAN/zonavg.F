@@ -42,7 +42,7 @@
       enddo
 #endif /* MPI */      
 
-      Azon=Azond/float(LLm)
+      Azon=nint(Azond*1.d6,kind=8)/1.d6/float(LLm)
       
 !     rewind (80+mynode)
 !     write(80+mynode) Azon
@@ -95,8 +95,8 @@
       enddo
 #endif /* MPI */      
 
-      Azon=Azond/float(LLm)
-      
+       Azon=nint(Azond*1.d6,kind=8)/1.d6/float(LLm)
+
 !     rewind (80+mynode)
 !     write(80+mynode) Azon
 !     call crash

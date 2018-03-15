@@ -220,7 +220,7 @@ axis([-hoDmax -hr(end)/D -0.2 0.2])
 set(gca,'box','on')
 set(gca,'fontsize',16)
 set(gca,'ytick',[-0.2:0.1:0.2])
-set(gca,'yticklabel','|-0.1|0|0.1|')
+set(gca,'yticklabel',{'','-0.1','0','0.1',''})
 set(gca,'xtick',tick)
 set(gca,'xticklabel','')
 grid on
@@ -271,7 +271,7 @@ set(gca,'box','on')
 set(gca,'xtick',tick)
 set(gca,'xticklabel','')
 set(gca,'ytick',get(gca,'xtick'))
-set(gca,'yticklabel','|-2.2||-1.8||-1.4||-1||-0.6||-0.2|')
+set(gca,'yticklabel',{'','-2.2','','-1.8','','-1.4','','-1','','-0.6','','-0.2'})
 ylabel 'z/D'
 grid on
 ga2=gca;
@@ -321,7 +321,7 @@ axis([-hoDmax -hu(end)/D -hoDmax zr(N,1)/D])
 set(gca,'box','on')
 set(gca,'fontsize',16)
 set(gca,'xtick',tick)
-set(gca,'xticklabel','|2.2||1.8||1.4||1||0.6||0.2|')
+set(gca,'xticklabel',{'','-2.2','','-1.8','','-1.4','','-1','','-0.6','','-0.2'})
 set(gca,'ytick',get(gca,'xtick'))
 set(gca,'yticklabel',get(gca,'xticklabel'))
 xlabel 'h/D'

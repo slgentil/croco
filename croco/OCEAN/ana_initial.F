@@ -31,10 +31,6 @@ C$    integer omp_get_thread_num
 #ifdef AGRIF
       use Agrif_Util
 #endif
-#ifdef KH_INST
-      use module_nh
-      use module_nbq
-#endif
       implicit none
 #include "param.h"
 #include "grid.h"
@@ -65,7 +61,7 @@ C$    integer omp_get_thread_num
 #ifdef INTERNAL
       real cff
 #endif
-#if defined IGW || defined S2DV || defined REGIONAL_NBQ 
+#if defined IGW || defined S2DV || defined MILES 
       real    cff,sig,rhom,depth
 #endif 
 #ifdef BIOLOGY
@@ -215,15 +211,6 @@ C$    integer omp_get_thread_num
         enddo
 # endif
 
-# ifdef NBQ
-        do j=JR_RANGE
-          do i=IR_RANGE
-            zeta(i,j,1)=h(i,j)+zeta(i,j,1)
-            zeta(i,j,2)=zeta(i,j,1)
-          enddo
-        enddo
-# endif
-
       else  !  nrrec.ne.0.
 
 # if defined RIP && defined RIP_TOPO_2D
@@ -284,205 +271,55 @@ C$    integer omp_get_thread_num
 
 #  elif defined KH_INST
 
-#   if defined EW_PERIODIC || defined NS_PERIODIC || defined  MPI
-!      call exchange_w3d_tile (Istr,Iend,Jstr,Jend,
-!     &                        z_w(START_2D_ARRAY,0))
-!      call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
-!     &                        z_r(START_2D_ARRAY,1))
-!      call exchange_r2d_tile (Istr,Iend,Jstr,Jend,
-!     &                        xr(START_2D_ARRAY))
-!      call exchange_r2d_tile (Istr,Iend,Jstr,Jend,
-!     &                        yr(START_2D_ARRAY))
-!      call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
-!     &                        Hz(START_2D_ARRAY,1))
-!      call exchange_r2d_tile (Istr,Iend,Jstr,Jend, h)
-#   endif 
-
-!******************************
-! KH_INST: Initial Version
-!     (no initialization)
-!******************************
-#    undef KH_INST_INITVERSION
-
-#    ifdef KH_INST_INITVERSION
-
-        du = 1.
-        ubar=0.
-        vbar=0.
-        u   =0.
-        v   =0.
-
-        do j=JR_RANGE
-        do i=IU_RANGE
-!        do j=lbound(u,2),ubound(u,2)
-!        do i=lbound(u,1),ubound(u,1)
-            hint = 0.
-            do k=1,N
-              u(i,j,k,1)  = du * (0. 
-     &         - tanh(( 
-     &             	z_r(i,j,k)
-     &             	+0.5*h(i,j)   
-     &             	+ 5.*sin(2.*3.14159265/286.*xr(i,j))
-     &               ) / 10. )     
-     &                           ) 
-              u(i,j,k,2)  = u(i,j,k,1)
-              u(i,j,k,3)  = u(i,j,k,1)
-
-              ubar(i,j,1) = ubar(i,j,1) + 0.5*(hz(i,j,k)+hz(i-1,j,k))   ! Hzr pas initialise... 
-     &                                  * u(i,j,k,1)
-              hint = hint               + 0.5*(hz(i,j,k)+hz(i-1,j,k))
-
-            enddo
-            ubar(i,j,1) = ubar(i,j,1) / hint
-            ubar(i,j,2) = ubar(i,j,1)
-            ubar(i,j,3) = ubar(i,j,1)
-        enddo
-        enddo
-
-#    ifdef RVTK_DEBUG
-        call check_tab2d(xr(:,:),'xr ana_initial','r')
-#    endif
-
-!******************************
-! KH_INST: 2D Version
-!******************************
-#   elif defined KH_INST2D
-
 ! PARAMETERS
-        du = 1.
-!       du = 0.5
-
-        ubar=0.
-        vbar=0.
-        u   =0.
-        v   =0.
-
-        do j=JR_RANGE
-        do i=IU_RANGE
-!        do j=lbound(u,2),ubound(u,2)
-!        do i=lbound(u,1),ubound(u,1)
-
-        depth=h(i,j)
-!
 ! TRADITIONAL KH INSTABILITY : VELOCITY AND DENSITY SHEARS AT SAME DEPTHS (zu0=zr0)
-        zu0=-0.5*depth
+        du = 1.  ! Value du that is replaced by the RunBuilder script. 
         hu0=10.
-! SHIFTED PROFILE FOR THERMOCLINE ENTRAINMENT STUDIES
-!       zu0=-0.4*depth
-!       hu0=10.
-! PERTURBATION 
-! PARAMETERS
-        hup0=0.15*depth
-!
-
-            hint = 0.
-            do k=1,N
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! PELLETIER ET AL CONFIG
-! LINEAR SHEAR WITHIN MIXED LAYER
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-             u(i,j,k,1)  = du * 
-     &           ( - tanh( ( z_r(i,j,k)-zu0 ) / hu0 )  )
-
-!ajout d'une perturbation
-             u(i,j,k,1)  = u(i,j,k,1)+0.01*du * 
-     &                 (-2.*tanh( ( z_r(i,j,k)-zu0  
-     &                        ) / hup0 ) )*
-     &                 (1-tanh( ( z_r(i,j,k)-zu0  
-     &                          ) / hup0 )**2. )
-     &                *(
-!    &                 1.*sin( 2.*3.14159265/xl*xr(i,j))
-     &               + 1.*sin( 4.*3.14159265/xl*xr(i,j))
-!    &               + 1.*sin( 6.*3.14159265/xl*xr(i,j))
-!    &               + 1.*sin( 8.*3.14159265/xl*xr(i,j))
-!    &               + 1.*sin(10.*3.14159265/xl*xr(i,j))
-!    &               + 1.*sin(12.*3.14159265/xl*xr(i,j))
-     &                 )
-              u(i,j,k,2)  = u(i,j,k,1)
-              u(i,j,k,3)  = u(i,j,k,1)
-
-! Calcul vitesse barotrope
-!             ubar(i,j,1) = ubar(i,j,1) + hz(i,j,k)   ! Hzr pas initialise... 
-!    &                                  * u(i,j,k,1)
-!             hint = hint               + hz(i,j,k)
-
-              ubar(i,j,1) = ubar(i,j,1) + 0.5*(hz(i,j,k)+hz(i-1,j,k))   ! Hzr pas initialise... 
-     &                                  * u(i,j,k,1)
-              hint = hint               + 0.5*(hz(i,j,k)+hz(i-1,j,k))
-            enddo
-            ubar(i,j,1) = ubar(i,j,1) / hint
-            ubar(i,j,2) = ubar(i,j,1)
-            ubar(i,j,3) = ubar(i,j,1)
-          enddo
-        enddo
-#    ifdef NBQ
-!ajout perturbation sur W
-        do j=lbound(t,2),ubound(t,2)
-           do i=lbound(t,1),ubound(t,1)
-              do k=0,N
-!                wz(i,j,k,:) = 0.0*du * 
-                 wz(i,j,k,:) = -0.01*du * 
-     &                         hup0 * 
-     &                 (1-tanh( ( z_w(i,j,k)-zu0  
-     &                        ) / hup0 )**2.    )
-     &                *(3.14159265/xl)*(
-!    &                  2.*cos( 2.*3.14159265/xl*xp(i,j))
-     &               +  4.*cos( 4.*3.14159265/xl*xp(i,j))
-!    &               +  6.*cos( 6.*3.14159265/xl*xp(i,j))
-!    &               +  8.*cos( 6.*3.14159265/xl*xp(i,j))
-!    &               + 10.*cos(10.*3.14159265/xl*xp(i,j))
-!    &               + 12.*cos(12.*3.14159265/xl*xp(i,j))
-     &                 )
-            enddo
-          enddo
-        enddo
-#    endif
-
-!******************************
-! KH_INST: 3D Version
-!******************************
-#   else
-
-        ubar=0.
-        vbar=0.
-        u   =0.
-        v   =0.
-! PARAMETERS
-        du = 1.
-!       do j=lbound(u,2),ubound(u,2)
-!       do i=lbound(u,1),ubound(u,1)
-        do j=JR_RANGE
-        do i=IU_RANGE
-! PARAMETERS
-        depth=h(i,j)
-!
-! TRADITIONAL KH INSTABILITY : VELOCITY AND DENSITY SHEARS AT SAME DEPTHS (zu0=zr0)
-!       zu0=-0.5*depth
-        zu0=-0.45*depth
-        hu0=10.
-! SHIFTED PROFILE FOR THERMOCLINE ENTRAINMENT STUDIES
-!       zu0=-0.4*depth
-!       hu0=10.
-! PERTURBATION 
-        hup0=0.15*depth
+        drho=1.2 ! Value of drho to be replaced by the script.
+                       ! Originally 1.2
+        htemp0=10.
+        hsalt0=10.
+!       hsalt0=20.
 !
 ! PERTURBATION 3D
-!       eps3D=0.
-        eps3D=0.2
+!             eps3D=0.
+              eps3D=0.2
+!
+! Initializations:
+!
+        ubar=0.
+        vbar=0.
+        u   =0.
+        v   =0.
 
+!   #ifdef MPI
+!        if (mynode.eq.0) open(unit=10,file='profil_u.dat')
+!   #else
+!        open(unit=10,file='profil_u.dat')
+!   #endif
+
+        do j=JR_RANGE
+          do i=IU_RANGE
+            depth=h(i,j)
+! TRADITIONAL KH INSTABILITY : VELOCITY AND DENSITY SHEARS AT SAME DEPTHS (zu0=zr0)
+            zu0=-0.5*depth
+! SHIFTED PROFILE FOR THERMOCLINE ENTRAINMENT STUDIES
+!           zu0=-0.4*depth
+! PERTURBATION 
+            hup0=0.15*depth
             hint = 0.
             do k=1,N
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! PELLETIER ET AL CONFIG
 ! LINEAR SHEAR WITHIN MIXED LAYER
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-             u(i,j,k,1)  = du * 
-     &           ( - tanh( ( z_r(i,j,k)-zu0 ) / hu0 )  )
+              u(i,j,k,1)  = du * 
+     &           ( - tanh( ( z_r(1,1,k)-zu0 ) / hu0 )  )
 !ajout d'une perturbation
-             u(i,j,k,1)  = u(i,j,k,1)+0.01*du * 
-     &                 (-2.*tanh( ( z_r(i,j,k)-zu0  
+              u(i,j,k,1)  = u(i,j,k,1)+0.01*du * 
+     &                 (-2.*tanh( ( z_r(1,1,k)-zu0  
      &                        ) / hup0 ) )*
-     &                 (1-tanh( ( z_r(i,j,k)-zu0  
+     &                 (1-tanh( ( z_r(1,1,k)-zu0  
      &                          ) / hup0 )**2. )
      &                *(
 !    &                 1.*sin( 2.*3.14159265/xl*xr(i,j))
@@ -491,33 +328,39 @@ C$    integer omp_get_thread_num
 !    &               + 1.*sin( 8.*3.14159265/xl*xr(i,j))
 !    &               + 1.*sin(10.*3.14159265/xl*xr(i,j))
 !    &               + 1.*sin(12.*3.14159265/xl*xr(i,j))
-     &                 )
-     &                 *(1.+eps3D*(
-!    &                 1.*sin( 2.*3.14159265/el*yr(i,j))
-!    &               + 1.*sin( 4.*3.14159265/el*yr(i,j))
-!    &               + 1.*sin( 6.*3.14159265/el*yr(i,j))
-     &               + 1.*sin( 8.*3.14159265/el*yr(i,j))
-!    &               + 1.*sin(10.*3.14159265/el*yr(i,j))
-!    &               + 1.*sin(12.*3.14159265/el*yr(i,j))
-     &                             )
-     &                 )
+     &                 ) 
               u(i,j,k,2)  = u(i,j,k,1)
               u(i,j,k,3)  = u(i,j,k,1)
-
 ! Calcul vitesse barotrope
-              ubar(i,j,1) = ubar(i,j,1) + 0.5*(hz(i,j,k)+hz(i-1,j,k))   ! Hzr pas initialise... 
+              ubar(i,j,:) = ubar(i,j,:) + 0.5*(hz(i,j,k)+hz(i-1,j,k))   ! Hzr pas initialise... 
      &                                  * u(i,j,k,1)
               hint = hint               + 0.5*(hz(i,j,k)+hz(i-1,j,k))
+!   #ifdef MPI
+!              if (mynode.eq.0.and.i.eq.4.and.j.eq.1)
+!     &           write (10,*) 0.5*(z_r(i,j,k)+z_r(i-1,j,k)),u(i,j,k,1)
+!   #else
+!              if (i.eq.4.and.j.eq.1)
+!     &           write (10,*) 0.5*(z_r(i,j,k)+z_r(i-1,j,k)),u(i,j,k,1)
+!   #endif
             enddo
             ubar(i,j,1) = ubar(i,j,1) / hint
             ubar(i,j,2) = ubar(i,j,1)
             ubar(i,j,3) = ubar(i,j,1)
           enddo
         enddo
-#    ifdef NBQ
+#   ifdef NBQ
 !ajout perturbation sur W
         do j=lbound(t,2),ubound(t,2)
            do i=lbound(t,1),ubound(t,1)
+
+            depth=h(i,j)
+! TRADITIONAL KH INSTABILITY : VELOCITY AND DENSITY SHEARS AT SAME DEPTHS (zu0=zr0)
+              zu0=-0.5*depth
+! SHIFTED PROFILE FOR THERMOCLINE ENTRAINMENT STUDIES
+!             zu0=-0.4*depth
+! PERTURBATION 
+              hup0=0.15*depth
+
               do k=0,N
 !                wz(i,j,k,:) = 0.0*du * 
                  wz(i,j,k,:) = -0.01*du * 
@@ -532,22 +375,15 @@ C$    integer omp_get_thread_num
 !    &               + 10.*cos(10.*3.14159265/xl*xp(i,j))
 !    &               + 12.*cos(12.*3.14159265/xl*xp(i,j))
      &                 )
-     &                 *(1.+eps3D*(
-!    &                 1.*sin( 2.*3.14159265/el*yr(i,j))
-!    &               + 1.*sin( 4.*3.14159265/el*yr(i,j))
-!    &               + 1.*sin( 6.*3.14159265/el*yr(i,j))
-     &               + 1.*sin( 8.*3.14159265/el*yr(i,j))
-!    &               + 1.*sin(10.*3.14159265/el*yr(i,j))
-!    &               + 1.*sin(12.*3.14159265/el*yr(i,j))
-     &                             )
-     &                 )
             enddo
           enddo
         enddo
-#    endif
-
 #   endif
-
+!#ifdef MPI
+!        if (mynode.eq.0) close(10) 
+!#else
+!        close(10)
+!#endif
 
 #   if defined EW_PERIODIC || defined NS_PERIODIC || defined  MPI
       call exchange_u3d_tile (Istr,Iend,Jstr,Jend,   
@@ -582,9 +418,8 @@ C$    integer omp_get_thread_num
       call exchange_w3d_tile (Istr,Iend,Jstr,Jend,
      &                                 wz(START_2D_ARRAY,0,3))
 #    endif
+
 #   endif
-
-
 !******************************
 ! KH_INST: end
 !******************************
@@ -762,6 +597,152 @@ C$    integer omp_get_thread_num
         enddo
 
 #  elif defined KH_INST
+
+#   define TH_PROFILE
+#   undef HORN_PROFILE
+
+#   ifdef TH_PROFILE
+#    ifdef MPI
+        if (mynode.eq.0) open(unit=10,file='profil_rho.dat')
+#    else
+        open(unit=10,file='profil_rho.dat')
+#    endif
+
+! PARAMETERS
+!
+!
+        do j=lbound(t,2),ubound(t,2)
+           do i=lbound(t,1),ubound(t,1)
+
+! PARAMETERS
+              depth=h(i,j)
+! TRADITIONAL KH INSTABILITY : VELOCITY AND DENSITY SHEARS AT SAME DEPTHS (zu0=zr0)
+              zr0=-0.5*depth
+! PERTURBATION 
+              hup0=0.15*depth
+              zr0=-0.5*depth
+
+              do k=1,N
+! TRADITIONAL KH INSTABILITY PROFILE
+                 t(i,j,k,1,itemp) = 
+     &             13.+ 1.0*drho * (
+!    &             13.+ 0.5*drho * (
+!    &             13.- 0.5*drho * (
+     &                0.1*(z_r(1,1,k)-zr0)/depth+ !+strat lin
+     &                   dtanh( (z_r(1,1,k)-zr0)/htemp0 ) 
+     &                                    )  / Tcoef
+!
+                 t(i,j,k,2,itemp) = t(i,j,k,1,itemp)
+                 t(i,j,k,3,itemp) = t(i,j,k,1,itemp)
+#ifdef MPI
+                 if (mynode.eq.0.and.i.eq.4.and.j.eq.1) 
+     &              write(10,*) z_r(i,j,k),t(i,j,k,1,itemp)
+#else
+                 if (i.eq.4.and.j.eq.1) 
+     &              write(10,*) z_r(i,j,k),t(i,j,k,1,itemp)
+#endif
+              enddo
+           enddo
+        enddo
+#ifdef MPI
+        if (mynode.eq.0) close(10)
+#else
+        close(10)
+#endif
+
+#ifdef SALINITY
+
+        do j=lbound(t,2),ubound(t,2)
+           do i=lbound(t,1),ubound(t,1)
+
+! PARAMETERS
+              depth=h(i,j)
+!
+! TRADITIONAL KH INSTABILITY : VELOCITY AND DENSITY SHEARS AT SAME DEPTHS (zu0=zr0)
+!             zu0=-0.5*depth
+              zu0=-0.45*depth
+! SHIFTED PROFILE FOR THERMOCLINE ENTRAINMENT STUDIES
+!             zu0=-0.4*depth
+! PERTURBATION 
+              hup0=0.15*depth
+              zr0=-0.5*depth
+!             zr0=-0.2*depth
+
+              do k=1,N
+                 t(i,j,k,1,isalt) =   
+! TRADITIONAL KH INSTABILITY PROFILE
+!    &           t(i,j,k,1,itemp)
+!    &               35.- 0.5*drho*( 
+!    &               35.- 1.5*drho*( 
+!    &                   0.1*(z_r(1,1,k)-zr0)/depth+ !+strat lin
+!    &                   dtanh( (z_r(1,1,k)-zr0)/ hsalt0 ) 
+!    &                              )  / Scoef
+!
+     &            + 35 +0.05* drho* (
+     &              1. - (dtanh( (z_r(1,1,k)-zr0)/hsalt0 ) )**2.
+!    &                     )/Scoef      
+     &                     )
+!
+! ANOMALY CONCENTRATED AT MID DEPTH, PASSIVE TRACER
+!    &            + 0.05 *drho* (
+!    &              1. - (dtanh( (z_r(1,1,k)-zr0)/hsalt0 ) )**2.
+!    &                     )
+!
+                 t(i,j,k,2,isalt) = t(i,j,k,1,isalt)
+                 t(i,j,k,3,isalt) = t(i,j,k,1,isalt)
+              enddo
+           enddo
+        enddo
+
+# endif
+#endif
+
+#   ifdef HORN_PROFILE
+!
+!  Horn, D.A., J. Imberger, & G.N. Ivey, (2001). 
+!  The degeneration of large-scale interfacial gravity waves in lakes. 
+!  J. Fluid Mech., 434:181-207.
+!  --> initialy setup with variable salinity in the tank experiment of 
+!      Horn et al (2001); the conversion to temperature variations 
+!      through linear EOS gives unrealistic range
+!
+        rho1_exp = R0 - 1.  ! * 0.7286 /2.
+        rho2_exp = R0 + 1.  ! * 0.7286 /2.
+        h1_exp = 0.5 * h(1,1)
+        amp_exp = 0.0391
+        Lt=6.
+        do j=JR_RANGE
+           do i=IR_RANGE
+             do k=1,N
+                 d(k)=0.5*(rho1_exp+rho2_exp)               
+     &              + 0.5*(rho2_exp-rho1_exp)
+     &                   *tanh(exp(1.)*(-h1_exp 
+!    &                          -2.*amp_exp*(xr(i,j)-Lt/2.)/Lt 
+     &                          +abs(z_r(i,j,k)))/(0.015/2.))   ! 0.005=dz_q   
+                 t(i,j,k,1,itemp) = 13. - ( d(k) - R0 )  / Tcoef
+                 t(i,j,k,2,itemp) = t(i,j,k,1,itemp)
+              enddo
+           enddo
+        enddo
+!#   else
+!        depth=h(1,1)
+!        gam=0.9
+!        del=0.3
+!        dz=2*(z_r(1,1,2)-z_r(1,1,1));
+!        do j=JstrR,JendR
+!          do i=IstrR,IendR
+!            zint=depth*(del-1)+gam*del*depth*(2*xr(i,j)/xl - 1)
+!            do k=1,N
+!              t(i,j,k,1,itemp)=0.5*(5/Tcoef+10/Tcoef)
+!     &                        -0.5*(5/Tcoef-10/Tcoef)
+!     &                            *tanh((z_r(i,j,k)-zint)/dz);
+!              t(i,j,k,2,itemp)=t(i,j,k,1,itemp)
+!            enddo
+!          enddo
+!        enddo
+#   endif /* HORN_PROFILE */ 
+
+#  elif defined KH_INST_REF
 #   define TH_PROFILE
 #   undef HORN_PROFILE
 
@@ -1134,7 +1115,7 @@ C$    integer omp_get_thread_num
           enddo
         enddo
 
-#  elif defined IGW || defined S2DV || defined REGIONAL_NBQ
+#  elif defined IGW || defined S2DV || defined MILES
         cff=((2.e-3)**2)/g
         rhom=1027.037885
         do k=1,N
@@ -1668,17 +1649,6 @@ C$    integer omp_get_thread_num
       enddo
 # endif
 #endif
-
-!#   ifdef RVTK_DEBUG
-!      call check_tab3d(u(:,:,:,1),'u(1) ana_initial','u')
-!      call check_tab2d(ubar(:,:,1),'ubar(1) ana_initial','u')
-!      call check_tab3d(u(:,:,:,2),'u(2) ana_initial','u')
-!      call check_tab2d(ubar(:,:,2),'ubar(2) ana_initial','u')
-!      call check_tab3d(u(:,:,:,3),'u(3) ana_initial','u')
-!      call check_tab2d(ubar(:,:,3),'ubar(3) ana_initial','u')
-!#   endif    
-
-
 #undef IR_RANGE
 #undef IU_RANGE
 #undef JR_RANGE
@@ -1887,11 +1857,7 @@ C$    integer omp_get_thread_num
 !
       do j=Jstr,Jend
         do i=Istr,Iend
-#  ifdef NBQ  
-          zeta(i,j,tndx)=h(i,j)-P(i,j,1)/g
-#  else
           zeta(i,j,tndx)=-P(i,j,1)/g
-#  endif
         enddo
       enddo
 !
@@ -1902,11 +1868,7 @@ C$    integer omp_get_thread_num
       do j=Jstr,Jend
         do i=Istr,Iend
            cff1=1./(pm(i,j)*pn(i,j))
-#  ifdef NBQ  
-           mssh=mssh+cff1*(zeta(i,j,tndx)-h(i,j))
-#  else
            mssh=mssh+cff1*zeta(i,j,tndx)
-#  endif
            area=area+cff1
         enddo
       enddo
@@ -1926,12 +1888,11 @@ C$    integer omp_get_thread_num
       enddo
       mssh=mssh/area
 # endif
+      mssh=nint(mssh*1.d6,kind=8)/1.d6 ! round to 6 digits
       do j=Jstr,Jend
         do i=Istr,Iend
           zeta(i,j,tndx)=zeta(i,j,tndx)
-# ifndef RVTK_DEBUG
      &                          - mssh
-# endif
         enddo
       enddo
 !
@@ -2064,14 +2025,9 @@ C$    integer omp_get_thread_num
       enddo
       do j=Jstr,Jend
         do i=Istr,Iend
-#  ifdef NBQ
-          ubar(i,j,tndx) = ubar(i,j,tndx) /
-     &                  ( 0.5*(zeta(i,j,tndx)+zeta(i-1,j,tndx)))
-#  else
           ubar(i,j,tndx) = ubar(i,j,tndx) /
      &                  ( 0.5*(zeta(i,j,tndx)+zeta(i-1,j,tndx))
      &                  + 0.5*(h(i,j)+h(i-1,j)) )
-#  endif
         enddo
       enddo
 !
@@ -2088,14 +2044,9 @@ C$    integer omp_get_thread_num
       enddo
       do j=Jstr,Jend
         do i=Istr,Iend
-#  ifdef NBQ
-          vbar(i,j,tndx) = vbar(i,j,tndx) / 
-     &                ( 0.5*(zeta(i,j,tndx)+zeta(i,j-1,tndx)))
-#  else
           vbar(i,j,tndx) = vbar(i,j,tndx) / 
      &                ( 0.5*(zeta(i,j,tndx)+zeta(i,j-1,tndx))
      &                + 0.5*(h(i,j)+h(i,j-1)) )
-#  endif
         enddo
       enddo
 

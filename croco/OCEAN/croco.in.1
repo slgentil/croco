@@ -2,8 +2,11 @@ title:
         BENGUELA TEST MODEL ZOOM LEVEL #1
 time_stepping: NTIMES   dt[sec]  NDTFAST  NINFO
             1        1200        60        1
+time_stepping_nbq: NDTNBQ    CSOUND_NBQ    VISC2_NBQ
+                     1         1000         0.01
 S-coord: THETA_S,   THETA_B,    Hc (m)
            7.0d0     2.0d0      200.0d0
+
 grid:  filename
   CROCO_FILES/croco_grd.nc.1
 forcing: filename
@@ -118,7 +121,7 @@ diagbioVSink_history_fields:   wrtdiabioVSink
                                  50*T  
 
 diagbioGasExc_history_fields:  wrtdiabioGasExc 
-			                     50*T 
+			         50*T 
 
 diagbioFlux_average_fields:    wrtdiabioFlux_avg
                                  50*T   
@@ -127,10 +130,10 @@ diagbioVSink_average_fields:   wrtdiabioVSink_avg
                                  50*T
 
 diagbioGasExc_average_fields:  wrtdiabioGasExc_avg
-			                     50*T
+			         50*T
 	
 biology:   forcing file
-  CROCO_FILES/croco_frcbio.nc.1
+           CROCO_FILES/croco_frcbio.nc.1
 
 sediments: input file
            sediment.in

@@ -178,10 +178,6 @@
         write(stdout,1) vname(1,indxZ)(1:lvar), ininame(1:lstr)
         goto 99                                           !--> ERROR
       endif
-#ifdef NBQ     
-      zeta(:,:,1) = zeta(:,:,1) + h(:,:)  ! Change zeta definition
-                                          ! from ssh to total depth
-#endif
 !
 ! 2D momentum component in the XI-direction.
 !

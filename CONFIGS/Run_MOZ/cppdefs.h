@@ -17,29 +17,29 @@
 #undef  CANYON_A        /* Canyon_A Example */
 #undef  CANYON_B        /* Canyon_B Example */
 #undef  EQUATOR         /* Equator Example  */
-#undef  ACOUSTIC        /* Acoustic wave test case */
-#undef  GRAV_ADJ        /* Graviational Adjustment Example */
-#undef  KH_INST         /* Kelvin-Helmholtz Instability Example */
 #undef  INNERSHELF      /* Inner Shelf Example */
 #undef  RIVER           /* River run-off Example */
 #undef  OVERFLOW        /* Graviational/Overflow Example */
 #undef  SEAMOUNT        /* Seamount Example */
 #undef  SHELFRONT       /* Shelf Front Example */
 #undef  SOLITON         /* Equatorial Rossby Wave Example */
+#undef  THACKER         /* Thacker wetting-drying Example */
 #undef  UPWELLING       /* Upwelling Example */
 #undef  VORTEX          /* Baroclinic Vortex Example */
 #undef  INTERNAL        /* Internal Tide Example */
 #undef  IGW             /* COMODO Internal Tide Example */
 #undef  JET             /* Baroclinic Jet Example */
-#undef  RIP             /* Rip Current Test Case */
 #undef  SHOREFACE       /* Shoreface Test Case on a Planar Beach */
+#undef  RIP             /* Rip Current Test Case */
+#undef  FLUME           /* Bar-generating Flume Example */
 #undef  SWASH           /* Swash Test Case on a Planar Beach */
-#undef  THACKER         /* Thacker wetting-drying Example */
 #undef  TANK            /* Tank Example */
+#undef  ACOUSTIC        /* Acoustic wave test case */
+#undef  GRAV_ADJ        /* Graviational Adjustment Example */
+#undef  KH_INST         /* Kelvin-Helmholtz Instability Example */
 #undef  S2DV            /* S2DV sections */ 
+#undef  MILES            /* NBQ MILES Applications */ 
 #define REGIONAL        /* REGIONAL Applications */
-#undef  REGIONAL_NBQ    /* NBQ REGIONAL Applications */ 
-
 
 #if defined REGIONAL
 /*
@@ -250,8 +250,8 @@
 #  define DIAGNOSTICS_TS_MLD
 # endif
 
-# define  DIAG_SPEC             /* save spectral diagnostics */
-# define  DIAG_SPEC_ISORHO      /* spectral diagnostics on iso-density level */
+# undef  DIAG_SPEC             /* save spectral diagnostics */
+# undef  DIAG_SPEC_ISORHO      /* spectral diagnostics on iso-density level */
 # undef  DIAG_SPEC_KT             /* save spectral diagnostics */
 # if defined DIAG_SPEC || defined DIAG_SPEC_KT
 #   define  DIAGNOSTICS_UV

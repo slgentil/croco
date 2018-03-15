@@ -85,7 +85,7 @@
 #   ifdef OBC_COM_M3ORLANSKI
 !                                           Western edge radiation BC
 !                                           ======= ==== ========= ==
-        do k=1,N
+        do k=0,N
           do j=Jstr,Jend+1
             grad(Istr-1,j)=( wz(Istr-1,j  ,k,nstp)
      &                      -wz(Istr-1,j-1,k,nstp))
@@ -151,7 +151,7 @@
 #   elif defined OBC_COM_WSPECIFIED
 !                                            Western edge Specified BC
 !                                            ======= ==== ========= ==
-        do k=1,N
+        do k=0,N
           do j=Jstr,Jend
 #    ifdef W_FRC_BRY
             wz(Istr-1,j,k,nnew)=wbry_west(j,k)
@@ -167,7 +167,7 @@
          enddo
         enddo
 #   else
-        do k=1,N
+        do k=0,N
           do j=Jstr,Jend
 !                                            Western edge gradient BC
 !                                            ======= ==== ======== ==
@@ -183,9 +183,9 @@
 #   endif
 !
 #  else           /* alternative to open */
-        do k=1,N                               ! Western edge closed
+        do k=0,N                               ! Western edge closed
           do j=jstr,jend                       ! ======= ==== ======
-            wz(Istr-1,j,k,nnew)=0.             !  (no-flux: default)
+            wz(Istr-1,j,k,nnew)= wz(Istr,j,k,nnew)            !  (no-flux: default)
           enddo
         enddo
 
@@ -200,7 +200,7 @@
 #   ifdef OBC_COM_M3ORLANSKI
 !                                           Eastern edge radiation BC
 !                                           ======= ==== ========= ==
-        do k=1,N
+        do k=0,N
           do j=Jstr,Jend+1
            grad(Iend  ,j)=( wz(Iend  ,j  ,k,nstp)
      &                     -wz(Iend  ,j-1,k,nstp))
@@ -267,7 +267,7 @@
 #   elif defined OBC_COM_WSPECIFIED
 !                                            Eastern edge Specified BC
 !                                            ======= ==== ========= ==
-        do k=1,N
+        do k=0,N
           do j=Jstr,Jend
 #    ifdef W_FRC_BRY
             wz(Iend+1,j,k,nnew)=wbry_east(j,k) 
@@ -285,7 +285,7 @@
 #   else 
 !                                            Eastern edge gradient BC
 !                                            ======= ==== ======== ==
-        do k=1,N
+        do k=0,N
           do j=Jstr,Jend
             wz(Iend+1,j,k,nnew)=wz(Iend,j,k,nnew)
 #    ifdef MASKING
@@ -299,9 +299,9 @@
 #   endif
 !
 #  else           /* alternative to open */
-        do k=1,N                                ! Eastern edge closed
+        do k=0,N                                ! Eastern edge closed
           do j=jstr,jend                        ! ======= ==== ======
-            wz(Iend+1,j,k,nnew)=0.              !  (no-flux: default)
+            wz(Iend+1,j,k,nnew)=wz(Iend,j,k,nnew)  !  (no-flux: default)
           enddo
         enddo
 #  endif       /* OBC_COM_EAST */
@@ -318,7 +318,7 @@
 #   ifdef OBC_COM_M3ORLANSKI
 !                                          Southern edge radiation BC
 !                                          ======== ==== ========= ==
-        do k=1,N
+        do k=0,N
           do i=Istr,Iend+1
             grad(i,Jstr  )=( wz(i  ,Jstr  ,k,nstp)
      &                      -wz(i-1,Jstr  ,k,nstp))
@@ -385,7 +385,7 @@
 #   elif defined OBC_COM_WSPECIFIED
 !                                           Southern edge Specified BC
 !                                           ======== ==== ========= ==
-        do k=1,N
+        do k=0,N
           do i=Istr,Iend
 #    ifdef W_FRC_BRY
             wz(i,Jstr-1,k,nnew)=wbry_south(i,k)
@@ -403,7 +403,7 @@
 #   else
 !                                           Southern edge gradient BC
 !                                           ======== ==== ======== ==
-        do k=1,N
+        do k=0,N
           do i=Istr,Iend
             wz(i,Jstr-1,k,nnew)=wz(i,Jstr,k,nnew)
 #    ifdef MASKING
@@ -417,9 +417,12 @@
 #   endif
 !
 #  else           /* alternative to open */
-        do k=1,N                               ! Southern edge closed
+        do k=0,N                               ! Southern edge closed
           do i=Istr,Iend                       ! ======== ==== ======
-            wz(i,Jstr-1,k,nnew)=0.
+            wz(i,Jstr-1,k,nnew)=wz(i,Jstr,k,nnew)
+#   ifdef MASKING
+     &                                   *rmask(i,Jstr-1)
+#   endif
           enddo
         enddo
 #  endif        /* OBC_COM_SOUTH */
@@ -433,7 +436,7 @@
 #   ifdef OBC_COM_M3ORLANSKI
 !                                          Northern edge radiation BC
 !                                          ======== ==== ========= ==
-        do k=1,N
+        do k=0,N
           do i=Istr,Iend+1
             grad(i,Jend  )=( wz(i  ,Jend  ,k,nstp)
      &                      -wz(i-1,Jend  ,k,nstp))
@@ -499,7 +502,7 @@
 #   elif defined OBC_COM_WSPECIFIED
 !                                           Northern edge Specified BC
 !                                           ======== ==== ========= ==
-        do k=1,N
+        do k=0,N
           do i=Istr,Iend
 #    ifdef W_FRC_BRY
             wz(i,Jend+1,k,nnew)=wbry_north(i,k)
@@ -517,7 +520,7 @@
 #   else
 !                                           Northern edge gradient BC
 !                                           ======== ==== ======== ==
-        do k=1,N
+        do k=0,N
           do i=Istr,Iend
             wz(i,Jend+1,k,nnew)=wz(i,Jend,k,nnew)
 #    ifdef MASKING
@@ -531,9 +534,12 @@
 #   endif
 !
 #  else           /* alternative to open */
-        do k=1,N                               ! Northern edge closed
+        do k=0,N                               ! Northern edge closed
           do i=Istr,Iend                       ! ======== ==== ======
-            wz(i,Jend+1,k,nnew)=0.
+            wz(i,Jend+1,k,nnew)=wz(i,Jend,k,nnew)
+#ifdef MASKING
+     &                           *rmask(i,Jend+1)
+#endif            
           enddo
         enddo
 #  endif       /* OBC_COM_NORTH */
@@ -545,7 +551,7 @@
 
 # if defined OBC_COM_SOUTH && defined OBC_COM_WEST
       if (SOUTHERN_EDGE .and. WESTERN_EDGE) then
-        do k=1,N
+        do k=0,N
           wz(Istr-1,Jstr-1,k,nnew)=0.5*
      &                          ( wz(Istr  ,Jstr-1,k,nnew)
      &                           +wz(Istr-1,Jstr  ,k,nnew))
@@ -557,7 +563,7 @@
 # endif
 # if defined OBC_COM_SOUTH && defined OBC_COM_EAST
       if (SOUTHERN_EDGE .and. EASTERN_EDGE) then
-        do k=1,N
+        do k=0,N
           wz(Iend+1,Jstr-1,k,nnew)=0.5*
      &                          (wz(Iend  ,Jstr-1,k,nnew)
      &                          +wz(Iend+1,Jstr  ,k,nnew))
@@ -569,7 +575,7 @@
 # endif
 # if defined OBC_COM_NORTH && defined OBC_COM_WEST
       if (NORTHERN_EDGE .and. WESTERN_EDGE) then
-        do k=1,N
+        do k=0,N
           wz(Istr-1,Jend+1,k,nnew)=0.5*
      &                          ( wz(Istr  ,Jend+1,k,nnew)
      &                           +wz(Istr-1,Jend  ,k,nnew))
@@ -581,7 +587,7 @@
 # endif
 # if defined OBC_COM_NORTH && defined OBC_COM_EAST
       if (NORTHERN_EDGE .and. EASTERN_EDGE) then
-        do k=1,N
+        do k=0,N
           wz(Iend+1,Jend+1,k,nnew)=0.5*
      &                          ( wz(Iend  ,Jend+1,k,nnew)
      &                           +wz(Iend+1,Jend  ,k,nnew))
@@ -593,6 +599,14 @@
 # endif
       return
       end
+!
+# ifndef CHILD
+#  define CHILD
+#  ifdef AGRIF
+#   include "w3dbc.F"
+#  endif
+#  undef CHILD
+# endif  /* !CHILD */
 #else
       subroutine w3dbc_empty
       end

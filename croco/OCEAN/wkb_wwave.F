@@ -10,8 +10,6 @@
 #  define wmod wint
 # endif
 
-# define ADD_DIFF
-
       subroutine wkb_wwave (tile)
       implicit none
       integer tile, trd, omp_get_thread_num
@@ -54,33 +52,45 @@
       real, dimension(3) :: wkb_bry
       real sbc, kh, kk, nw, cg, a0, ax, ax1, ax2, ay, ay1, ay2,
      &     cosw, sinw, cw, dtinv, cxu, cev, orbital, peg,
-     &     inv_k, khn, cff, cff0, cff1, cff2, w1, w2, w3,
+     &     inv_k, khn, cff,cff0,cff1,cff2,cffX,cffE, w1, w2, w3,
      &     dtwave, cfrc, inv_f, urms, abot, fw, c_roller
       real wamp, wh, cfrq, cdir, Btg, gamw, khd, kw, kr, ks,
      &     ho, dd, co, cgo, dsup
       real, parameter :: eps=1.e-10, 
-     &                   khmax=20.D0     ! deep-water limit for k*h
-#if defined MPI 
+     &                   khmax=20.     ! deep-water limit for k*h
+      logical :: ana_ini_wkb
+# ifdef WAVE_FRICTION
+      real Zob_my
+# endif
+# if defined MPI 
       include 'mpif.h'
-# include "mpi_roms.h"
+#  include "mpi_roms.h"
       integer ierr
-#endif
+# endif
 # include "grid.h"
 # include "ocean2d.h"
 # include "ocean3d.h"
 # include "wkb_wwave.h"
 # include "forces.h"
-# if defined BBL || defined BBL_S95 || defined BBL_F00 || defined BBL_QUAD2D
+# ifdef BBL
 #  include "coupling.h"
 # endif
 # include "boundary.h"
 # include "scalars.h"
+# include "mixing.h"
+
+# ifdef MASKING
+#  define SWITCH *
+# else
+#  define SWITCH !
+# endif
+# ifdef WET_DRY
+#  define SWITCH_WET *
+# else
+#  define SWITCH_WET !
+# endif
+
 # include "compute_auxiliary_bounds.h"
-#ifdef MASKING
-# define SWITCH *
-#else
-# define SWITCH !
-#endif
 !
 ! Sort out time-stepping parameters: For now, there are 3 choices,
 ! =================================  1) AB2, 2) AB3, and 3) AB2-CN2.
@@ -164,6 +174,12 @@
 # endif
 # ifdef WAVE_FRICTION
       cfrc = 0.5/sqrt(pi)
+      if (Zob.gt.0.) then
+        Zob_my=Zob
+      else
+        Zob_my=1.e-3
+      endif
+#  define Zob Zob_my
 # endif
       peg=8.0/g
 !
@@ -174,70 +190,81 @@
       if (iwave.eq.1) then
 !
 # define ANA_INI_WKB
+
 # ifdef ANA_INI_WKB
-
-#  if defined AGRIF
-        if( AGRIF_Root() ) then
+#  ifndef AGRIF 
+#  define ana_ini_wkb .true.
+#  else
+#  define ana_ini_wkb Agrif_Root()
 #  endif
+# else
+#  define ana_ini_wkb .false.
+# endif
 
-#  ifdef WKB_OBC_WEST
+      if( ana_ini_wkb ) then
+
+# ifdef WKB_OBC_WEST
         ho=h(1,1)+zeta(1,1,knew)         !+wkb_tide       ! offshore depth
-#   ifdef MPI
+#  ifdef MPI
         call MPI_Bcast(ho, 1, MPI_DOUBLE_PRECISION,
      &                     0, MPI_COMM_WORLD, ierr)
-#   endif
 #  endif
-#  ifdef WKB_OBC_EAST
+# endif
+# ifdef WKB_OBC_EAST
         ho=h(LLm,1)+zeta(LLm,1,knew)      !+wkb_tide       ! offshore depth
-#   ifdef MPI
+#  ifdef MPI
         call MPI_Bcast(ho, 1, MPI_DOUBLE_PRECISION,
      &                     NP_XI-1, MPI_COMM_WORLD, ierr)
-#   endif
 #  endif
-#  ifdef WKB_OBC_NORTH
+# endif
+# ifdef WKB_OBC_NORTH
         ho=h(LLm,MMm)+zeta(LLm,MMm,knew)  !+wkb_tide       ! offshore depth
-#   ifdef MPI
+#  ifdef MPI
         call MPI_Bcast(ho, 1, MPI_DOUBLE_PRECISION,
      &                     NPP-1, MPI_COMM_WORLD, ierr)!faux
-#   endif
 #  endif
-#  ifdef WKB_OBC_SOUTH
+# endif
+# ifdef WKB_OBC_SOUTH
         ho=h(1,1)+zeta(1,1,knew)          !+wkb_tide       ! offshore depth
-#   ifdef MPI
+#  ifdef MPI
         call MPI_Bcast(ho, 1, MPI_DOUBLE_PRECISION,
      &                     0, MPI_COMM_WORLD, ierr)!faux
-#   endif
 #  endif
-#  ifdef ANA_BRY_WKB 
+# endif
+# ifdef ANA_BRY_WKB 
         wamp = wkb_amp               ! wave amplitude (m)
         cfrq = 2.0*pi/wkb_prd        ! peak wave frequency (rad/s)
         cdir = wkb_ang*deg2rad       ! wave direction rad
-#  else
-#   ifdef WKB_OBC_WEST
+# else
+#  ifdef WKB_OBC_WEST
          wkb_bry(1)=wacbry_west(1) 
          wkb_bry(2)=wkxbry_west(1)
          wkb_bry(3)=wkebry_west(1)
+#   ifdef MPI 
          prc = 0
-#   endif
-#   ifdef WKB_OBC_EAST
+#   endif         
+#  endif
+#  ifdef WKB_OBC_EAST
          wkb_bry(1)=wacbry_east(1) 
          wkb_bry(2)=wkxbry_east(1)
          wkb_bry(3)=wkebry_east(1)
+#   ifdef MPI 
          prc = NP_XI-1
 #   endif
-#   ifdef MPI
+#  endif
+#  ifdef MPI
         call MPI_Bcast(wkb_bry, 3, MPI_DOUBLE_PRECISION,
      &                     prc, MPI_COMM_WORLD, ierr)
-#   endif
+#  endif
         cff1=sqrt(wkb_bry(2)**2+wkb_bry(3)**2)
         inv_k =1.0/cff1
-        khn =cff1*(ho+zeta(1,1,knew))
+        khn =cff1*ho
         cfrq =sqrt(g*cff1*tanh(khn))
         cosw = inv_k*wkb_bry(2)          
         sinw = inv_k*wkb_bry(3)           
         cdir=ATAN2(sinw,cosw)
         wamp=sqrt(2*wkb_bry(1)/g*cfrq)
-#  endif /* ANA_BRY_WKB */
+# endif /* ANA_BRY_WKB */
         Btg  = wkb_btg               ! B parameter
         gamw = wkb_gam               ! gamma paramemer (Hrms/h ratio)
 
@@ -268,32 +295,33 @@
               sinw=sin(cdir)
               cff1=gamw*dd
               cff2=2.0*wamp*ks*kr
-              wh = min(cff1,cff2)
+              wh = min(cff1,cff2) SWITCH rmask(i,j)
+     &                            SWITCH_WET rmask_wet(i,j)
               dsup=-0.125*(wh**2)*kw/sinh(2.*kw*dd) ! wave set-up
             enddo
             do k=1,2
-              hrm(i,j,k)=wh*2.0 SWITCH rmask(i,j)
+              hrm(i,j,k)=wamp*2.0 SWITCH rmask(i,j)
+     &                            SWITCH_WET rmask_wet(i,j)
+              wkx(i,j,k)=kw*cosw
+              wke(i,j,k)=kw*sinw 
               frq(i,j,k)=cfrq
               wcg(i,j,k)=nw*cw/kw
               wac(i,j,k)=0.125*g*(hrm(i,j,k)**2)/frq(i,j,k)
-              wkx(i,j,k)=kw*cosw
-              wke(i,j,k)=kw*sinw
               wsb(i,j,k)=sbc/(Dstp(i,j)**5)*(hrm(i,j,k)**7)
               wvn(i,j,k)=kw
-#  ifdef WAVE_ROLLER
+# ifdef WAVE_ROLLER
               war(i,j,k)=0.0
               wsr(i,j,k)=0.0
               wcr(i,j,k)=cw/kw
-#  endif
+# endif
             enddo
             wdrx(i,j)=cosw      ! cosine wave direction (xi)
             wdre(i,j)=sinw      ! sine wave direction (eta)
             sup(i,j)=dsup       ! wave setup
-            wdsp(i,j)=0.0       ! sbc/(h(i,j)**5)*(hrm(i,j,k)**7)/cfrq 
+            wepb(i,j)=0.0       ! sbc/(h(i,j)**5)*(hrm(i,j,k)**7)/cfrq 
                                 ! S (\ep_b/rho, wave dissipation)
           enddo
         enddo
-
 !
 !  Boundary fields
 !
@@ -319,9 +347,9 @@
 #   ifdef WKB_OBC_SOUTH
         if (SOUTHERN_EDGE) then
           do i=istr-1,iend+1
-            wacbry_south(j)=wac(i,jstr-1,1)
-            wkxbry_south(j)=wkx(i,jstr-1,1)
-            wkebry_south(j)=wke(i,jstr-1,1)
+            wacbry_south(i)=wac(i,jstr-1,1)
+            wkxbry_south(i)=wkx(i,jstr-1,1)
+            wkebry_south(i)=wke(i,jstr-1,1)
           enddo
         endif
 #   endif  /* WKB_OBC_SOUTH */
@@ -335,46 +363,85 @@
         endif
 #   endif  /* WKB_OBC_NORTH */
 #  endif /* ANA_BRY_WKB */
-#  ifdef AGRIF
-        endif
-#  endif
 
-# else /* !ANA_INI_WKB */
-
+      else  ! ana_ini_wkb
+         
         do j=jstrR,jendR
           do i=istrR,iendR
-            kk=max(sqrt(wkx(i,j,wstp)**2+wke(i,j,wstp)**2),eps)
-            kh=min(kk*h(i,j),khmax)
+#  ifdef WAVE_OFFLINE
+            Dstp(i,j)=h(i,j)+zeta(i,j,knew)
+            khd = Dstp(i,j)*wfrq(i,j)*wfrq(i,j)/g
+            kh = sqrt(    khd*khd + khd/(1.0 + khd*(0.6666666666
+     &                   +khd*(0.3555555555  + khd*(0.1608465608
+     &                   +khd*(0.0632098765  + khd*(0.0217540484
+     &                   +khd*0.0065407983)))))) )
+            kw=max(kh/max(Dstp(i,j),eps),eps)
+            kh=min(kw*Dstp(i,j),khmax)
             nw=0.5*(1.0+2.0*kh/max(sinh(2.0*kh),eps))
-            wvn(i,j,wstp)=kk
-            frq(i,j,wstp)=sqrt(g*kk*tanh(kh))
-            wcg(i,j,wstp)=frq(i,j,wstp)/max(kk**2,eps)*nw  ! cg/k
-            hrm(i,j,wstp)=sqrt(peg*max(wac(i,j,wstp),0.0)*frq(i,j,wstp))
-#  ifdef WAVE_BREAK_TG86
-            wsb(i,j,wstp)=sbc/(h(i,j)**5)*(hrm(i,j,wstp)**7) ! ep_b/rho/sigma
-#  elif defined WAVE_BREAK_TG86A
-            cff1=hrm(i,j,wstp)/(wkb_gam*h(i,j))
-            wsb(i,j,wstp)=sbc/(h(i,j)**3)*(hrm(i,j,wstp)**5)
-     &                           *(1.0-(1.0+cff1**2)**(-2.5))
-#  elif defined WAVE_BREAK_CT93
-            cff1=hrm(i,j,wstp)/(wkb_gam*h(i,j))
-            wsb(i,j,wstp)=sbc/h(i,j)*(hrm(i,j,wstp)**3)
-     &      *( 1.0+tanh(8.0*(cff1-1.0)) )*( 1.0-(1.0+cff1**2)**(-2.5) )
-#  elif defined WAVE_BREAK_R93
-            cff1=hrm(i,j,wstp)/(wkb_gam*h(i,j))
-            wsb(i,j,wstp)=sbc/h(i,j)*hrm(i,j,wstp)**3*cff1**4
-     &       *(1 -exp (-cff1**5 ) )
-#  endif
-#  ifdef WAVE_ROLLER
-            wcr(i,j,wstp)=frq(i,j,wstp)/max(kk**2,eps)  ! c/k
-            wsr(i,j,wstp)=c_roller*war(i,j,wstp)*kk     ! ep_r/rho/sigma
-     &                      /max(frq(i,j,wstp)**2,eps)
+            cw=sqrt(g/kw*tanh(kh))
+            do k=1,2
+              wvn(i,j,k)=kw
+              wkx(i,j,k)=kw*wdrx(i,j) SWITCH rmask(i,j)
+              wke(i,j,k)=kw*wdre(i,j) SWITCH rmask(i,j)
+              frq(i,j,k)=sqrt(g*kw*tanh(kh))
+              wcg(i,j,k)=frq(i,j,k)/max(kw**2,eps)*nw  ! cg/k
+              hrm(i,j,k)=whrm(i,j) SWITCH rmask(i,j)
+              wac(i,j,k)=0.125*g*(hrm(i,j,k)**2)/frq(i,j,k)
+#   ifdef WAVE_ROLLER
+              war(i,j,k)=0.0
+              wsr(i,j,k)=0.0
+              wcr(i,j,k)=cw/kw
+#   endif
+            enddo
 #  endif
           enddo
         enddo
-# endif /* ANA_INI_WKB */
+#  ifdef AGRIF
+        if (EASTERN_EDGE) then
+          do j=jstr-1,jend+1
+            wacbry_east(j)=wac(iendR,j,1)
+#   ifdef WAVE_ROLLER
+            warbry_east(j)=war(iendR,j,1)
+#   endif    
+            wkxbry_east(j)=wkx(iendR,j,1)
+            wkebry_east(j)=wke(iendR,j,1)
+            wkebry_east(j)=wke(iendR,j,1)
+          enddo
+        endif
+        if (WESTERN_EDGE) then
+          do j=jstr-1,jend+1
+            wacbry_west(j)=wac(istr-1,j,1)
+#   ifdef WAVE_ROLLER
+            warbry_west(j)=war(istr-1,j,1)
+#   endif            
+            wkxbry_west(j)=wkx(istr-1,j,1)
+            wkebry_west(j)=wke(istr-1,j,1)
+          enddo
+        endif
+        if (SOUTHERN_EDGE) then
+          do i=istr-1,iend+1
+            wacbry_south(i)=wac(i,jstr-1,1)
+#   ifdef WAVE_ROLLER
+            warbry_south(i)=war(i,jstr-1,1)
+#   endif            
+            wkxbry_south(i)=wkx(i,jstr-1,1)
+            wkebry_south(i)=wke(i,jstr-1,1)
+          enddo
+        endif
+        if (NORTHERN_EDGE) then
+          do i=istr-1,iend+1
+            wacbry_north(i)=wac(i,jendR,1)
+#   ifdef WAVE_ROLLER
+            warbry_north(i)=war(i,jendR,1)
+#   endif            
+            wkxbry_north(i)=wkx(i,jendR,1)
+            wkebry_north(i)=wke(i,jendR,1)
+          enddo
+        endif
+#  endif        
+      endif 
 !
-# if defined EW_PERIODIC || defined NS_PERIODIC || defined  MPI
+#  if defined EW_PERIODIC || defined NS_PERIODIC || defined  MPI
         do k=1,2
           call exchange_r2d_tile (istr,iend,jstr,jend,
      &                            wkx(START_2D_ARRAY,k))
@@ -392,18 +459,17 @@
      &                        wsb(START_2D_ARRAY,k))
           call exchange_r2d_tile (istr,iend,jstr,jend,
      &                            wvn(START_2D_ARRAY,k))
-#  ifdef WAVE_ROLLER
+#   ifdef WAVE_ROLLER
           call exchange_r2d_tile (istr,iend,jstr,jend,
      &                            war(START_2D_ARRAY,k))
           call exchange_r2d_tile (istr,iend,jstr,jend,
      &                            wcr(START_2D_ARRAY,k))
           call exchange_r2d_tile (istr,iend,jstr,jend,
      &                            wsr(START_2D_ARRAY,k))
-#  endif
+#   endif
         end do
-# endif
+#  endif
 C$OMP BARRIER
-
       endif  ! <-- iwave=1
 !
 ! ---------------------   End initialisation ------------------------------
@@ -457,24 +523,33 @@ C$OMP BARRIER
 ! Solve primary wavenumber equation
 !---------------------------------------------------------------------
 !
-      cff=10*0.5                          ! smoothing coefficient
+# ifdef WKB_ADD_DIFF
+      cffX=1.   ! isotropic diffusion
+      cffE=1.
+# endif
 !
       do j=jstr,jend
         do i=istr,iend
 # ifdef MRL_CEW
-          cxu=cgx(i,j) +0.5*(uwave(i+1,j,wmod)+uwave(i,j,wmod))
-          cev=cge(i,j) +0.5*(vwave(i,j+1,wmod)+vwave(i,j,wmod))
+          cxu=cgx(i,j)+0.5*(uwave(i+1,j,wmod)+uwave(i,j,wmod))
+          cev=cge(i,j)+0.5*(vwave(i,j+1,wmod)+vwave(i,j,wmod))
 # else
           cxu=cgx(i,j)
           cev=cge(i,j)
 # endif
-          ax1=cxu+abs(cxu)                ! 1st order upwind scheme
+          ax1=cxu+abs(cxu)             ! 1st order upwind scheme
           ax2=cxu-abs(cxu)
           ay1=cev+abs(cev)
           ay2=cev-abs(cev)
           kh =min(wvn(i,j,wstp)*Dstp(i,j),khmax)
           a0 =frq(i,j,wstp)*wvn(i,j,wstp)/max(sinh(2.0*kh),eps)
-          wkx(i,j,wnew) =wkx(i,j,wprv) -dtwave*pm(i,j)*pn(i,j)
+# if defined WKB_ADD_DIFF && defined WKB_ADD_DIFFRACTION
+          cff1=0.5+0.5*(tanh(5.*(Dstp(i,j)-10.)))  ! innershelf only
+          cff2=1./max(rkx(i,j)**2+rke(i,j)**2,eps) ! diffraction
+          cffX=20.*min(1.,max(.1,cff1*cff2*rke(i,j)**2))
+          cffE=20.*min(1.,max(.1,cff1*cff2*rkx(i,j)**2))
+# endif
+          wkx(i,j,wnew)=wkx(i,j,wprv) -dtwave*pm(i,j)*pn(i,j)
      &                *( a0*0.5*on_r(i,j)*(Dstp(i+1,j)-Dstp(i-1,j))
      &               +0.5*( ax1*on_u(i  ,j)*(rkx(i  ,j)-rkx(i-1,j))
      &                     +ax2*on_u(i+1,j)*(rkx(i+1,j)-rkx(i  ,j))
@@ -486,9 +561,9 @@ C$OMP BARRIER
      &                                               +0.25*rke(i,j)
      &               *(kvx(i,j)+kvx(i+1,j)+kvx(i,j+1)+kvx(i+1,j+1))
 # endif
-# ifdef ADD_DIFF
-     &           -cff*on_r(i,j)*(rkx(i+1,j)-2.*rkx(i,j)+rkx(i-1,j))
-     &           -cff*om_r(i,j)*(rkx(i,j+1)-2.*rkx(i,j)+rkx(i,j-1))
+# ifdef WKB_ADD_DIFF
+     &          -cffX*on_r(i,j)*(rkx(i+1,j)-2.*rkx(i,j)+rkx(i-1,j))
+     &          -cffE*om_r(i,j)*(rkx(i,j+1)-2.*rkx(i,j)+rkx(i,j-1))
 # endif
      &                                                            )
           wke(i,j,wnew) =wke(i,j,wprv) -dtwave*pm(i,j)*pn(i,j)
@@ -503,15 +578,19 @@ C$OMP BARRIER
      &                                               +0.25*rkx(i,j)
      &               *(kue(i,j)+kue(i+1,j)+kue(i,j+1)+kue(i+1,j+1))
 # endif
-# ifdef ADD_DIFF
-     &           -cff*on_r(i,j)*(rke(i+1,j)-2.*rke(i,j)+rke(i-1,j))
-     &           -cff*om_r(i,j)*(rke(i,j+1)-2.*rke(i,j)+rke(i,j-1))
+# ifdef WKB_ADD_DIFF
+     &          -cffX*on_r(i,j)*(rke(i+1,j)-2.*rke(i,j)+rke(i-1,j))
+     &          -cffE*om_r(i,j)*(rke(i,j+1)-2.*rke(i,j)+rke(i,j-1))
 # endif
      &                                                            )
 # ifdef MASKING
-          wkx(i,j,wnew) =wkx(i,j,wnew)*rmask(i,j)
-          wke(i,j,wnew) =wke(i,j,wnew)*rmask(i,j)
+          wkx(i,j,wnew)=wkx(i,j,wnew)*rmask(i,j)
+          wke(i,j,wnew)=wke(i,j,wnew)*rmask(i,j)
 # endif
+!# ifdef WET_DRY
+!          wkx(i,j,wnew)=wkx(i,j,wnew)*rmask_wet(i,j) ! unstable
+!          wke(i,j,wnew)=wke(i,j,wnew)*rmask_wet(i,j)
+!# endif
         enddo
       enddo                ! <-- discard kvx,kue
 # undef kvx
@@ -539,18 +618,31 @@ C$OMP BARRIER
 !
       do j=jstr,jend
         do i=istr,iend
-          wac(i,j,wnew) =wac(i,j,wprv)-dtwave*( pm(i,j)*pn(i,j)
-     &                 *(acx(i,j)-acx(i-1,j)+ace(i,j)-ace(i,j-1)
-# ifdef ADD_DIFF
-     &                           -cff*on_r(i,j)*(wac(i+1,j,wprv)
-     &                        -2.*wac(i,j,wprv)+wac(i-1,j,wprv))
-     &                           -cff*om_r(i,j)*(wac(i,j+1,wprv)
-     &                        -2.*wac(i,j,wprv)+wac(i,j-1,wprv))
+# if defined WKB_ADD_DIFF && defined WKB_ADD_DIFFRACTION
+          cff1=0.5+0.5*(tanh(5.*(Dstp(i,j)-10.)))  ! innershelf only
+          cff2=1./max(rkx(i,j)**2+rke(i,j)**2,eps) ! diffraction
+          cffX=20.*min(1.,max(.1,cff1*cff2*rke(i,j)**2))
+          cffE=20.*min(1.,max(.1,cff1*cff2*rkx(i,j)**2))
 # endif
-     &                          ) +wsb(i,j,wstp)+wfc(i,j,wstp) )
+          wac(i,j,wnew)=wac(i,j,wprv)-dtwave*( pm(i,j)*pn(i,j)
+     &                   *(acx(i,j)-acx(i-1,j)+ace(i,j)-ace(i,j-1)
+# ifdef WKB_ADD_DIFF
+     &                           -cffX*on_r(i,j)*(wac(i+1,j,wprv)
+     &                          -2.*wac(i,j,wprv)+wac(i-1,j,wprv))
+     &                           -cffE*om_r(i,j)*(wac(i,j+1,wprv)
+     &                          -2.*wac(i,j,wprv)+wac(i,j-1,wprv))
+# endif
+     &                            ) +wsb(i,j,wstp)+wfc(i,j,wstp) )
+# ifdef WKB_NUDGING
+     &                                -dtwave/3600*(wac(i,j,wnew)-
+     &                   0.125/(2*pi)*g*(whrm(i,j)**2)*Pwave(i,j))
+# endif
 # ifdef MASKING
-          wac(i,j,wnew) =wac(i,j,wnew)*rmask(i,j)
+          wac(i,j,wnew)=wac(i,j,wnew)*rmask(i,j)
 # endif
+!# ifdef WET_DRY
+!          wac(i,j,wnew)=wac(i,j,wnew)*rmask_wet(i,j) ! unstable
+!# endif
         enddo
       enddo           ! <--- discard acx,ace
 !
@@ -595,11 +687,20 @@ C$OMP BARRIER
       do j=jstr,jend
         do i=istr,iend
           war(i,j,wnew) =war(i,j,wprv)-dtwave*( pm(i,j)*pn(i,j)
-     &               *(acx(i,j)-acx(i-1,j)+ace(i,j)-ace(i,j-1))
-     &                -wkb_roller*wsb(i,j,wstp)+wsr(i,j,wstp) )
+     &               *(acx(i,j)-acx(i-1,j)+ace(i,j)-ace(i,j-1)
+# ifdef WKB_ADD_DIFFXXX
+     &                           -on_r(i,j)*(war(i+1,j,wprv)
+     &                         -2.*war(i,j,wprv)+war(i-1,j,wprv))
+     &                           -om_r(i,j)*(war(i,j+1,wprv)
+     &                         -2.*war(i,j,wprv)+war(i,j-1,wprv))
+# endif
+     &                )-wkb_roller*wsb(i,j,wstp)+wsr(i,j,wstp) )
 #  ifdef MASKING
           war(i,j,wnew) =war(i,j,wnew)*rmask(i,j)
 #  endif
+!#  ifdef WET_DRY
+!          war(i,j,wnew) =war(i,j,wnew)*rmask_wet(i,j) ! unstable
+!#  endif
         enddo
       enddo           ! <--- discard acx,ace
 #  undef rwar
@@ -626,31 +727,34 @@ C$OMP BARRIER
           wcg(i,j,wnew) =frq(i,j,wnew)*(inv_k**2)*nw  ! cg/k
           hrm(i,j,wnew) =sqrt(peg*max(wac(i,j,wnew),0.0)*frq(i,j,wnew))
 # ifdef WAVE_BREAK_TG86
-          wsb(i,j,wnew) =sbc*((1.0/Dstp(i,j))**5)*(hrm(i,j,wnew)**7) ! ep_b/rho/sigma
+          wsb(i,j,wnew) =sbc*((1.0/Dstp(i,j))**5)
+     &                      *(hrm(i,j,wnew)**7)    ! ep_b/rho/sigma
 # elif defined WAVE_BREAK_TG86A
           cff1=hrm(i,j,wnew)/(wkb_gam*Dstp(i,j))
           wsb(i,j,wnew)=sbc/(Dstp(i,j)**3)*(hrm(i,j,wnew)**5)
-     &                            *(1.0-(1.0+peg**2)**(-2.5))
+     &                                    *(1.0-(1.0+peg**2)**(-2.5))
 # elif defined WAVE_BREAK_CT93
           cff1=hrm(i,j,wnew)/(wkb_gam*Dstp(i,j))
           wsb(i,j,wnew) =sbc/Dstp(i,j)*(hrm(i,j,wnew)**3)
-     &      *( 1.0+tanh(8.0*(cff1-1.0)) )*( 1.0-(1.0+cff1**2)**(-2.5) )
-
-#  elif defined WAVE_BREAK_R93
-            cff1=hrm(i,j,wnew)/(wkb_gam*Dstp(i,j))
-            wsb(i,j,wstp)=sbc/Dstp(i,j)*hrm(i,j,wnew)**3*cff1**4
-     &       *(1 -exp (-cff1**5 ) )
-# else
+     &                                *( 1.0+tanh(8.0*(cff1-1.0)) )
+     &                                *( 1.0-(1.0+cff1**2)**(-2.5) )
+# elif defined WAVE_BREAK_R93
           cff1=hrm(i,j,wnew)/(wkb_gam*Dstp(i,j))
-          wsb(i,j,wnew) =sbc/Dstp(i,j)*(hrm(i,j,wnew)**3)
-     &      *( 1.0+tanh(8.0*(cff1-1.0)) )*( 1.0-(1.0+cff1**2)**(-2.5) )
+          wsb(i,j,wstp)=sbc/Dstp(i,j)*hrm(i,j,wnew)**3*cff1**4
+     &                               *(1 -exp (-cff1**5 ) )
+# endif
+# if defined WET_DRY && defined WAVE_BREAK_SWASH
+!  Add dissipation near wet-dry interface (e.g., swash zone; FLUME case)
+          wsb(i,j,wnew)=wsb(i,j,wnew)*(1.+2.*
+     &                  (1.+tanh(1.+5.*min(-1.,log(Dcrit(i,j)))*
+     &                                 (z_w(i,j,N)-z_w(i,j,0)))) )
 # endif
 # ifdef WAVE_ROLLER
           wcr(i,j,wnew) = frq(i,j,wnew)*(inv_k**2)   ! c/k
           wsr(i,j,wnew) = c_roller*war(i,j,wnew)     ! ep_r/rho/sigma
      &                    *wvn(i,j,wnew)/max(frq(i,j,wnew)**2,eps)
 # endif
-# if defined BBL || defined MRL_WCI
+# if (defined BBL || defined MRL_WCI) && !defined WAVE_OFFLINE
           cosw = inv_k*wkx(i,j,wnew)            ! cosine wave direction (xi)
           sinw = inv_k*wke(i,j,wnew)            ! sine wave direction (eta)
 #  ifdef BBL
@@ -662,7 +766,6 @@ C$OMP BARRIER
           inv_f= 1.0/max(frq(i,j,wnew),eps)
           Pwave(i,j)=2.*pi*inv_f
           Awave(i,j)=hrm(i,j,wnew)/2.
-          Dwave(i,j)=ATAN2(sinw,cosw)
           if (cosw.ne.0.0) then
             Dwave(i,j)=ATAN2(sinw,cosw)
           else
@@ -670,8 +773,13 @@ C$OMP BARRIER
           endif
 #  endif
 #  ifdef MRL_WCI
+          whrm(i,j) = hrm(i,j,wnew)
+          wfrq(i,j) = frq(i,j,wnew)
           wdrx(i,j) = cosw                      ! cosine wave direction (xi)
           wdre(i,j) = sinw                      ! sine wave direction (eta)
+#  else
+          wwkx(i,j)=wkx(i,j,wnew)               ! wavenumber components
+          wwke(i,j)=wke(i,j,wnew)               ! for output
 #  endif
 # endif
 # ifdef WAVE_FRICTION
@@ -680,6 +788,7 @@ C$OMP BARRIER
           abot = inv_f*urms
           fw   = 1.39*(Zob/max(abot,eps))**0.52 ! Soulsby (1995)
           wfc(i,j,wnew) = cfrc*fw*inv_f*urms**3 ! ep_d/rho/sigma
+#  undef Zob
 # else
           wfc(i,j,wnew) = 0.0
 # endif
@@ -780,13 +889,13 @@ C$OMP BARRIER
         cff1=1.0
       endif
 # endif
-      do j=jstrR,jendR
-        do i=istrR,iendR
+      do j=Jstr,Jend
+        do i=Istr,Iend
 # ifdef SOLVE3D
           wlen=pi/wvn(i,j,wnew)  ! L/2 = (2*pi/k)/2
           if (h(i,j)+zeta(i,j,knew).le.wlen) then
-            wrk1(i,j)=ubar(i,j,knew)
-            wrk2(i,j)=vbar(i,j,knew)
+            wrk1(i,j)=0.5*(ubar(i,j,knew)+ubar(i+1,j,knew))
+            wrk2(i,j)=0.5*(vbar(i,j,knew)+vbar(i,j+1,knew))
           else
             uave=0.D0
             vave=0.D0
@@ -795,12 +904,12 @@ C$OMP BARRIER
             do k=N,1,-1
               dep = zeta(i,j,knew)-z_w(i,j,k)
               if (k.eq.N.or.dep.le.wlen) then
-                cff3=0.5*(Hz(i,j,k)+Hz(i-1,j,k))
-                cff4=0.5*(Hz(i,j,k)+Hz(i,j-1,k))
-                uave=uave+cff3*u(i,j,k,nrhs)
-                vave=vave+cff4*v(i,j,k,nrhs)
-                udep=udep+cff3
-                vdep=vdep+cff4
+                uave=uave+0.5*Hz(i,j,k)*(u(i  ,j,k,nrhs)
+     &                                  +u(i+1,j,k,nrhs))
+                vave=vave+0.5*Hz(i,j,k)*(v(i,j,k,nrhs)
+     &                                  +v(i,j+1,k,nrhs))
+                udep=udep+Hz(i,j,k)
+                vdep=udep
               endif
             enddo
             wrk1(i,j)=uave/udep
@@ -808,8 +917,8 @@ C$OMP BARRIER
           endif
           wrk3(i,j)=zeta(i,j,knew)
 # else
-          wrk1(i,j)=ubar(i,j,knew)
-          wrk2(i,j)=vbar(i,j,knew)
+          wrk1(i,j)=0.5*(ubar(i,j,knew)+ubar(i+1,j,knew))
+          wrk2(i,j)=0.5*(vbar(i,j,knew)+vbar(i,j+1,knew))
           wrk3(i,j)=zeta(i,j,knew)
 # endif
 # ifdef WKB_TIME_FILTER

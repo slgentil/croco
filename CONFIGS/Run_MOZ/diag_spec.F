@@ -15,8 +15,8 @@
       integer :: in_proc_loc
       integer :: nbpts_spec_x, nbpts_spec_y
       integer :: Nax
-      integer, parameter :: nspec=18  ! nb of cospectra
-      integer, parameter :: nhat=31   ! nb of variables to Fourierize
+      integer, parameter :: nspec=19  ! nb of cospectra
+      integer, parameter :: nhat=32   ! nb of variables to Fourierize
       integer :: navgspec, nwrtspec, nrecspec
       integer :: coefewper, coefnsper
       
@@ -26,7 +26,7 @@
       integer*8,dimension(:),allocatable ::reqid
       integer ,dimension(:), allocatable :: index_count
       
-      real(kind=8) :: dnan=0.
+      real(kind=8) :: dnan, zero=0.
       real(kind=8) :: lon_min, lon_max, lat_min, lat_max
       real(kind=8), parameter :: land_factor=0.05
 
@@ -37,7 +37,10 @@
       real(kind=8),dimension(:),allocatable::kx
       real(kind=8),dimension(:),allocatable :: ky
       real(kind=8),dimension(:,:),allocatable :: kk
-      real(kind=8),dimension(:),allocatable :: rho_r, drhordz, drhordz_interp
+      real(kind=8),dimension(:),allocatable :: rho_r, drhordz
+      real(kind=8),dimension(:),allocatable :: rho_r_lin, drhordz_lin
+      real(kind=8),dimension(:),allocatable :: drhordz_interp
+      real(kind=8),dimension(:),allocatable :: drhordz_interp_lin
       real(kind=8),dimension(:,:),allocatable :: infft 
       real(kind=8),dimension(:),allocatable :: hann_ew, hann_ns
 
@@ -71,17 +74,19 @@
 # include "scalars.h"
 # include "ocean3d.h"
 # include "grid.h"
+# include "work.h"
 
       include 'mpif.h'
       include 'fftw3.f'
 
       !local
-      real(kind=8)::kh,coef,ni,nj
-      integer::i,j,k,l,kint,iproc,iret,i0,j0,mpierr,i_offset,j_offset
+      real(kind=8):: kh,coef,ni,nj
+      integer:: i,j,k,l,kint,iproc,iret,i0,j0,mpierr,i_offset,j_offset
+      integer:: nbofnan
       integer,dimension(MPI_STATUS_SIZE):: istat
       real(kind=8) :: localsum, globalsum, nr_sumofall
       
-      dnan=dnan/dnan
+      dnan=zero/zero
 
 
          
@@ -217,6 +222,9 @@
       allocate(rho_r(N))
       allocate(drhordz(N)) 
       allocate(drhordz_interp(Ninterp))
+      allocate(rho_r_lin(N))
+      allocate(drhordz_lin(N)) 
+      allocate(drhordz_interp_lin(Ninterp))
       allocate(infft(LLmglo,MMmglo))
       allocate(outfft(LLmspec,MMmspec))
 
@@ -241,6 +249,7 @@
       name_cospec(16)="rho_vdiff"       
       name_cospec(17)="rho_forc"
       name_cospec(18)="ape"          
+      name_cospec(19)="ape_lin"        
 
 
 !     Make wave number mask
@@ -294,13 +303,42 @@
      &                           FFTW_ESTIMATE)       
 
       
-! Initialisation d'un rho référence: rho moyenné par tranche horizontal    
-  
+! Initialisation d'un rho référence (pour rho du code): rho moyenné par tranche horizontal
+
       do k=1,N
+
+
+#ifdef MASKING  
+         ! Somme de rho non masqués par niveau   
+         work2d=0
+         where (rmask /= 0.) work2d = rho(:,:,k)
+         if (in_proc_loc==1) then
+            localsum=sum(work2d(ind_lon_min_loc:ind_lon_max_loc,
+     &                          ind_lat_min_loc:ind_lat_max_loc))
+         else
+            localsum=0
+         endif
+         globalsum = nr_sumofall(localsum) 
+         ! Nb de points non masqués
+         work2d=0
+         where (rmask /= 0.) work2d = dnan
+         if (in_proc_loc==1) then
+            localsum=count(IsNan(work2d(ind_lon_min_loc:ind_lon_max_loc,
+     &                               ind_lat_min_loc:ind_lat_max_loc)))
+         else
+            localsum=0
+         endif
+         nbofnan=nr_sumofall(localsum)          
+         rho_r(k) = globalsum/nbofnan
+ 
+#else     
          localsum = sum(rho(1:Lm,1:Mm,k))/Lm/Mm
          globalsum = nr_sumofall(localsum)
          rho_r(k) = globalsum/NNODES
-      enddo          
+#endif
+
+
+      enddo   
       rho_r = -1. * rho_r
       call qsort(rho_r,N)
       rho_r =  -1. * rho_r 
@@ -309,12 +347,74 @@
          drhordz(k) = 0.5*(rho_r(k+1) - rho_r(k-1)) / Hz(1,1,k)
       enddo
       drhordz(N) = drhordz(N-1)
-      drhordz(1) = drhordz(2)     
+      drhordz(1) = drhordz(2)  
 
       ! interpolate drhordz on iso-density axis
             
 # ifdef DIAG_SPEC_ISORHO
       call interp1d_isorho("rho", drhordz, drhordz_interp,1,1,N,Ninterp)
+# endif
+
+      
+! Initialisation d'un rho référence (pour rho linéaire): rho moyenné par tranche horizontal
+
+      do k=1,N
+
+
+#ifdef MASKING  
+         ! Somme de rho non masqués par niveau   
+         work2d=0
+         where (rmask /= 0.) 
+     &         work2d = R0 - Tcoef*(t(:,:,k,nrhs,itemp)-T0)
+#  ifdef SALINITY
+     &                     + Scoef*(t(:,:,k,nrhs,isalt)-S0)
+#  endif
+         if (in_proc_loc==1) then
+            localsum=sum(work2d(ind_lon_min_loc:ind_lon_max_loc,
+     &                          ind_lat_min_loc:ind_lat_max_loc))
+         else
+            localsum=0
+         endif
+         globalsum = nr_sumofall(localsum) 
+         ! Nb de points non masqués
+         work2d=0
+         where (rmask /= 0.) work2d = dnan
+         if (in_proc_loc==1) then
+            localsum=count(IsNan(work2d(ind_lon_min_loc:ind_lon_max_loc,
+     &                               ind_lat_min_loc:ind_lat_max_loc)))
+         else
+            localsum=0
+         endif
+         nbofnan=nr_sumofall(localsum)  
+         rho_r_lin(k) = globalsum/float(nbofnan)
+ 
+#else  /* MASKING */   
+         work2d = R0 - Tcoef*(t(:,:,k,nrhs,itemp)-T0)
+#  ifdef SALINITY
+     &               + Scoef*(t(:,:,k,nrhs,isalt)-S0)
+#  endif
+         localsum = sum(work2d)/Lm/Mm
+         globalsum = nr_sumofall(localsum)
+         rho_r_lin(k) = globalsum/NNODES
+#endif /* MASKING */  
+
+
+      enddo        
+      rho_r_lin = -1. * rho_r_lin
+      call qsort(rho_r_lin,N)
+      rho_r_lin =  -1. * rho_r_lin 
+
+      do k=2,N-1
+         drhordz_lin(k) = 0.5*(rho_r_lin(k+1) - rho_r_lin(k-1)) / Hz(1,1,k)
+      enddo
+      drhordz_lin(N) = drhordz_lin(N-1)
+      drhordz_lin(1) = drhordz_lin(2)  
+
+      ! interpolate drhordz on iso-density axis
+            
+# ifdef DIAG_SPEC_ISORHO
+      call interp1d_isorho("rho", drhordz_lin, drhordz_interp_lin,1,1,
+     &                      N,Ninterp)
 # endif
 
       end subroutine init_diags_spec
@@ -400,7 +500,7 @@
 !	15 = horizontal diffusion of rho
 !	16 = vertical diffusion of rho
 !	17 = Forcing of rho
-!       18 = ape qg
+!  18 = ape qg
 
 #ifdef  DIAG_SPEC_ISORHO
        use isorho
@@ -417,9 +517,7 @@
  
       !local
       integer :: ik,k,kint,kv
-      real(kind=8) :: zero, nr_maxofall,nr_minofall
-
-      zero = 0.
+      real(kind=8) :: nr_maxofall,nr_minofall
       
       ! échanges aux bords des sous-domaines
       call exchange_diags_spec
@@ -436,7 +534,7 @@
      &         ind_lon_min_loc:ind_lon_max_loc,
      &         ind_lat_min_loc:ind_lat_max_loc))
       else
-         rhomax_surf = zero/zero
+         rhomax_surf = dnan
       endif
 #else
       rhomax_surf = maxval(rho(1:Lm,1:Mm,N)) 
@@ -455,7 +553,7 @@
          
         if ( any(IsNaN(real(hat(:,:,1)))) .or.
      &        k > rhomax_surf_index    ) then
-           cospec(:,kint,:) = zero/zero
+           cospec(:,kint,:) = dnan
            cycle
             
          else
@@ -521,12 +619,15 @@
             call comp_cospec(23,29,17,kint)                   
 
 ! density, ape QG (rho*rho)
-            call comp_cospec(23,23,18,kint) 
+            call comp_cospec(32,32,18,kint) 
+
+! density, linear ape QG (rho_lin*rho_lin)
+            call comp_cospec(23,23,19,kint) 
 
          endif
 
       enddo
-      
+
       end subroutine  comp_diags_spec
      
 !========================================
@@ -588,9 +689,8 @@
 
       !local
       integer::iproc,i,j,k, nbofnan
-      real :: mean, rho_mean, zero
+      real :: mean, rho_mean
       
-      zero=0.
       k=(mynode*nint)+kint
       if (k <= rhomax_surf_index) then
          call launch_rcv
@@ -608,7 +708,7 @@
 
 !     array is Nan in place of the land mask
 #ifdef MASKING
-      where (rmask_glo == 0.) zglo(1:LLm,1:MMm) = zero/zero
+      where (rmask_glo == 0.) zglo(1:LLm,1:MMm) = dnan
 #endif
 
 ! extract sub-domain for spectral diagnostics
@@ -658,7 +758,7 @@
          hat(:,:,kv)=outfft/(LLmglo)/(MMmglo)
       
       else
-         hat(:,:,kv)=zero/zero
+         hat(:,:,kv)=dnan
       endif
   
       end subroutine comp_hat
@@ -1060,20 +1160,13 @@
          do j=1,Mm
             do i=1,Lm
 #ifdef DIAG_SPEC_ISORHO 
-               val_in = R0 - Tcoef*(TT(i,j,:,itemp)-T0)
-#  ifdef SALINITY
-     &                     + Scoef*(TT(i,j,:,isalt)-S0)
-#  endif
-     &                	   - rho_r(:)   
+               val_in = rho(i,j,:) - rho_r(:)   
                rho_axis(:) = rho(i,j,:)
                call interp0d(val_in,rho_axis,zpar(i,j),
      &              rho_axis_interp(k),method,N)
 !              call  interp0d_isorho("rho",val_in,zpar(i,j),i,j,k,N,Ninterp)  
 #else
-               rhodiag= R0 - Tcoef*(TT(i,j,k,itemp)-T0)
-#  ifdef SALINITY
-     &                     + Scoef*(TT(i,j,k,isalt)-S0)
-#  endif     
+               rhodiag= rho(i,j,k)    
                zpar(i,j)=rhodiag - rho_r(k)  
 #endif
             enddo
@@ -1278,7 +1371,31 @@
                zpar(i,j) = rhodiag - rho_r(k)  
 #endif
             enddo
-         enddo                                    
+         enddo  
+
+      case(32)         
+!     compute rho_lin at level k
+         do j=1,Mm
+            do i=1,Lm
+#ifdef DIAG_SPEC_ISORHO 
+               val_in = R0 - Tcoef*(TT(i,j,:,itemp)-T0)
+#  ifdef SALINITY
+     &                     + Scoef*(TT(i,j,:,isalt)-S0)
+#  endif
+     &                	   - rho_r_lin(:)   
+               rho_axis(:) = rho(i,j,:)
+               call interp0d(val_in,rho_axis,zpar(i,j),
+     &              rho_axis_interp(k),method,N)
+!              call  interp0d_isorho("rho",val_in,zpar(i,j),i,j,k,N,Ninterp)  
+#else
+               rhodiag= R0 - Tcoef*(TT(i,j,k,itemp)-T0)
+#  ifdef SALINITY
+     &                     + Scoef*(TT(i,j,k,isalt)-S0)
+#  endif     
+               zpar(i,j)=rhodiag - rho_r_lin(k)  
+#endif
+            enddo
+         enddo                                 
       end select
       
       end subroutine compute_var
@@ -1460,17 +1577,26 @@
           
           cospec(:,:,10) = 0.5 * cospec(:,:,10) 
           cospec(:,:,18) = 0.5 * cospec(:,:,18) 
+          cospec(:,:,19) = 0.5 * cospec(:,:,19) 
                    
      
-          do l=11,nspec             
+          do l=11,nspec-1            
              do k=1,nint
                 ktot=mynode*nint+k               
                 if (ktot <= Ninterp) then             
-                     cospec(:,k,l) = - g/drhordz_interp(ktot)/rho0*cospec(:,k,l)
+                     cospec(:,k,l) = - g/drhordz_interp(ktot)/rho0*
+     &                               cospec(:,k,l)
                 endif
              enddo
+          enddo       
+          do k=1,nint
+             ktot=mynode*nint+k               
+             if (ktot <= Ninterp) then             
+                  cospec(:,k,19) = - g/drhordz_interp_lin(ktot)/rho0*
+     &                            cospec(:,k,19)
+             endif
           enddo
-          
+
 ! cospec divided because of averaging, duplicate domain EW, duplicate domain NS          
 
           cospec = cospec / float(nwrtspec/navgspec) / coefewper / coefnsper     

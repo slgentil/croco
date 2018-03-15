@@ -335,7 +335,7 @@
 # if defined OBC_WEST || defined AGRIF_OBC_WEST
       real unbqbry_west(GLOBAL_1D_ARRAYETA,N),
      &     vnbqbry_west(GLOBAL_1D_ARRAYETA,N),
-     &     wnbqbry_west(GLOBAL_1D_ARRAYETA,N),
+     &     wnbqbry_west(GLOBAL_1D_ARRAYETA,0:N),
      &     rnbqbry_west(GLOBAL_1D_ARRAYETA,N)
       common /bry_nbq_west/ unbqbry_west,
      &                      vnbqbry_west,
@@ -345,7 +345,7 @@
 # if defined OBC_EAST || defined AGRIF_OBC_EAST
       real unbqbry_east(GLOBAL_1D_ARRAYETA,N),
      &     vnbqbry_east(GLOBAL_1D_ARRAYETA,N),
-     &     wnbqbry_east(GLOBAL_1D_ARRAYETA,N),
+     &     wnbqbry_east(GLOBAL_1D_ARRAYETA,0:N),
      &     rnbqbry_east(GLOBAL_1D_ARRAYETA,N)
       common /bry_nbq_east/ unbqbry_east,
      &                      vnbqbry_east,
@@ -355,7 +355,7 @@
 # if defined OBC_SOUTH || defined AGRIF_OBC_SOUTH
       real unbqbry_south(GLOBAL_1D_ARRAYXI,N),
      &     vnbqbry_south(GLOBAL_1D_ARRAYXI,N),
-     &     wnbqbry_south(GLOBAL_1D_ARRAYXI,N),
+     &     wnbqbry_south(GLOBAL_1D_ARRAYXI,0:N),
      &     rnbqbry_south(GLOBAL_1D_ARRAYXI,N)
       common /bry_nbq_south/ unbqbry_south,
      &                       vnbqbry_south,
@@ -365,7 +365,7 @@
 # if defined OBC_NORTH || defined AGRIF_OBC_NORTH
       real unbqbry_north(GLOBAL_1D_ARRAYXI,N),
      &     vnbqbry_north(GLOBAL_1D_ARRAYXI,N),
-     &     wnbqbry_north(GLOBAL_1D_ARRAYXI,N),
+     &     wnbqbry_north(GLOBAL_1D_ARRAYXI,0:N),
      &     rnbqbry_north(GLOBAL_1D_ARRAYXI,N)
       common /bry_nbq_west/ unbqbry_north,
      &                      vnbqbry_north,
@@ -376,19 +376,19 @@
 
 #if defined NBQ && defined W_FRC_BRY
 # if defined OBC_WEST || defined AGRIF_OBC_WEST
-      real wbry_west(GLOBAL_1D_ARRAYETA,N)
+      real wbry_west(GLOBAL_1D_ARRAYETA,0:N)
       common /bry_w_west/ wbry_west
 # endif
 # if defined OBC_EAST || defined AGRIF_OBC_EAST
-      real wbry_east(GLOBAL_1D_ARRAYETA,N)
+      real wbry_east(GLOBAL_1D_ARRAYETA,0:N)
       common /bry_w_east/ wbry_east
 # endif
 # if defined OBC_SOUTH || defined AGRIF_OBC_SOUTH
-      real wbry_south(GLOBAL_1D_ARRAYXI,N)
+      real wbry_south(GLOBAL_1D_ARRAYXI,0:N)
       common /bry_w_south/ wbry_south
 # endif
 # if defined OBC_NORTH || defined AGRIF_OBC_NORTH
-      real wbry_north(GLOBAL_1D_ARRAYXI,N)
+      real wbry_north(GLOBAL_1D_ARRAYXI,0:N)
       common /bry_w_west/ wbry_north
 # endif
 #endif /* NBQ */

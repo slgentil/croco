@@ -34,7 +34,8 @@
 !==================================================================
 !
       implicit none
-      integer Istr,Iend,Jstr,Jend, i,j,k,itrc
+      integer Istr,Iend,Jstr,Jend, i,j,k,itrc,
+     &        imin,imax,jmin,jmax
       real grd_scale(PRIVATE_2D_SCRATCH_ARRAY)
       real cff, surf, defrate, horcon, cff_peclet
       parameter (horcon=0.1)
@@ -44,11 +45,42 @@
 # include "ocean3d.h"
 # include "ocean2d.h"
 # include "scalars.h"
-#ifdef SWASH
+# ifdef SWASH
       real dZdt,dZdt0,Bbr,Dbr
-#endif
+# endif
 !
 # include "compute_auxiliary_bounds.h"
+!
+# ifndef EW_PERIODIC
+      if (WESTERN_EDGE) then
+        imin=istr
+      else
+        imin=istr-1
+      endif
+      if (EASTERN_EDGE) then
+        imax=iend
+      else
+        imax=iend+1 
+      endif
+# else
+      imin=istr-1
+      imax=iend+1
+# endif
+# ifndef NS_PERIODIC
+      if (SOUTHERN_EDGE) then
+        jmin=jstr
+      else
+        jmin=jstr-1
+      endif
+      if (NORTHERN_EDGE) then
+        jmax=jend
+      else
+        jmax=jend+1
+      endif
+# else
+      jmin=jstr-1
+      jmax=jend+1
+# endif
 !
 # if defined UV_VIS2 && defined UV_VIS_SMAGO
 !
@@ -65,8 +97,8 @@
 ! Smagorinsky viscosity at RHO points
 !
       do k=1,N
-        do j=JstrV-1,Jend
-          do i=IstrU-1,Iend
+        do j=jmin,jmax
+          do i=imin,imax
             defrate=sqrt( ((u(i+1,j,k,nrhs)-u(i,j,k,nrhs))*pm(i,j))**2
      &                   +((v(i,j+1,k,nrhs)-v(i,j,k,nrhs))*pn(i,j))**2
      &               +0.5*(0.25*pn(i,j)*(
@@ -84,8 +116,8 @@
 ! Add Wave breaking dissipation in wave-resolved cases
 !
 #  ifdef SWASH
-      do j=JstrV-1,Jend
-        do i=IstrU-1,Iend
+        do j=jmin,jmax
+          do i=imin,imax
           dZdt=abs(zeta(i,j,knew)-zeta(i,j,kstp))/dtfast
 #   ifdef NBQ
           cff=zeta(i,j,knew)
@@ -114,6 +146,7 @@
 ! Boundary conditions
 !------------------------------------------------------------
 !
+#  ifndef EW_PERIODIC
       if (WESTERN_EDGE) then
         do k=1,N
           do j=JstrV-1,Jend
@@ -128,6 +161,8 @@
           enddo
         enddo
       endif
+#  endif /* !EW_PERIODIC */
+#  ifndef NS_PERIODIC
       if (SOUTHERN_EDGE) then
         do k=1,N
           do i=IstrU-1,Iend
@@ -142,9 +177,12 @@
           enddo
         enddo
       endif
+# endif /* !NS_PERIODIC */
 !
 ! Corners
 !
+#  if !defined EW_PERIODIC && !defined NS_PERIODIC
+
       if (SOUTHERN_EDGE .and. WESTERN_EDGE) then
         do k=1,N
           visc3d_r(Istr-1,Jstr-1,k)=0.5*
@@ -173,6 +211,11 @@
      &                           +visc3d_r(Iend+1,Jend,k))
         enddo
       endif
+# endif /* !EW_PERIODIC && !NS_PERIODIC */
+!
+#  if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI
+!      call exchange_r3d_tile (Istr,Iend,Jstr,Jend,visc3d_r)
+#  endif
 !
 !  Viscosity at PSI points
 !
@@ -185,7 +228,7 @@
           enddo
         enddo
       enddo
-
+!
 #  if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI
       call exchange_p3d_tile (Istr,Iend,Jstr,Jend,visc3d_p)
 #  endif
@@ -273,6 +316,7 @@
 !
 ! Boundary conditions
 !
+#  ifndef EW_PERIODIC
       if (WESTERN_EDGE) then
         do k=1,N
           do j=JstrV-1,Jend
@@ -287,6 +331,8 @@
           enddo
         enddo
       endif
+#  endif /* !EW_PERIODIC */
+#  ifndef NS_PERIODIC
       if (SOUTHERN_EDGE) then
         do k=1,N
           do i=IstrU-1,Iend
@@ -301,7 +347,7 @@
           enddo
         enddo
       endif
-
+# endif /* !NS_PERIODIC */
 # endif /* TS_DIF_SMAGO */
 
 # if defined TS_HADV_RSUP3 || defined TS_HADV_RSUP5

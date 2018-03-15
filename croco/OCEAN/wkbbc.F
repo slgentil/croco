@@ -69,8 +69,8 @@
 !
 # ifdef CHILD
       IF(.NOT. wkb_agrif_done)THEN
-      call wkbbc_interp_tile(Istr,Iend,Jstr,Jend)
-      wkb_agrif_done=.FALSE.
+        call wkbbc_interp_tile(Istr,Iend,Jstr,Jend)
+      wkb_agrif_done=.TRUE.
       ENDIF
 # endif
 !
@@ -85,8 +85,8 @@
           war(Istr-1,j,wnew)=0.0
 #    ifdef AGRIF
           if( .NOT. Agrif_Root())then
-!            war(Istr-1,j,wnew)=warbry_west(j)
-            war(Istr-1,j,wnew)=war(Istr,j,wnew)
+            war(Istr-1,j,wnew)=warbry_west(j)
+!            war(Istr-1,j,wnew)=war(Istr,j,wnew)
           endif
 #    endif
 #   endif
@@ -112,8 +112,8 @@
           war(Iend+1,j,wnew)=0.0
 #    ifdef AGRIF
           if( .NOT. Agrif_Root())then
-!            war(Iend+1,j,wnew)=warbry_east(j)
-            war(Iend+1,j,wnew)=war(Iend,j,wnew)
+            war(Iend+1,j,wnew)=warbry_east(j)
+!            war(Iend+1,j,wnew)=war(Iend,j,wnew)
           endif
 #    endif
 #   endif
@@ -142,8 +142,8 @@
           war(i,Jstr-1,wnew)=0.0
 #    ifdef AGRIF
           if( .NOT. Agrif_Root())then
-!            war(i,Jstr-1,wnew)=warbry_south(i)
-            war(i,Jstr-1,wnew)=war(i,Jstr,wnew)
+            war(i,Jstr-1,wnew)=warbry_south(i)
+!            war(i,Jstr-1,wnew)=war(i,Jstr,wnew)
           endif
 #    endif
 #   endif
@@ -169,8 +169,8 @@
           war(i,Jend+1,wnew)=0.0
 #    ifdef AGRIF
           if( .NOT. Agrif_Root())then
-!            war(i,Jend+1,wnew)=warbry_north(i)
-            war(i,Jend+1,wnew)=war(i,Jend,wnew)
+            war(i,Jend+1,wnew)=warbry_north(i)
+!            war(i,Jend+1,wnew)=war(i,Jend,wnew)
           endif
 #    endif
 #   endif

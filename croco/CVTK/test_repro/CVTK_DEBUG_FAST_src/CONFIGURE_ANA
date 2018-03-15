@@ -1,0 +1,7 @@
+#!/bin/bash
+
+TEST_TYPE="KTEST"
+
+dir_home="$HOME/GIT/croco/CVTK/test_repro/CVTK_DEBUG_FAST_src/Scripts_ana"
+dir_test="$DATAWORK/CVTK_DEBUG_REG_DEV/TESTROOT/KTEST"
+dir_web="/home/datawork-croco/public/ftp/CVTK_FAST"

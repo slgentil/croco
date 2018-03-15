@@ -48,9 +48,9 @@
       real bufftrack(1:6,NFT+1,nfloats)
 # ifdef AGRIF
       type(Agrif_pgrid), pointer :: parcours
-      integer tmp(NFT+1,-1:maxgrids)
+      integer tmp(0:NFT+1,-1:maxgrids)
 # else
-      integer tmp(NFT+1,1)
+      integer tmp(NFT+1,-1:0)
 # endif
 #endif
 #if defined MPI & !defined PARALLEL_FILES
@@ -300,7 +300,6 @@ CR    write(*,*) 'wrt_rst:  Lripple' MYID
       counttrack(3)=nfloats
       counttrack(4)=1
 
-# ifdef AGRIF
       level=-1
       tmp(1,level)=nf
       tmp(2,level)=nfm1
@@ -311,14 +310,14 @@ CR    write(*,*) 'wrt_rst:  Lripple' MYID
       tmp(2,level)=nfm1
       tmp(3,level)=nfm2
       tmp(4,level)=nfm3
+# ifdef AGRIF
       do level=1,AGRIF_Nb_Fine_Grids()
         tmp(4,level)=floattindex(level)
         tmp(1,level)=mod(tmp(4,level)+3,NFT+1)
         tmp(2,level)=mod(tmp(4,level)+2,NFT+1)
         tmp(3,level)=mod(tmp(4,level)+1,NFT+1)
       enddo
-# endif
-
+#endif
       do i=1,NFT+1
         do j=1,nfloats
           bufftrack(1,i,j)=track(ixgrd,tmp(i,fltgrd(j)),j)

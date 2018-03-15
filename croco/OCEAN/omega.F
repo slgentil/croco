@@ -147,6 +147,7 @@
             We(i,j,k)=We(i,j,k-1) -Huon(i+1,j,k)+Huon(i,j,k)
      &                            -Hvom(i,j+1,k)+Hvom(i,j,k)
      &         -((Hz(i,j,k)-Hz_bak(i,j,k))/dt)*om_r(i,j)*on_r(i,j)
+
             wrk(i)=wrk(i)+Hz(i,j,k)
 !
 !---------------------------------------------------------
@@ -176,12 +177,11 @@
           enddo
         enddo
         do i=Istr,Iend
-          We(i,j,N)=0.
+           We(i,j,N)=0.
 # ifdef VADV_ADAPT_IMP
           Wi(i,j,N)=0.
 # endif
         enddo
-               
 !
 #ifdef VADV_ADAPT_IMP
 !---------------------------------------------------------

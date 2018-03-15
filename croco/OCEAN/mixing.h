@@ -86,6 +86,10 @@
       common /mixing_ismooth/ ismooth
 # endif
 #endif /*  TS_MIX_ISO || TS_MIX_GEO */
+#ifdef SPONGE_SED
+      real cff_sponge(GLOBAL_2D_ARRAY)
+      common /sponge_cff/cff_sponge
+#endif
 
 #ifdef SOLVE3D
       real Akv(GLOBAL_2D_ARRAY,0:N)

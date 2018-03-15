@@ -44,10 +44,10 @@
 !
 !!$      if (level==0) then
 !!$         MPI_master_only 
-!!$     & write(*,*) 'CPL-ROMS : put for parent at time', sndtime
+!!$     & write(*,*) 'CPL-CROCO : put for parent at time', sndtime
 !!$      else		
 !!$         MPI_master_only 
-!!$     & write(*,*) 'CPL-ROMS : put for child:', level,
+!!$     & write(*,*) 'CPL-CROCO : put for child:', level,
 !!$     &  'at time', sndtime
 !!$      endif
 !      
@@ -64,7 +64,7 @@
      &           (comp_ierror == OASIS_ToRest ) .or.
      &           (comp_ierror == OASIS_SentOut) .or.
      &           (comp_ierror == OASIS_ToRestOut) ) then
-           MPI_master_only write(*,*) 'CPL-ROMS : ',ja,
+           MPI_master_only write(*,*) 'CPL-CROCO : ',ja,
      & ssnd_clname(i),' sent at time ',sndtime
             endif
          endif  
@@ -83,7 +83,7 @@
      &           (comp_ierror == OASIS_ToRest ) .or.
      &           (comp_ierror == OASIS_SentOut) .or.
      &           (comp_ierror == OASIS_ToRestOut) ) then
-           MPI_master_only write(*,*) 'CPL-ROMS : ',ja,
+           MPI_master_only write(*,*) 'CPL-CROCO : ',ja,
      & ssnd_clname(i),' sent at time ',sndtime
             endif
          endif
@@ -103,7 +103,7 @@
      &           (comp_ierror == OASIS_ToRest ) .or.
      &           (comp_ierror == OASIS_SentOut) .or.
      &           (comp_ierror == OASIS_ToRestOut) ) then
-           MPI_master_only write(*,*) 'CPL-ROMS : ',ja,
+           MPI_master_only write(*,*) 'CPL-CROCO : ',ja,
      & ssnd_clname(i),' sent at time ',sndtime
             endif
          endif
@@ -123,7 +123,7 @@
      &           (comp_ierror == OASIS_ToRest ) .or.
      &           (comp_ierror == OASIS_SentOut) .or.
      &           (comp_ierror == OASIS_ToRestOut) ) then
-           MPI_master_only write(*,*) 'CPL-ROMS : ',ja,
+           MPI_master_only write(*,*) 'CPL-CROCO : ',ja,
      & ssnd_clname(i),' sent at time ',sndtime
             endif
          endif

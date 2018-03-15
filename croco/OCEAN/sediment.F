@@ -27,11 +27,7 @@
 #  define BSTRESS_UPWIND
 # endif
 !
-# ifdef MOVING_BATHY
-#  define MORPH_FAC *morph_fac
-# else
-#  define MORPH_FAC 
-# endif  /* MOVING_BATHY */
+# define MORPH_FAC *morph_fac
 !
 # undef  LINEAR_CONTINUATION /* for settling scheme */
 # undef  NEUMANN
@@ -127,7 +123,7 @@ C$OMP BARRIER
      &                        A2d(1,3,trd), A2d(1,4,trd),
      &                        A2d(1,5,trd), A2d(1,6,trd),
      &                        A2d(1,7,trd), A2d(1,8,trd),
-     &                        A2d(1,9,trd),
+     &                        A2d(1,9,trd), A2d(1,10,trd),
      &                        B2d(1,trd) )
 C$OMP BARRIER
       call sed_fluxes_tile (Istr,Iend,Jstr,Jend,A2d(1,1,trd))
@@ -231,6 +227,7 @@ C$OMP BARRIER
 #   include "wkb_wwave.h"
 #  endif
 #  include "bbl.h"
+#  include "mixing.h"
 #  include "compute_auxiliary_bounds.h"
 
 #  ifdef EW_PERIODIC
@@ -328,14 +325,8 @@ C$OMP BARRIER
           else
             phic(i,j)=ATAN2(bvstrc(i,j),bustrc(i,j))
           endif
-#   ifdef WKB_WWAVE
-          phicw(i,j)=Dwave(i,j)-phic(i,j)
-#   else
-          phicw(i,j)=1.5*pi-Dwave(i,j)-phic(i,j)
-#   endif
-#   ifdef CURVGRID
-     &                              -angler(i,j)
-#   endif
+          phicw(i,j)=Dwave(i,j)-phic(i,j)  ! Dwave assumed in CROCO 
+                                           ! grid convention
 !
 ! Compute stress components at rho points.
 !
@@ -506,13 +497,11 @@ C$OMP BARRIER
             FE_r(i,j)=FE_r(i,j)*a_slopey
 #  endif /* SLOPE_NEMETH */
 !
-#  ifdef MOVING_BATHY
 !
 ! Apply morphology factor.
 !
-            FX_r(i,j)=FX_r(i,j)*morph_fac
-            FE_r(i,j)=FE_r(i,j)*morph_fac
-#  endif
+            FX_r(i,j)=FX_r(i,j) MORPH_FAC
+            FE_r(i,j)=FE_r(i,j) MORPH_FAC
 !
 ! Apply bedload transport rate coefficient. Also limit
 ! bedload to the fraction of each sediment class.
@@ -626,10 +615,7 @@ C$OMP BARRIER
             a_slopex=(MAX(0.0,abs(dzdx)-0.01)
      &               *SIGN(1.0,dzdx)*0.1)
      &               *om_r(i,j)*dt
-#   ifdef MOVING_BATHY
-            a_slopex=a_slopex*morph_fac
-#   endif
-            FX(i,j)=FX(i,j)+a_slopex
+            FX(i,j)=FX(i,j)+a_slopex MORPH_FAC
 #   ifdef MASKING
             FX(i,j)=FX(i,j)*umask(i,j)
 #   endif
@@ -657,10 +643,7 @@ C$OMP BARRIER
             a_slopey=(MAX(0.0,abs(dzdy)-0.01
      &               *SIGN(1.0,dzdy)*0.1)
      &               *on_r(i,j)*dt
-#   ifdef MOVING_BATHY
-            a_slopey=a_slopey*morph_fac
-#   endif
-            FE(i,j)=FE(i,j)+a_slopey
+            FE(i,j)=FE(i,j)+a_slopey MORPH_FAC
 #   ifdef MASKING
             FE(i,j)=FE(i,j)*vmask(i,j)
 #   endif
@@ -739,7 +722,10 @@ C$OMP BARRIER
           do i=Istr,Iend
             cff=(FX(i+1,j)-FX(i,j)+                           
      &           FE(i,j+1)-FE(i,j))*pm(i,j)*pn(i,j)
-#  define DIFF_BED
+#  ifdef SPONGE_SED
+     &                             *cff_sponge(i,j)
+#  endif
+#  undef DIFF_BED
 #  ifdef DIFF_BED
      &                    -dt*pm(i,j)*pn(i,j)*1.e-2 MORPH_FAC
      &                                       *(0.5*on_r(i,j)*(
@@ -772,18 +758,18 @@ C$OMP BARRIER
         enddo
 !
 !-----------------------------------------------------------------------
-!  Output bedload fluxes.
+!  Output bedload transports [kg/m2/s].
 !-----------------------------------------------------------------------
 !
-        cff=0.5/dt
-        do j=JstrR,JendR
-          do i=Istr,IendR
-            bedldu(i,j,ised)=FX(i,j)*(pn(i-1,j)+pn(i,j))*cff
+        cff=1./dt
+        do j=Jstr,Jend
+          do i=Istr,Iend
+            bedldu(i,j,ised)=(FX(i,j)-FX(i+1,j))*pm(i,j)*pn(i,j)*cff
           enddo
         enddo
-        do j=Jstr,JendR
-          do i=IstrR,IendR
-            bedldv(i,j,ised)=FE(i,j)*(pm(i,j-1)+pm(i,j))*cff
+        do j=Jstr,Jend
+          do i=Istr,Iend
+            bedldv(i,j,ised)=(FE(i,j)-FE(i,j+1))*pm(i,j)*pn(i,j)*cff
           enddo
         enddo
 !
@@ -1084,14 +1070,16 @@ C$OMP BARRIER
 !
       subroutine sed_settling_tile (Istr,Iend,Jstr,Jend,
      &                              Hz_inv,Hz_inv2,Hz_inv3,qc,
-     &                              FC,qR,qL,WR,WL,ksource) 
+     &                              FC,qR,qL,WR,WL,tau_w,ksource) 
 !
       implicit none
 #  include "param.h"
 #  include "ocean3d.h"
 #  include "sediment.h"
+#  include "bbl.h"
 #  include "scalars.h"
 #  include "grid.h"
+#  include "mixing.h"
    
       integer Istr,Iend,Jstr,Jend
       real Hz_inv(PRIVATE_1D_SCRATCH_ARRAY,N),  
@@ -1103,10 +1091,32 @@ C$OMP BARRIER
      &         qL(PRIVATE_1D_SCRATCH_ARRAY,N),  
      &         WR(PRIVATE_1D_SCRATCH_ARRAY,N), 
      &         WL(PRIVATE_1D_SCRATCH_ARRAY,N)
+      real tau_w(PRIVATE_2D_SCRATCH_ARRAY)
       integer  ksource(PRIVATE_1D_SCRATCH_ARRAY,N),
      &         ised,indx,i,j,k,ks  
       real dltR, dltL,cff,cffR,cffL,cu
-
+!
+!-----------------------------------------------------------------------
+!  Compute bottom skin-friction stress due to combined maximum wave
+!  and current interaction
+!-----------------------------------------------------------------------
+!
+#  ifdef BBL
+      do j=Jstr-1,Jend+1
+        do i=Istr-1,Iend+1
+          tau_w(i,j)=sqrt( bustrcwmax(i,j)**2
+     &                    +bvstrcwmax(i,j)**2)
+#  else
+      do j=J_EXT_RANGE
+        do i=I_EXT_RANGE
+          tau_w(i,j)=0.5*sqrt( (bustr(i,j)+bustr(i+1,j))**2
+     &                        +(bvstr(i,j)+bvstr(i,j+1))**2)
+#  endif
+#  ifdef WET_DRY
+          tau_w(i,j)=tau_w(i,j)*rmask_wet(i,j)
+#  endif
+        enddo
+      enddo
       do j=Jstr,Jend                        ! Auxiliary step: save   
         do k=1,N                            ! inverses of grid box 
           do i=Istr,Iend                    ! heights to avoid
@@ -1269,12 +1279,20 @@ C$OMP BARRIER
      &             -(1.5-cu)*(qR(i,ks)+qL(i,ks)-2.*qc(i,ks))  ))
             enddo
           enddo
+          cff=1/tau_cd(ised) 
           do i=Istr,Iend
+            !FC(i,0)=FC(i,0)*min(1.,REAL(int(cff*tau_w(i,j))))
             do k=1,N,+1
                t(i,j,k,nnew,indx)=qc(i,k)
      &                   +(FC(i,k)-FC(i,k-1))*Hz_inv(i,k) 
+#  ifdef SPONGE_SED
+     &                                       *cff_sponge(i,j)
+#  endif
             enddo   
             settling_flux(i,j,ised)=FC(i,0)
+#  ifdef SPONGE_SED
+     &                                       *cff_sponge(i,j)
+#  endif
           enddo   
         enddo   
       enddo     ! j   lood    
@@ -1315,6 +1333,7 @@ C$OMP BARRIER
 #  include "sediment.h"
 #  include "ocean3d.h"
 #  include "scalars.h"
+#  include "mixing.h"
       integer Istr,Iend,Jstr,Jend
       integer i,j,ised
       integer indx
@@ -1399,12 +1418,16 @@ C$OMP BARRIER
      &            MIN(MAX(0.,cff2*(cff*tau_w(i,j)-1.)),      
      &                MIN(cff3*bot_thick(i,j) MORPH_FAC ,cff4)+
      &                settling_flux(i,j,ised))
+            ero_flux(i,j,ised)=ero_flux(i,j,ised)
+#  ifdef SPONGE_SED
+     &                             *cff_sponge(i,j)
+#  endif
 !
 !  Update global tracer variables (m Tunits for nnew indx, Tuints for 3)
 !  for erosive flux.
 !                        
             t(i,j,1,nnew,indx)=t(i,j,1,nnew,indx)+ero_flux(i,j,ised)
-     &                                                 *1./Hz(i,j,1)
+     &                                                    /Hz(i,j,1)
           enddo  ! i loop
         enddo    ! ised loop 
       enddo      ! j loop 
@@ -1539,10 +1562,9 @@ C$OMP BARRIER
 !
 ! Apply morphology factor.
 !
-#  ifdef MOVING_BATHY
-            ero_flux(i,j,ised)=ero_flux(i,j,ised)*morph_fac
-            settling_flux(i,j,ised)=settling_flux(i,j,ised)*morph_fac
-#  endif
+            ero_flux(i,j,ised)=ero_flux(i,j,ised) MORPH_FAC
+            settling_flux(i,j,ised)=settling_flux(i,j,ised) MORPH_FAC
+
             if ( settling_flux(i,j,ised)-ero_flux(i,j,ised)
      &                                            .gt. 0. ) then
 !
@@ -1612,8 +1634,9 @@ C$OMP BARRIER
 !
 !  Set new top layer parameters.
 !
+              k=min(NLAY,2) ! for compilation if NLAY=1
               do ised=1,NST
-                bed_mass(i,j,2,nnew,ised)=MAX(bed_mass(i,j,2,nnew,ised)-
+                bed_mass(i,j,k,nnew,ised)=MAX(bed_mass(i,j,k,nnew,ised)-
      &                                        dep_mass(i,ised),0.)
                 bed_mass(i,j,1,nnew,ised)=dep_mass(i,ised)
               enddo
@@ -2208,7 +2231,7 @@ C$OMP BARRIER
      
            MPI_master_only write(stdout,'(7(/f10.5,2x,A))')
      &     Sd(i),    'Sd      Median sediment grain diameter (mm).',
-     &     Csed(i),  'Csed    Analyt. init. of sed. conc. (mg/l).',
+     &     Csed(i),  'Csed    Analyt. init. of sed. conc. (kg/m3).',
      &     Srho(i),  'Srho    Sediment grain density (kg/m3).',
      &     Wsed(i),  'Wsed    Particle settling velocity (mm/s).',
      &     Erate(i), 'Erate   Surface erosion rate (kg/(m2s)).',

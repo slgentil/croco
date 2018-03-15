@@ -210,8 +210,8 @@
 
 # ifdef  MOZ   
 #    if RESOLUTION == 256
-       parameter (NP_XI=2, NP_ETA=4, NNODES=NP_XI*NP_ETA)         ! Linux
-!      parameter (NP_XI=2, NP_ETA=16, NNODES=NP_XI*NP_ETA)     ! Datarmor
+!      parameter (NP_XI=2, NP_ETA=4, NNODES=NP_XI*NP_ETA)         ! Linux
+       parameter (NP_XI=2, NP_ETA=8, NNODES=NP_XI*NP_ETA)     ! Datarmor
 #    elif RESOLUTION == 512 
        parameter (NP_XI=16, NP_ETA=32, NNODES=NP_XI*NP_ETA)
 #    elif RESOLUTION == 1024 

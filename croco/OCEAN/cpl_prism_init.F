@@ -45,7 +45,7 @@
       END IF
 
       !------------------------------------------------------------------
-      ! Get an MPI communicator for ROMS/AGRIF local communication
+      ! Get an MPI communicator for CROCO/AGRIF local communication
       !------------------------------------------------------------------
 
       CALL prism_get_localcomm_proto ( ocean_grid_comm, comp_ierror )

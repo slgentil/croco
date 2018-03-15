@@ -484,8 +484,8 @@
       dr00=r00-1000.
 #  endif
       do k=1,N
-        do j=JstrR,JendR
-          do i=IstrR,IendR
+        do j=Jstr,Jend
+          do i=Istr,Iend
 #  ifdef NONLIN_EOS
 !
 !  Compute density anomaly sigma-t(T,S) from nonlinear EOS
@@ -521,6 +521,7 @@
           enddo
         enddo
       enddo
+      
       mrho=mrho/vol
 !
 !  Make global volume average of sigma-t(T,S) ~ sigma-t(T0,S0)
@@ -563,13 +564,16 @@ C$OMP CRITICAL (rho_cr_rgn)
         rho0=1000. + mrho
 #  endif
 
-        rho0 = nint(rho0*1.d12,kind=8)/1.d12 ! round rho0 to 12 digits
+        rho0 = nint(rho0*1.d6,kind=8)/1.d6 ! round rho0 to 6 digits
 
         MPI_master_only write(stdout,'(F10.4,2x,A,1x,A/)')
      &        rho0, 'rho0     Reset Boussinesq approximation',
      &                                 'mean density, kg/m3.'
 
       endif  ! <-- tile_count.eq.nsubs
+
+      rho0 = nint(rho0*1.d6,kind=8)/1.d6 ! round rho0 to 6 digits
+
 !
 C$OMP END CRITICAL (rho_cr_rgn)
       return

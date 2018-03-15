@@ -10,7 +10,8 @@
 !======================================================================
 !
 #include "cppdefs.h"
-#if defined AGRIF && (defined TNUDGING || defined ZNUDGING || defined SPONGE)
+#if defined AGRIF && (defined TNUDGING || defined ZNUDGING || \
+                      defined NBQ_NUDGING || defined SPONGE)
 
       subroutine set_nudgcof_fine (tile)
       implicit none
@@ -34,6 +35,9 @@
 # include "climat.h"
 # include "mixing.h"
 # include "scalars.h"
+# ifdef NBQ_NUDGING
+#  include "nbq.h"
+# endif
       integer Istr,Iend,Jstr,Jend, i, j, k, isp, itrc, ibnd
       real wrk(PRIVATE_2D_SCRATCH_ARRAY)
 !
@@ -97,6 +101,9 @@
 # endif
 # ifdef M3NUDGING
           M3nudgcof(i,j)=0.
+# endif
+# ifdef NBQ_NUDGING
+          NBQnudgcof(i,j)=tauM_out*wrk(i,j)  ! nudging to internal modes
 # endif
         enddo
       enddo

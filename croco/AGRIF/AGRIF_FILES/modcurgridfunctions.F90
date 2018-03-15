@@ -32,6 +32,7 @@ module Agrif_CurgridFunctions
     interface Agrif_Parent
         module procedure Agrif_Parent_Real_4,   &
                          Agrif_Parent_Real_8,   &
+                         Agrif_Parent_Array2_Real_8,   &
                          Agrif_Parent_Integer, &
                          Agrif_Parent_Character, &
                          Agrif_Parent_Logical
@@ -833,6 +834,29 @@ ENDIF
 if (.NOT.i_found) STOP 'Agrif_Parent_Real_8 : Variable not found'
 
 end function Agrif_Parent_Real_8
+
+function Agrif_Parent_Array2_Real_8(real_variable,ji,jj) result(real_variable_parent)
+real(KIND=8), DIMENSION(:,:) :: real_variable
+real(KIND=8) :: real_variable_parent
+integer :: ji,jj
+
+integer :: i
+logical :: i_found
+
+i_found = .FALSE.
+
+do i=1,Agrif_NbVariables(0)
+  if (LOC(real_variable) == LOC(agrif_curgrid%tabvars(i)%array2)) then
+     real_variable_parent = agrif_curgrid%tabvars(i)%parent_var%array2(ji,jj)
+     i_found = .TRUE.
+     EXIT
+  endif
+enddo
+
+if (.NOT.i_found) STOP 'Agrif_Parent_Array2_Real_8 : Variable not found'
+
+end function Agrif_Parent_Array2_Real_8
+
 
 function Agrif_Parent_Integer(integer_variable) result(integer_variable_parent)
 integer :: integer_variable

@@ -57,12 +57,12 @@
      &           * msk(1:Lmmpi,1:Mmmpi,ja)
             if (iok == 0) then
               MPI_master_only write(*,*)
-     &             'CPL-ROMS: getvar first',rcvtime,ja
+     &             'CPL-CROCO: getvar first',rcvtime,ja
               tab_t_tmp(1:Lmmpi,1:Mmmpi) = rcv_field(1:Lmmpi,1:Mmmpi)
               iok = comp_ierror
             else
               MPI_master_only write(*,*)
-     &             'CPL-ROMS: getvar  next',rcvtime,ja
+     &             'CPL-CROCO: getvar  next',rcvtime,ja
               tab_t_tmp(1:Lmmpi,1:Mmmpi) = tab_t_tmp(1:Lmmpi,1:Mmmpi)
      &             + rcv_field(1:Lmmpi,1:Mmmpi)
             endif
@@ -99,15 +99,15 @@
 !     !$         WRITE(333,*) '     - Maximum value is ', MAXVAL(rcv_field)
 !     !$         WRITE(333,*) '     -     Sum value is ', SUM(rcv_field)
 !     !$         WRITE(333,*) '****************'
-        
+
       endif
 !     
-      
-#else 
+ 
+#else
 !---------------------------------------------------------------------------------------
 !     Dummy subroutine                                                           NO Coupling
 !---------------------------------------------------------------------------------------
-#endif 
+#endif
       END SUBROUTINE cpl_prism_getvar
-      
-      
+
+

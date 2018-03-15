@@ -28,8 +28,8 @@
           USE xios          ! XIOS module
 #endif
 #ifdef NBQ
-          USE module_nh     ! NBQ modules
-          USE module_nbq
+!          USE module_nh     ! NBQ modules
+!          USE module_nbq
 #endif
 #ifdef PISCES
           USE pisces_ini     ! PISCES modules
@@ -39,9 +39,11 @@
       integer tile, subs, trd, ierr
 #include "param.h"
 #include "private_scratch.h"
+#include "nbq.h"
 #include "scalars.h"
 #include "ncscrum.h"
 #include "grid.h"
+#include "ocean2d.h"
 #include "mpi_roms.h"
 #ifdef FLOATS
 # include "floats.h"
@@ -132,18 +134,6 @@
 !     start_time1=PMPI_Wtime()
       call MPI_Setup (ierr)
       if (ierr.ne.0) goto 100        !--> ERROR
-#endif
-!
-!----------------------------------------------------------------------
-!  Set allocations for non-boussinesq (NBQ) equation arrays
-!----------------------------------------------------------------------
-!
-#ifdef NBQ
-      call alloc_module_nh() 
-# ifndef MPI
-      MPI_STATUS_SIZE=1
-# endif
-      call alloc_module_nbq(MPI_STATUS_SIZE)
 #endif
 !
 #define CR  !
@@ -258,6 +248,7 @@ CR      write(*,*) ' -9' MYID
 !
 !  Set fast-time averaging for coupling of split-explicit baroropic mode.
 !
+
       call set_weights 
 CR      write(*,*) ' -8' MYID 
 !
@@ -335,8 +326,11 @@ CR      write(*,*)  ' -5' MYID
 !----------------------------------------------------------------------
 !
 #ifdef NBQ
-      call initial_nh(1)
-# endif
+C$OMP PARALLEL DO PRIVATE(tile)
+      do tile=0,NSUB_X*NSUB_E-1
+        call initial_nbq(tile,1)
+      enddo
+#endif
 !
 !----------------------------------------------------------------------
 !  Initialize diagnostic fields: mass flux, rho, omega
@@ -360,14 +354,23 @@ CR      write(*,*)  ' -3' MYID
 #endif
 !
 !----------------------------------------------------------------------
-!  Set initial Non-boussinesq density field: rhp_nbq_a
+!  Set initial Non-boussinesq density field: rhobar_nbq
 !----------------------------------------------------------------------
 !
 #ifdef NBQ
-      call initial_nh(2)
+C$OMP PARALLEL DO PRIVATE(tile)
+      do tile=0,NSUB_X*NSUB_E-1
+        call initial_nbq(tile,2)
+      enddo
+
 C$OMP PARALLEL DO PRIVATE(tile)
       do tile=0,NSUB_X*NSUB_E-1
         call set_depth (tile)
+      enddo
+      
+C$OMP PARALLEL DO PRIVATE(tile)
+      do tile=0,NSUB_X*NSUB_E-1
+        call set_HUV (tile)
       enddo
 #endif
 !
@@ -638,6 +641,9 @@ C$OMP BARRIER
         if (wnew.ge.3) wnew=1
 C$OMP PARALLEL DO PRIVATE(tile)
         do tile=0,NSUB_X*NSUB_E-1
+# ifdef WAVE_OFFLINE
+          if (iwave.eq.1) call set_wwave(tile)
+# endif
           call wkb_wwave (tile)
         enddo
         call wkb_diag (0)
@@ -664,6 +670,18 @@ C$OMP MASTER
      &     'WKB: completed steady wave computation.'
 C$OMP END MASTER
 #endif /* WKB_WWAVE */
+
+!
+!----------------------------------------------------------------------
+!  Set initial Non-boussinesq variables PART3: momentum fields
+!----------------------------------------------------------------------
+!
+#ifdef NBQ
+C$OMP PARALLEL DO PRIVATE(tile)
+      do tile=0,NSUB_X*NSUB_E-1
+        call initial_nbq(tile,3)
+      enddo     
+#endif
 !
 !----------------------------------------------------------------------
 !  Write initial fields into history NetCDF files

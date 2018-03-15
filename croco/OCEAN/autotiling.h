@@ -13,8 +13,8 @@
          common/dyndistribution/nbsampling, lastiic
 
 #if !defined AGRIF
-      integer, parameter :: MAX_NSUB_X=Lm/6
-      integer, parameter :: MAX_NSUB_E=Mm/6
+      integer, parameter :: MAX_NSUB_X=Lm/10
+      integer, parameter :: MAX_NSUB_E=Mm/10
 #else
       integer :: MAX_NSUB_X
       integer :: MAX_NSUB_E
