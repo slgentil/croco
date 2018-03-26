@@ -1,0 +1,13 @@
+cp ana_get_density.F  /home/mulroy/slgentil/models/croco/croco/CONFIGS/Run_JETN
+cp ana_get_depth.F  /home/mulroy/slgentil/models/croco/croco/CONFIGS/Run_JETN
+cp exchange_floats.F  /home/mulroy/slgentil/models/croco/croco/CONFIGS/Run_JETN
+cp get_initial_floats_mpi.F  /home/mulroy/slgentil/models/croco/croco/CONFIGS/Run_JETN
+cp get_vmodes.F  /home/mulroy/slgentil/models/croco/croco/CONFIGS/Run_JETN
+cp init_floats_mpi.F  /home/mulroy/slgentil/models/croco/croco/CONFIGS/Run_JETN
+cp init_xios.F  /home/mulroy/slgentil/models/croco/croco/CONFIGS/Run_JETN
+cp interp_rho_mpi.F  /home/mulroy/slgentil/models/croco/croco/CONFIGS/Run_JETN
+cp rhs_floats_mpi.F  /home/mulroy/slgentil/models/croco/croco/CONFIGS/Run_JETN
+cp send_xios_diags.F  /home/mulroy/slgentil/models/croco/croco/CONFIGS/Run_JETN
+cp step_floats_mpi.F  /home/mulroy/slgentil/models/croco/croco/CONFIGS/Run_JETN
+cp vmodes.F  /home/mulroy/slgentil/models/croco/croco/CONFIGS/Run_JETN
+cp wrt_floats_mpi.F  /home/mulroy/slgentil/models/croco/croco/CONFIGS/Run_JETN

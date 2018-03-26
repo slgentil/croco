@@ -1,0 +1,63 @@
+    <domain_definition>
+
+    <domain_group id="rho">
+        <!--   My zoom: example of hand defined zoom   -->
+        <domain id="myzoom" zoom_ibegin="10" zoom_jbegin="10" zoom_ni="5" zoom_nj="5" />
+        <domain id="rho" long_name="grid Rho"/>
+        <domain id="rhox" long_name="grid RHO x" />
+        <domain id="rhoy" long_name="grid RHO y" />
+        <domain id="sta1_rho" long_name="station 1 T" />
+        <domain id="sta2_rho" long_name="station 2 T" />
+        <domain id="swath_rho" long_name="swath T" />
+         <domain id="1point" zoom_ibegin="1" zoom_jbegin="1" zoom_ni="1" zoom_nj="1" />
+     </domain_group>
+
+     <domain_group id="u">
+        <domain id="u" long_name="grid U"/>
+        <domain id="ux" long_name="grid U x" />
+        <domain id="uy" long_name="grid U y" />
+        <domain id="sta1_u" long_name="station 1 U" />
+        <domain id="sta2_u" long_name="station 2 U" />
+        <domain id="swath_u" long_name="swath U" />
+     </domain_group>
+
+     <domain_group id="v">
+        <domain id="v" long_name="grid V"/>
+        <domain id="vx" long_name="grid V x" />
+        <domain id="vy" long_name="grid V y" />
+        <domain id="sta1_v" long_name="station 1 V" />
+        <domain id="sta2_v" long_name="station 2 V" />
+        <domain id="swath_v" long_name="swath V" />
+     </domain_group>
+
+     <domain_group id="w">
+        <domain id="w" long_name="grid W"/>
+        <domain id="wx" long_name="grid W x" />
+        <domain id="wy" long_name="grid W y" />
+        <domain id="sta1_w" long_name="station 1 W" />
+        <domain id="sta2_w" long_name="station 2 W" />
+        <domain id="swath_w" long_name="swath W" />
+     </domain_group>
+
+     <domain_group id="b">
+        <domain id="b" long_name="grid sed"/>
+        <domain id="bx" long_name="grid b x" />
+        <domain id="by" long_name="grid b y" />
+        <domain id="sta1_b" long_name="station 1 b" />
+        <domain id="sta2_b" long_name="station 2 b" />
+        <domain id="swath_b" long_name="swath b" />
+     </domain_group>
+
+      <domain_group id="scalarpoint_1">
+         <domain id="scalarpoint_1" long_name="scalar"/>
+         <!-- for mooring
+         <domain id="1point" zoom_ibegin="1" zoom_jbegin="1" zoom_ni="1" zoom_nj="1" />
+         -->
+      </domain_group>
+
+      <domain_group id="scalarpoint">
+         <domain id="scalarpoint" long_name="scalar"/>
+      </domain_group>
+
+
+   </domain_definition>

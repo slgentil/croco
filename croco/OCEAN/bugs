@@ -1,0 +1,98 @@
+--------------------------------------------------------------
+zonavg.F : manque mpi_roms.h sinon ocean_grid_comm n'est pas défini
+--------
+
+
+      subroutine zonavg_2d (istr,iend,jstr,jend,A,Azon)
+      implicit none
+      integer istr,iend,jstr,jend
+
+# include "param.h"
+# include "scalars.h"
+# include "mpi_roms.h"
+
+...
+
+      subroutine zonavg_3d (istr,iend,jstr,jend,A,Azon)
+      implicit none
+      integer istr,iend,jstr,jend
+
+# include "param.h"
+# include "scalars.h"
+# include "mpi_roms.h"
+
+--------------------------------------------------------------
+t3dmix_S.F :
+----------
+ +sqrt remplacé par sqrt
+ fermeture accolade sqrt descendue d'un cran
+
+
+        do j=jmin,jmax
+          do i=imin,imax+1
+            diff3u(i,j)= 
+#ifdef TS_DIF2
+     &                      0.5*(diff2(i,j,itrc)+diff2(i-1,j,itrc))
+# if defined DIF_COEF_3D && defined TS_DIF_SMAGO
+     &                     +0.5*(diff3d_r(i,j,k)+diff3d_r(i-1,j,k))
+# endif
+#elif defined TS_DIF4
+     &                      sqrt(
+     &                      0.5*(diff4(i,j,itrc)+diff4(i-1,j,itrc))
+# ifdef DIF_COEF_3D
+#  ifdef TS_DIF_SMAGO
+     &                     +0.5*(diff3d_r(i,j,k)+diff3d_r(i-1,j,k))
+     &                                         *om_u(i,j)*on_u(i,j)
+#  endif
+#  ifdef TS_HADV_RSUP3
+     &                     +diff3d_u(i,j,k)
+#  endif
+# endif
+     &                           )
+#endif
+          enddo
+        enddo
+        do j=jmin,jmax+1
+          do i=imin,imax
+            diff3v(i,j)= 
+#ifdef TS_DIF2
+     &                      0.5*(diff2(i,j,itrc)+diff2(i,j-1,itrc))
+# if defined DIF_COEF_3D && defined TS_DIF_SMAGO
+     &                     +0.5*(diff3d_r(i,j,k)+diff3d_r(i,j-1,k))
+# endif
+#elif defined TS_DIF4
+     &                      sqrt(
+     &                      0.5*(diff4(i,j,itrc)+diff4(i,j-1,itrc))
+# ifdef DIF_COEF_3D
+#  ifdef TS_DIF_SMAGO
+     &                     +0.5*(diff3d_r(i,j,k)+diff3d_r(i,j-1,k))
+     &                                         *om_v(i,j)*on_v(i,j)
+#  endif
+#  ifdef TS_HADV_RSUP3
+     &                     +diff3d_v(i,j,k)
+#  endif
+# endif
+     &                           )
+#endif
+          enddo
+        enddo   
+
+
+
+
+
+--------------------------------------------------------------
+step2d.F :  call v2dbc_tile(...UFx) -> call v2dbc_tile(...VFe)
+----------
+
+!
+!-----------------------------------------------------------------------
+! Set boundary conditions and compute integral mass flux accross
+! all open boundaries, if any.
+!-----------------------------------------------------------------------
+!
+      call u2dbc_tile (istr,iend,jstr,jend, UFx) 
+! aponte bug? (
+!      call v2dbc_tile (istr,iend,jstr,jend, UFx)
+      call v2dbc_tile (istr,iend,jstr,jend, VFe)
+! aponte bug? )

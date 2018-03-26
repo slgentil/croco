@@ -147,7 +147,7 @@
      &                     +0.5*(diff3d_r(i,j,k)+diff3d_r(i-1,j,k))
 # endif
 #elif defined TS_DIF4
-     &                     +sqrt(
+     &                      sqrt(
      &                      0.5*(diff4(i,j,itrc)+diff4(i-1,j,itrc))
 # ifdef DIF_COEF_3D
 #  ifdef TS_DIF_SMAGO
@@ -157,8 +157,8 @@
 #  ifdef TS_HADV_RSUP3
      &                     +diff3d_u(i,j,k)
 #  endif
-     &                           )
 # endif
+     &                           )
 #endif
           enddo
         enddo
@@ -171,7 +171,7 @@
      &                     +0.5*(diff3d_r(i,j,k)+diff3d_r(i,j-1,k))
 # endif
 #elif defined TS_DIF4
-     &                     +sqrt(
+     &                      sqrt(
      &                      0.5*(diff4(i,j,itrc)+diff4(i,j-1,itrc))
 # ifdef DIF_COEF_3D
 #  ifdef TS_DIF_SMAGO
@@ -181,8 +181,8 @@
 #  ifdef TS_HADV_RSUP3
      &                     +diff3d_v(i,j,k)
 #  endif
-     &                           )
 # endif
+     &                           )
 #endif
           enddo
         enddo
