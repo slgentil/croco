@@ -191,7 +191,7 @@ c        call v3dbc_interp_tile(Istr,Iend,Jstr,Jend)
 #   endif
 #  else
 
-#ifdef VTFORC_INT
+#ifdef VTFORC_CORNER
         do k=1,N    
           do i=Istr-1,Iend+1
               v0tmp = vtmp(i,Jstr,k)
@@ -208,7 +208,7 @@ c        call v3dbc_interp_tile(Istr,Iend,Jstr,Jend)
         do k=1,N                               ! Southern edge closed
           do i=Istr,Iend                       ! ======== ==== ======
             v(i,Jstr,k,nnew)=0.                !  (no-flux: default)
-#endif /* VTFORC_INT */
+#endif /* VTFORC_CORNER */
 
           enddo
         enddo
@@ -319,7 +319,7 @@ c        call v3dbc_interp_tile(Istr,Iend,Jstr,Jend)
 #   endif
 #  else
 
-#if defined VTFORC_INT
+#if defined VTFORC_CORNER
         do k=1,N  
            do i=Istr-1,Iend+1
              v0tmp=vtmp(i,Jend+1,k)

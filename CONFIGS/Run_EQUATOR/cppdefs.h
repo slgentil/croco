@@ -55,6 +55,7 @@
 # undef PARALLEL_FILES
 # define XIOS
 
+# define RESOLUTION 2
 !                       Model dynamics
 # define SOLVE3D
 # define UV_ADV
@@ -108,30 +109,41 @@
 # define ANA_BSFLUX
 # endif
 
+		/* Forçage par les coins NW et SW sur v et t */
 
-#define VTFORC_INT
-#ifdef  VTFORC_INT
+#undef VTFORC_CORNER
+#ifdef  VTFORC_CORNER
 ! toutes les clefs de rappel et dissipation
-#define SPONGE_LAYER
-#define NORTH_SPONGE
+#define NS_SPONGE
 #define WEST_SPONGE
-#define TNU_MAT         /* allow tnu to be space dependant */
-#define UVNU_MAT         /* allow uvnu to be space dependant */
-#endif    /* VTFORC_INT */
+#define TNU_MAT         /* tnu in sponge layers */
+#define UVNU_MAT         /* uvnu  in sponge layers */
+#endif    /* VTFORC_CORNER */
+
+
+		/* Forçage autour de l'équateur à l'ouest sur v*/
+
+# define RAPPEL_VBARCLINE 
+# define RAPPEL_VBAR 
+# if defined  RAPPEL_VBARCLINE || defined RAPPEL_VBAR
+#    define NS_SPONGE
+#    undef WEST_SPONGE
+#    define UV_VIS2
+#    define TS_DIF2
+#    define TNU_MAT         /*  tnu matrix for spatial dependance, t3dmix_S only */
+#    define UVNU_MAT         /*  uvnu  matrix for spatial dependance, uv3dmix_S only */
+# endif
 !
-/*# ifdef SPONGE_LAYER
-# define ANA_STFLUX
-# endif*/
 
 !                       Vertical Mixing
 # define  LMD_MIXING /* Activate KPP mixing */
 # ifdef  LMD_MIXING
-#  undef  ANA_VMIX
-#  undef  BVF_MIXING
-#  undef LMD_SKPP
-#  undef LMD_BKPP
-#  define LMD_RIMIX
-#  define LMD_CONVEC
+#   undef  ANA_VMIX
+#   undef  BVF_MIXING
+#   undef LMD_SKPP
+#   undef LMD_BKPP
+#   define LMD_RIMIX
+#   define LMD_CONVEC
 # endif
 
 

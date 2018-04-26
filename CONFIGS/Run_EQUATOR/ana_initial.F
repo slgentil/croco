@@ -224,18 +224,17 @@ c      print *,'apres init_rhobar  xnconst=',xnconst
 #endif /* ANA_INITIAL */
 
 #if defined BASIN_EQ
+#   ifdef VTFORC_CORNER
+      call init_sponge(Istr,Iend,Jstr,Jend)
+      call vtforc(Istr,Iend,Jstr,Jend)
+#   endif  /* VTFORC_CORNER */ 
 
-#   ifdef SPONGE_LAYER
-        call init_sponge(Istr,Iend,Jstr,Jend)
-#   endif
 
-#   ifdef VTFORC_INT
-      if (iic.eq.ntstart) then
-         call vtforc(Istr,Iend,Jstr,Jend)
-      endif
-#   endif  /* VTFORC_INT */ 
+# if defined UVNU_MAT || defined TNU_MAT
+      call set_dissip(Istr,Iend,Jstr,Jend)
+# endif
 
-# endif  
+# endif   /* BASIN_EQ */  
 !!
 !--------------------------------------------------------------------
 !  Exchange boundary information

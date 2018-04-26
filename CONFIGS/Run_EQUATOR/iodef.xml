@@ -14,9 +14,9 @@
    <!-- ========================================================================== -->
 
 
-   <file_definition type="one_file" name="Eq" sync_freq="1mo"> 
+   <file_definition type="one_file" name="Eq" output_freq="1d" sync_freq="1d"> 
 
-       <file id="file1" name_suffix="_grid" output_freq="1mo" enabled=".TRUE.">
+       <file id="file1" name_suffix="_grid"  enabled=".TRUE.">
             
          <field_group id="grid_fields" operation="once">
            <field field_ref="hc" />
@@ -27,7 +27,7 @@
          </field_group>
        </file>
         
-       <file id="file2" name_suffix="_his" output_freq="1mo" sync_freq="1mo" enabled=".TRUE.">
+       <file id="file2" name_suffix="_his"  enabled=".TRUE.">
          <field_group id="his_fields" operation="instant">
            <field field_ref="u" name="u" />
            <field field_ref="v" name="v" />

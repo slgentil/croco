@@ -65,8 +65,14 @@ C$    integer omp_get_thread_num
 
 #endif
 !
+# ifdef BASIN_EQ
+      real Length_XI,Length_ETA, depth, f0, 
+     &     cff,y, x0,y0,dx,dy, NSUB
+# else
       real Length_XI,Length_ETA, depth, f0,beta, 
      &     cff,y, x0,y0,dx,dy, NSUB
+# endif
+
 !
 # ifdef INTERNAL
       real cff1, ridge_width, ridge_height

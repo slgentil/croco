@@ -319,7 +319,8 @@ if $($CPP1 testkeys.F | grep -i -q xiosisdefined) ; then
         CPPFLAGS1="$CPPFLAGS1 -I$XIOS_ROOT_DIR/inc"
         FFLAGS1="$FFLAGS1 -I$XIOS_ROOT_DIR/inc"
         rm $RUNDIR/xios_server.exe
-        ln -s $XIOS_ROOT_DIR/bin/xios_server.exe $RUNDIR/.
+#       ln -s $XIOS_ROOT_DIR/bin/xios_server.exe $RUNDIR/.
+        cp  $XIOS_ROOT_DIR/bin/xios_server.exe $RUNDIR/.
         $CPP1 -P -traditional -imacros cppdefs.h  ../field_def.xml_full ../field_def.xml
 fi
 #

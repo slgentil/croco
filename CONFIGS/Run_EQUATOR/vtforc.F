@@ -24,7 +24,7 @@ c  il faut injecter et faire sortir la meme masse aux frontieres Nord et Sud
 
       integer ni
 
-#ifdef VTFORC_INT
+#ifdef VTFORC_CORNER
       
       h0=h(Istr,Jstr)
 c      zmbnd = pi/h0			!mde 1
@@ -140,6 +140,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 #endif /* MPI */
            
      
-#endif /* VTFORC_INT */
+#endif /* VTFORC_CORNER */
       return
       end

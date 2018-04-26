@@ -8,6 +8,8 @@ c *******************************************************************
 
       subroutine init_sponge(Istr,Iend,Jstr,Jend)
 
+#ifdef VTFORC_CORNER
+
       implicit none
 # include "param.h"
 # include "grid.h"
@@ -18,48 +20,29 @@ c *******************************************************************
 
       integer Istr,Iend,Jstr,Jend, i, j, k, isp, itrc, ibnd
 
-#ifdef SPONGE_LAYER
-      real         yeq_pv_nord, ymd_pv_nord, ynr_pv_nord
-      real         yeq_pv_sud, ymd_pv_sud, ynr_pv_sud, dzforc
-      real         zforc_eq_nord, zforc_md_nord, zforc_nr_nord
-      real         zforc_eq_sud, zforc_md_sud, zforc_nr_sud
       real         yspng, dyspng
-      real         xspng, dxspng
       real         rdmp_bnd, rdmp
-#endif  /* SPONGE_LAYER */
 
 # include "compute_extended_bounds.h"
 
 c  nudging time constant in units of sec**-1.
 
-#if defined  SPONGE_LAYER
-c ai rajoute la possibilite de mettre la couche de melange que sur une fraction
-c septentrionale du domaine
       rdmp = 1./(10.*86400.)
       rdmp_bnd = 1./(10.*86400)
-      yspng = 35.
       yspng = 12.      
       dyspng = 1.
-      xspng = 48.
-      dxspng = 1.
-      dzforc = 0.0001
       
 
-      if (iic.eq.ntstart) then
-      
+      if (iic.eq.ntstart) then    
       MPI_master_only print *,' '
       MPI_master_only print *,'parameters for PV-FORCED LAYER'
       MPI_master_only print *,'rdmp = ',rdmp
-      MPI_master_only print *,'rdmp-bnd = ',rdmp_bnd
+      MPI_master_only print *,'rdmp-bnd =',1./(rdmp_bnd*86400),' days'
       MPI_master_only print *,'yspng = ',yspng
       MPI_master_only print *,'dyspng = ',dyspng 
-      MPI_master_only print *,'xspng = ',xspng
-      MPI_master_only print *,'dxspng = ',dxspng
-      MPI_master_only print *,'dzforc = ',dzforc
       MPI_master_only print *,' '
-      
+            
       endif
-
 
 c rdmp_mxlyr for the northern region
 
@@ -83,15 +66,13 @@ c rdmp_mxlyr for the northern region
             stop
          endif
       enddo
- 
-#endif /* SPONGE_LAYER */
 
 
-#ifdef VTFORC_INT
       if (iic.eq.ntstart) then
          call vtforc(Istr,Iend,Jstr,Jend)
       endif
-#endif  /* VTFORC_INT */   
+
+#endif  /* VTFORC_CORNER */   
 
 
       return

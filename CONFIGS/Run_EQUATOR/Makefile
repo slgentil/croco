@@ -113,7 +113,8 @@ include Makedefs
 	cpl_prism_define.F	cpl_prism_put.F 	cpl_prism_init.F\
 	cpl_prism_get.F 	cpl_prism_getvar.F      cpl_prism_grid.F\
 \
-	init_rhobar.F       init_sponge.F       vtforc.F
+	init_rhobar.F       init_sponge.F       vtforc.F \
+	set_dissip.F
 
  SRCS90 = \
 	par_pisces.F90	ocean2pisces.F90	trc.F90		sms_pisces.F90\

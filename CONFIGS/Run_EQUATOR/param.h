@@ -30,10 +30,15 @@
 #endif
 #if defined BASIN_EQ
 
+# if RESOLUTION == 2
         parameter (LLm0=100,  MMm0=60,  N=20)     ! 1/2 degre  50 deglong
-c       parameter (LLm0=200,  MMm0=120, N=100)     ! 1/4 degre  50 deglong
+# elif RESOLUTION == 4
+        parameter (LLm0=200,  MMm0=120, N=100)     ! 1/4 degre  50 deglong
+# elif RESOLUTION == 8
+        parameter (LLm0=400,  MMm0=240, N=120)     ! 1/8 x1/8 degre, 50 lon
 c       parameter (LLm0=300,  MMm0=180, N=100)     ! 1/6 x1/6 degre, 50 lon
 c       parameter (LLm0=540,  MMm0=320,  N=200)     ! 1/11 degre  50 deglong
+#endif
 
 #elif defined BASIN
       parameter (LLm0=60,   MMm0=50,   N=10)
@@ -216,7 +221,13 @@ c       parameter (LLm0=540,  MMm0=320,  N=200)     ! 1/11 degre  50 deglong
 
       integer NP_XI, NP_ETA, NNODES   
 #  ifdef BASIN_EQ
-      parameter (NP_XI=1,  NP_ETA=4,  NNODES=NP_XI*NP_ETA)
+# if RESOLUTION == 2
+      parameter (NP_XI=1,  NP_ETA=8,  NNODES=NP_XI*NP_ETA)
+# elif RESOLUTION == 4
+      parameter (NP_XI=4,  NP_ETA=6,  NNODES=NP_XI*NP_ETA)
+# elif RESOLUTION == 8
+      parameter (NP_XI=8,  NP_ETA=12,  NNODES=NP_XI*NP_ETA)
+#endif
 #  else  
       parameter (NP_XI=1,  NP_ETA=4,  NNODES=NP_XI*NP_ETA)
 #  endif

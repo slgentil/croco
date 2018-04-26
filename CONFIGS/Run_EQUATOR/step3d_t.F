@@ -345,7 +345,7 @@
 #ifdef BASIN_EQ
 ! Forçage intérieur
 
-# ifdef VTFORC_INT
+# ifdef VTFORC_CORNER
       do k=1,N
         do i=Istr,Iend
            tforc0=ttmp(i,j,k)
@@ -358,7 +358,7 @@
            tforcint(i,j,k)=tbar(i,j,k)+tforcint(i,j,k)
         enddo
       enddo
-# endif /* VTFORC_INT */
+# endif /* VTFORC_CORNER */
 #endif
 
 !----------------------------------------------------------
@@ -414,34 +414,22 @@
      &                                               -FC(i,k-1)
 
 #ifdef BASIN_EQ
-
-#  ifdef SPONGE_LAYER
+#  ifdef VTFORC_CORNER
                 t(i,j,k,nnew,itrc)=t(i,j,k,nnew,itrc)
      &            +dt*rdmp_mxlyr(i,j,k)
-#    ifdef VTFORC_INT
      &               *(tforcint(i,j,k)-t(i,j,k,nstp,itrc))
-#    else
-     &               *(tbar(i,j,k)-t(i,j,k,nstp,itrc))
-#    endif /* VTFORC_INT*/
-#  endif
-
-#endif
+#  endif  /* VTFORC_CORNER */
+#endif  /* BASIN_EQ */
 
 # ifdef DIAGNOSTICS_TS
                 TForc(i,j,k,itrc)=(FC(i,k)-FC(i,k-1))
      &                                    /(dt*pm(i,j)*pn(i,j))
 #ifdef BASIN_EQ
-
-#  ifdef SPONGE_LAYER
+#  ifdef VTFORC_CORNER
      &               +rdmp_mxlyr(i,j,k)
-#    ifdef VTFORC_INT
      &               *(tforcint(i,j,k)-t(i,j,k,nstp,itrc))
-#    else
-     &               *(tbar(i,j,k)-t(i,j,k,nstp,itrc))
-#    endif /* VTFORC_INT*/
-#  endif
-
-#endif
+#  endif  /* VTFORC_CORNER */
+#endif /* BASIN_EQ */
 
 #  ifdef MASKING
      &                                             * rmask(i,j)

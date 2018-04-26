@@ -605,12 +605,10 @@
 
 #ifdef BASIN_EQ 
 
-# ifdef SPONGE_LAYER
+
+#ifdef VTFORC_CORNER
       real rdmp_mxlyr(GLOBAL_2D_ARRAY,N)
       common /rappel_sponge/ rdmp_mxlyr
-#endif
-
-#ifdef VTFORC_INT
       integer   nb_ni
       parameter (nb_ni=5)    ! le choisir impair
       real  tforcint(GLOBAL_2D_ARRAY,N)
@@ -622,7 +620,7 @@
       real  freqtmp0,freqtmp_m
       common /vtftmp/    tforcint, ttmp, vtmp,phitmp,
      &                   freqtmp,ampltmp,freqtmp0,freqtmp_m
-#endif   /* VTFORC_INT */
+#endif   /* VTFORC_CORNER */
 
 #endif
 

@@ -433,7 +433,7 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
 #  else
 !                                           Southern edge gradient BC
 !                                           ======== ==== ======== ==
-#ifdef VTFORC_INT
+#ifdef VTFORC_CORNER
         do k=1,N 
           do i=Istr-1,Iend+1
              t0tmp = ttmp(i,Jstr-1,k)
@@ -459,7 +459,7 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
 #   endif
           enddo
         enddo
-#endif /* VTFORC_INT */
+#endif /* VTFORC_CORNER */
 
 #  endif
       endif    ! <-- SOUTHERN_EDGE
@@ -570,7 +570,7 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
 #  else
 !                                           Northern edge gradient BC
 !                                           ======== ==== ======== ==
-#ifdef VTFORC_INT
+#ifdef VTFORC_CORNER
         do k=1,N 
            do i=Istr-1,Iend+1
               t0tmp = ttmp(i,Jend+1,k)
@@ -596,7 +596,7 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
 #   endif
           enddo
         enddo
-#endif /* VTFORC_INT */
+#endif /* VTFORC_CORNER */
 
 #  endif
       endif    ! <-- NORTHERN_EDGE

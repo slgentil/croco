@@ -537,6 +537,6 @@
 
 
 # if defined BASIN_EQ
-      real zze, dze, drho, xnconst, xn0, xn1, ztherm, gorho
-      common /strat/ xnconst
+      real zze, dze, drho, xnconst, xn0, xn1, ztherm, gorho, beta
+      common /strat/ xnconst, beta
 # endif
