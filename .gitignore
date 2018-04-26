@@ -50,6 +50,7 @@ fort.*
 *.out
 *.err
 *.app
+xios_server.exe
 
 # Kernel Module Compile Results
 *.mod*

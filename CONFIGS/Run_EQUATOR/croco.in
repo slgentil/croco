@@ -2,7 +2,7 @@ title:
 	Go-Meddy   Example
 
 time_stepping: NTIMES   dt[sec]  NDTFAST  NINFO    ! dt=600(64) 200(128) 100(256), 37 (512), 18 (1024)
-               288     3000.      65        96
+               105120     3000.      65        96
 
 S-coord: THETA_S,   THETA_B,    Hc (m)
           1.0d0      0.0d0        2400.d0

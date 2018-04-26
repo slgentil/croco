@@ -14,7 +14,7 @@
    <!-- ========================================================================== -->
 
 
-   <file_definition type="one_file" name="Eq" output_freq="1d" sync_freq="1d"> 
+   <file_definition type="one_file" name="Eq" output_freq="3mo" sync_freq="3mo"> 
 
        <file id="file1" name_suffix="_grid"  enabled=".TRUE.">
             

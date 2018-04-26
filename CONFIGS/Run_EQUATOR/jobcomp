@@ -112,11 +112,9 @@ PRISM_ROOT_DIR=../../../oasis3-mct/compile_oa3-mct
 #
 
 if [[ $HOSTNAME == *"datarmor"* ]]; then
-  XIOS_ROOT_DIR='$(HOME)/lib/XIOS'
+  XIOS_ROOT_DIR="$HOME/lib/XIOS"
 elif [[ $HOSTNAME == *"curie"* ]]; then 
-  XIOS_ROOT_DIR='$(HOME)/lib/XIOS'
-elif [[ $UNAME == *"Ubuntu"* ]]; then
-  XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_ubuntu16_LTS
+  XIOS_ROOT_DIR="$HOME/lib/XIOS"
 else
   XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_ifort
 fi
@@ -320,7 +318,7 @@ if $($CPP1 testkeys.F | grep -i -q xiosisdefined) ; then
         FFLAGS1="$FFLAGS1 -I$XIOS_ROOT_DIR/inc"
         rm $RUNDIR/xios_server.exe
 #       ln -s $XIOS_ROOT_DIR/bin/xios_server.exe $RUNDIR/.
-        cp  $XIOS_ROOT_DIR/bin/xios_server.exe $RUNDIR/.
+        cp  $XIOS_ROOT_DIR/bin/xios_server.exe $RUNDIR
         $CPP1 -P -traditional -imacros cppdefs.h  ../field_def.xml_full ../field_def.xml
 fi
 #
