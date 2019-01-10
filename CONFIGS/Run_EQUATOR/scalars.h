@@ -539,4 +539,8 @@
 # if defined BASIN_EQ
       real zze, dze, drho, xnconst, xn0, xn1, ztherm, gorho, beta
       common /strat/ xnconst, beta
+      real :: wind_tau0, wind_ka, wind_wa
+      real, dimension(GLOBAL_1D_ARRAYXI) :: prof_taux
+      real, dimension(GLOBAL_1D_ARRAYETA) :: prof_tauy
+      common /wind/ prof_taux, prof_tauy, wind_tau0, wind_ka, wind_wa
 # endif

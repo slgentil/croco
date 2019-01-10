@@ -49,8 +49,10 @@ if [[ $OS == Linux ]] ; then
  	LINUX_FC=gfortran
  	export OMPI_FC=gfortran
   else
-        LINUX_FC=ifort
-        export OMPI_FC=ifort
+#        LINUX_FC=ifort
+#        export OMPI_FC=ifort
+        LINUX_FC=gfortran
+        export OMPI_FC=gfortran
   fi
 #
 #	set 32 or 64 Bits executable
@@ -92,7 +94,8 @@ elif [[ $UNAME == *"Ubuntu"* ]]; then
   NETCDFLIB="-L/export/home/services/netcdf/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lz -lcurl"
 else
   NETCDFLIB="-lnetcdf -lnetcdff -llapack -lfftw3 -lfftw3f"
-  NETCDFINC=-I$(nf-config --includedir)
+# NETCDFINC=-I$(nf-config --includedir)
+  NETCDFINC=-I/usr/include/openmpi-x86_64
 fi
 #
 # set MPI directories if needed
@@ -112,11 +115,14 @@ PRISM_ROOT_DIR=../../../oasis3-mct/compile_oa3-mct
 #
 
 if [[ $HOSTNAME == *"datarmor"* ]]; then
-  XIOS_ROOT_DIR="$HOME/lib/XIOS"
+  XIOS_ROOT_DIR='/home1/datahome/slgentil/lib/XIOS'
 elif [[ $HOSTNAME == *"curie"* ]]; then 
-  XIOS_ROOT_DIR="$HOME/lib/XIOS"
+  XIOS_ROOT_DIR='$(HOME)/lib/XIOS'
+elif [[ $UNAME == *"Ubuntu"* ]]; then
+  XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_ubuntu16_LTS
 else
-  XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_ifort
+# XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_ifort
+  XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_gfortran
 fi
 
 #
@@ -197,14 +203,16 @@ if [[ $OS == Linux ]] ; then           # ===== LINUX =====
 	if [[ $LINUX_FC == ifort || $LINUX_FC == ifc ]] ; then
 		CPP1="cpp -traditional -DLinux -DIfort"
 		CFT1=ifort
-		FFLAGS1="-O3 -72 -fno-alias -i4 -r8 -fp-model precise $CPPFLAGS1"
+#		FFLAGS1="-O3 -72 -fno-alias -i4 -r8 -fp-model precise $CPPFLAGS1"
+ 		FFLAGS1="-xCORE-AVX2 -O3 -i4 -r8 -ftz -align all -assume byterecl -extend-source -fno-alias -no-prec-div -no-prec-sqrt -ip -g -w -traceback $CPPFLAGS1"
+#		FFLAGS1="-xCORE-AVX2 -O3 -i4 -r8 -align all -assume byterecl -extend-source -fno-alias -no-prec-div -no-prec-sqrt -ip -w $CPPFLAGS1"
 		LDFLAGS1="$LDFLAGS1"
 	elif [[ $LINUX_FC == gfortran ]] ; then
 		CPP1="cpp -traditional -DLinux"
 		CFT1=gfortran
-		FFLAGS1="-O3 -fdefault-real-8 -fdefault-double-8 -mcmodel=medium $CPPFLAGS1"
-#		 FFLAGS1="-O0 -g -fdefault-real-8 -fdefault-double-8 -fbacktrace \
-#			-fbounds-check -finit-real=nan -finit-integer=8888"
+     	FFLAGS1="-O3 -fdefault-real-8 -fdefault-double-8 -mcmodel=medium $CPPFLAGS1"
+# 		FFLAGS1="-O0 -g -fdefault-real-8 -fdefault-double-8 -fbacktrace \
+#			-fbounds-check -finit-real=nan -finit-integer=8888 $CPPFLAGS1"
 		LDFLAGS1="$LDFLAGS1"
 	fi
 elif [[ $OS == Darwin ]] ; then        # ===== DARWIN =====

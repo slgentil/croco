@@ -41,13 +41,13 @@ jobname=sys.argv[5]
 restart=int(sys.argv[6])
 
 if resolution==2:
-    nbproc_roms=8
+    nbproc_roms=10
     nbproc_xios=1
 elif resolution==4:
-    nbproc_roms=24
+    nbproc_roms=40
     nbproc_xios=1   
 elif resolution==8:
-    nbproc_roms=96
+    nbproc_roms=160
     nbproc_xios=2   
 else:
     print 'resolution not implemented yet'
@@ -62,8 +62,8 @@ nb_nodes = int((nb_cores)/28)+1
 
 startdir=os.getcwd()
 USER = os.getenv('USER')
-#WORK = os.getenv('DATAWORK')
-WORK = os.getenv('SCRATCH')
+WORK = os.getenv('DATAWORK')
+# WORK = os.getenv('SCRATCH')
 RPATH = WORK+'/'+workdir
 if os.path.exists(RPATH) :    
     os.system('rm -Rf '+RPATH)
@@ -94,7 +94,8 @@ for t in range(0,nbchain+1):
 
 if (os.path.exists('backup') == False):
     os.mkdir('backup')
-    cmd='find '+startdir+' -name "*.[Fh]" -exec grep -l BASIN_EQ {} \;'
+    # cmd='find '+startdir+' -name "*.[Fh]" -exec grep -l BASIN_EQ {} \;'
+    cmd='ls '+startdir+'/*.[Fh]'
     listfiles = os.popen(cmd).readlines()  
     for ifile in (listfiles): 
         shutil.copy(ifile[:-1],'backup')

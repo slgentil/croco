@@ -36,7 +36,9 @@ include Makedefs
 #        analysis routines
 #======================================================================
 
- SRCS = main.F		step.F		read_inp.F\
+ SRCS = diag_spec.F diag_spec_kt.F  \
+\
+	main.F		step.F		read_inp.F\
 	timers_roms.F	init_scalars.F	init_arrays.F	set_weights.F\
 	set_scoord.F	ana_grid.F	setup_grid1.F	setup_grid2.F\
 	set_nudgcof.F	ana_initial.F	analytical.F	zonavg.F\
@@ -114,7 +116,10 @@ include Makedefs
 	cpl_prism_get.F 	cpl_prism_getvar.F      cpl_prism_grid.F\
 \
 	init_rhobar.F       init_sponge.F       vtforc.F \
-	set_dissip.F
+	set_dissip.F \
+\
+        allreduce.F             qsort.F 	windinit.F
+#	init_spectral.F\
 
  SRCS90 = \
 	par_pisces.F90	ocean2pisces.F90	trc.F90		sms_pisces.F90\

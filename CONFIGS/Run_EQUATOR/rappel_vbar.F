@@ -1,6 +1,6 @@
 
 
-#if defined RAPPEL_VBAR ||  defined RAPPEL_VBARCLINE
+#if defined RAPPEL_VBAR ||  defined RAPPEL_VCLINE
 
       if ((iic.eq.ntstart).and.(FIRST_2D_STEP)) then
         rappel_rate = 1./(2* 86400)
@@ -9,12 +9,12 @@
         xrdecay=1.5
         rhalfn=4.5
         ypdecay=3.
-#if !defined RAPPEL_VBARCLINE   
+#if !defined RAPPEL_VCLINE   
 c cas forcage barotrope seul
 	vbaramp = 0.20				!  amplitude in v (m/sec)
-#else       /* RAPPEL_VBARCLINE */
+#else       /* RAPPEL_VCLINE */
 	vbaramp = 0.2241588296622976		!!!!!!!!!!!! pas propre du tout!!!
-#endif        /* RAPPEL_VBARCLINE */
+#endif        /* RAPPEL_VCLINE */
 
 
         MPI_master_only print *, '   '
@@ -101,4 +101,4 @@ c	 print *,'           Istr,Iend',Istr,Iend
         enddo
 # endif             /* defined RAPPEL_VBAR */
         
-# endif             /* defined RAPPEL_VBAR || RAPPEL_VBARCLINE */
+# endif             /* defined RAPPEL_VBAR || RAPPEL_VCLINE */

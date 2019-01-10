@@ -69,11 +69,19 @@
       real tmax,tmin,Ppos,Qpos,Pneg,Qneg,lmdmax
 # endif
       parameter (epsil=1.E-16)
+
+#ifdef DIAG_SPEC
+      real FXC(PRIVATE_2D_SCRATCH_ARRAY),
+     &     FEC(PRIVATE_2D_SCRATCH_ARRAY),
+     &     gradC4(PRIVATE_2D_SCRATCH_ARRAY)
+#endif
+
 !
 #ifdef BASIN_EQ
       integer ni
       real    tforc0
 #endif
+!
 #ifdef MASKING
 # define SWITCH *
 #else
@@ -253,6 +261,11 @@
             do i=Istr,Iend 
               TXadv(i,j,k,itrc)=-(FX(i+1,j)-FX(i,j)) SWITCH rmask(i,j)
               TYadv(i,j,k,itrc)=-(FE(i,j+1)-FE(i,j)) SWITCH rmask(i,j)
+#    ifdef DIAG_SPEC
+              TT(i,j,k,itrc)=Hz(i,j,k)*t(i,j,k,3,itrc)/(pm(i,j)*pn(i,j))
+              TXadvC(i,j,k,itrc)=-(FXC(i+1,j)-FXC(i,j)) SWITCH rmask(i,j)
+              TYadvC(i,j,k,itrc)=-(FEC(i,j+1)-FEC(i,j)) SWITCH rmask(i,j)             
+#    endif
           enddo
         enddo
 # endif /* DIAGNOSTICS_TS */
@@ -675,6 +688,18 @@
 #  ifdef MASKING
      &                   *rmask(i,j)
 #  endif
+# ifdef DIAG_SPEC
+# ifdef NONLIN_EOS
+              RHOrate(i,j,k) = (Hz(i,j,k)*rho_bak(i,j,k,2)
+     &                          -Hz_bak(i,j,k)*rho_bak(i,j,k,1))
+     &                         /(dt*pm(i,j)*pn(i,j))
+# endif
+# endif
+#  if defined DIAG_SPEC || defined DIAG_SPEC_KT || defined DIAG_SPEC_KXT
+              TTmoy(i,j,k,itrc)=0.5*( Hz(i,j,k)*t(i,j,k,nnew,itrc)
+     &                               +Hz_bak(i,j,k)*t(i,j,k,nstp,itrc) )
+     &                                       /(pm(i,j)*pn(i,j))
+#  endif
 !
 #  ifdef DIAGNOSTICS_TS_ADV
               TXadv(i,j,k,itrc)=TXadv(i,j,k,itrc)+
@@ -694,6 +719,17 @@
               TForc(i,j,k,itrc)=TForc(i,j,k,itrc)*cff
               Trate(i,j,k,itrc)=Trate(i,j,k,itrc)*cff
               THmix(i,j,k,itrc)=0.
+#  ifdef DIAG_SPEC
+              TT(i,j,k,itrc)=TT(i,j,k,itrc)*cff
+# ifdef NONLIN_EOS             
+              RHOrate(i,j,k)=RHOrate(i,j,k)*cff
+# endif             
+              TXadvC(i,j,k,itrc)=TXadvC(i,j,k,itrc)*cff
+              TYadvC(i,j,k,itrc)=TYadvC(i,j,k,itrc)*cff                         
+#  endif
+#  if defined DIAG_SPEC || defined DIAG_SPEC_KT || defined DIAG_SPEC_KXT
+              TTmoy(i,j,k,itrc)=TTmoy(i,j,k,itrc)*cff                         
+#  endif
             enddo
           enddo
         enddo

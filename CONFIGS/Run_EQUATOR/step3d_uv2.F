@@ -398,6 +398,14 @@
      &                                           *om_v(i,j)*on_v(i,j)/dt
      &                                           SWITCH vmask(i,j)
 !
+#   if defined DIAG_SPEC || defined DIAG_SPEC_KT || defined DIAG_SPEC_KXT
+            MVmoy(i,j,k,1)=0.5*( 0.5*(Hz(i,j,k)+Hz(i-1,j,k))*u(i,j,k,nnew)
+     &                  +0.5*(Hz_bak(i,j,k)+Hz_bak(i-1,j,k))*u(i,j,k,nstp) )
+     &                                           *om_u(i,j)*on_u(i,j)
+            MVmoy(i,j,k,2)=0.5*( 0.5*(Hz(i,j,k)+Hz(i,j-1,k))*v(i,j,k,nnew)
+     &                  +0.5*(Hz_bak(i,j,k)+Hz_bak(i,j-1,k))*v(i,j,k,nstp) )
+     &                                           *om_v(i,j)*on_v(i,j)
+#   endif                                               
 ! Divide all diagnostic terms by the cell volume Hz/(pm*pn).
 ! There after the unit of diag terms are :
 ! (unit of velocity) * s-1  =  m * s-2
@@ -411,6 +419,14 @@
             MHmix(i,j,k,1)   = MHmix(i,j,k,1)*cff
             MVmix(i,j,k,1)   = MVmix(i,j,k,1)*cff
             Mrate(i,j,k,1)   = Mrate(i,j,k,1)*cff
+#   ifdef DIAG_SPEC 
+            MV(i,j,k,1)      = MV(i,j,k,1)*cff
+            MXadvC(i,j,k,1) = MXadvC(i,j,k,1)*cff
+            MYadvC(i,j,k,1) = MYadvC(i,j,k,1)*cff           
+#   endif  
+#   if defined DIAG_SPEC || defined DIAG_SPEC_KT || defined DIAG_SPEC_KXT
+            MVmoy(i,j,k,1)   = MVmoy(i,j,k,1)*cff           
+#   endif   
 #  ifdef MRL_WCI
             Mvf(i,j,k,1)     = Mvf(i,j,k,1)*cff
             Mbrk(i,j,k,1)    = Mbrk(i,j,k,1)*cff
@@ -431,6 +447,14 @@
             MHmix(i,j,k,2)   = MHmix(i,j,k,2)*cff
             MVmix(i,j,k,2)   = MVmix(i,j,k,2)*cff
             Mrate(i,j,k,2)   = Mrate(i,j,k,2)*cff
+#   ifdef DIAG_SPEC 
+            MV(i,j,k,2)      = MV(i,j,k,2)*cff
+            MXadvC(i,j,k,2) = MXadvC(i,j,k,2)*cff
+            MYadvC(i,j,k,2) = MYadvC(i,j,k,2)*cff           
+#   endif        
+#   if defined DIAG_SPEC || defined DIAG_SPEC_KT  || defined DIAG_SPEC_KXT 
+            MVmoy(i,j,k,2)   = MVmoy(i,j,k,2)*cff          
+#   endif        
 #  ifdef MRL_WCI
             Mvf(i,j,k,2)     = Mvf(i,j,k,2)*cff
             Mbrk(i,j,k,2)    = Mbrk(i,j,k,2)*cff
@@ -886,7 +910,7 @@
 # endif
 
 # ifdef BASIN_EQ
-# include "rappel_vbarcline.F"
+# include "rappel_vcline.F"
 # endif    /*   BASIN_EQ */
 
 # undef IU_RANGE

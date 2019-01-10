@@ -116,8 +116,8 @@ c            rhobar(i,j,k) = -(xnconst)**2. * (z_r(i,j,k)) / gorho
       MPI_master_only print *,'=============================='
 
       do k=1,N
-        do j=JR_RANGE
-          do i=IR_RANGE
+       do j=JR_RANGE
+         do i=IR_RANGE
       	  rhobar(i,j,k) = aa*dz1*log(cosh(-(-z_r(i,j,k)-z1)/dz1))
      &                +bb*(-z_r(i,j,k)-z1)
      &                -(aa*dz1*log(cosh(-( -z1)/dz1))+bb*( -z1))

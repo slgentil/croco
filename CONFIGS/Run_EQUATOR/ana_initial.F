@@ -282,6 +282,10 @@ c      print *,'apres init_rhobar  xnconst=',xnconst
 #undef JR_RANGE
 #undef JV_RANGE
 
+#if defined BASIN_EQ
+      call windinit(Istr,Iend,Jstr,Jend)
+# endif   /* BASIN_EQ */ 
+
       return
       end
 

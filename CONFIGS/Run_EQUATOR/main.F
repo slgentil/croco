@@ -35,6 +35,12 @@
           USE pisces_ini     ! PISCES modules
           USE trcini_pisces 
 #endif
+# ifdef DIAG_SPEC
+          USE diagspec
+# endif /* DIAG_SPEC*/
+# if defined DIAG_SPEC_KT || defined DIAG_SPEC_KXT
+          USE diagspec_kt
+# endif /* DIAG_SPEC_KT */
 !     implicit none
       integer tile, subs, trd, ierr
 #include "param.h"
@@ -58,7 +64,7 @@
 #endif 
 #ifdef MPI
       include 'mpif.h'
-!      real*8 start_time2, start_time1, exe_time
+      real , save :: start_time2, start_time1, exe_time, step_time1, step_time2
 #elif defined NBQ
        integer MPI_STATUS_SIZE
 #endif 
@@ -131,7 +137,7 @@
 !  Setup MPI domain decomposition
 !
 #ifdef MPI
-!     start_time1=PMPI_Wtime()
+      start_time1=PMPI_Wtime()
       call MPI_Setup (ierr)
       if (ierr.ne.0) goto 100        !--> ERROR
 #endif
@@ -516,6 +522,19 @@ C$OMP PARALLEL DO PRIVATE(tile)
 !#endif
 !
 !----------------------------------------------------------------------
+!  Initialize FFT for spectral diags
+!----------------------------------------------------------------------
+!
+#ifdef DIAG_SPEC
+      call init_diags_spec
+#endif /* DIAG_SPEC */
+
+#if defined DIAG_SPEC_KT || defined DIAG_SPEC_KXT 
+      call init_diags_spec_kt
+#endif /* DIAG_SPEC_KT */
+
+!
+!----------------------------------------------------------------------
 !  Initialize XIOS I/O server
 !----------------------------------------------------------------------
 !
@@ -706,6 +725,18 @@ C$OMP PARALLEL DO PRIVATE(tile)
       call croco_oa(0)
 #endif
 
+!----------------------------------------------------------------------
+!  Create netcdf file for spectral diagnostics
+!----------------------------------------------------------------------
+!
+#if defined DIAG_SPEC
+      call wrt_diags_spec(0)
+#endif /* DIAG_SPEC  */
+
+#if defined DIAG_SPEC_KT || defined DIAG_SPEC_KXT
+      call wrt_diags_spec_kt(0)
+#endif /* DIAG_SPEC_KT  */
+
 
 CR      write(*,*) '  0' MYID
       if (may_day_flag.ne.0) goto 99     !-->  EXIT
@@ -729,6 +760,7 @@ CR      write(*,*) '  0' MYID
      &                'MAIN: started time-steping.'
       next_kstp=kstp
       time_start=time
+      step_time1=PMPI_Wtime()
 
 ! XIOS (
 !  Clean log output a bit
@@ -751,6 +783,12 @@ CR      write(*,*) '  0' MYID
 #endif
 
       do iicroot=ntstart,ntimes+1
+
+          if ( mynode == 0 ) then
+             step_time2=PMPI_Wtime()
+             write(99,*) step_time2 - step_time1
+             step_time1=step_time2
+          endif
 
 
 #ifdef SOLVE3D
@@ -803,9 +841,9 @@ C$OMP PARALLEL DO PRIVATE(tile)            ! Stop timers and
 #ifdef MPI
       call MPI_Barrier(MPI_COMM_WORLD, ierr)  ! XIOS
 
-!     start_time2=PMPI_Wtime()
-!     exe_time = start_time2 - start_time1
-!     if(mynode.eq.0) print*,'exe_time =',exe_time
+      start_time2=PMPI_Wtime()
+      exe_time = start_time2 - start_time1
+      if(mynode.eq.0) print*,'exe_time (h) =',exe_time/3600.
 
 # if defined OA_COUPLING || defined OW_COUPLING
       call prism_terminate_proto(ierr)       ! Finalize OASIS3

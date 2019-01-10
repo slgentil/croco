@@ -39,4 +39,4 @@ cd $SCRDIR
 # compile croco
 #
 $MAKE 
-mv croco $RUNDIR
+cp croco $RUNDIR

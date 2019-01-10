@@ -14,16 +14,19 @@
    <!-- ========================================================================== -->
 
 
-   <file_definition type="one_file" name="Eq" output_freq="3mo" sync_freq="3mo"> 
+   <file_definition type="one_file" name="Eq" output_freq="1mo" sync_freq="1mo"> 
 
        <file id="file1" name_suffix="_grid"  enabled=".TRUE.">
             
          <field_group id="grid_fields" operation="once">
            <field field_ref="hc" />
+           <field field_ref="theta_s" />
+           <field field_ref="theta_b" />
            <field field_ref="h" />
            <field field_ref="f" />
            <field field_ref="sc_r" />
            <field field_ref="sc_w" />
+           <field field_ref="rho_r" />
          </field_group>
        </file>
         

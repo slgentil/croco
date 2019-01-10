@@ -43,11 +43,8 @@
          <field id="wstr" long_name="Kinematic wind stress" unit="N/m2" />
          <field id="temp" long_name="potential temperature" unit="Celsius" grid_ref="rho_3D" />
 
-         <!--  --> 
-         <field id="salt" long_name="salinity" unit="PSU" grid_ref="rho_3D" />
-         <field id="swflx" long_name="surface freshwater flux (E-P)" unit="centimeter day-1"  />
-         <!--  END  --> 
 
+         <field id="rho_r" long_name="rho_ref" unit="kilogram meter-3" grid_ref="rho_3D"/>
          <field id="w" long_name="vertical velocity" unit="meter second-1" grid_ref="rho_3D"/>
          <field id="levels_rho" long_name="levels depths (rho)" standard_name="levels depths (rho)" unit="m" grid_ref="rho_3D" />
          <field id="levels_w" long_name="levels depths (w)" standard_name="levels depths (w)" unit="m" grid_ref="w_3D" />
@@ -82,9 +79,6 @@
          <field id="omega" long_name="S-coordinate vertical momentum component" unit="meter second-1" grid_ref="w_3D"/>
          <field id="AKv" long_name="vertical viscosity coefficient" unit="meter2 second-1" grid_ref="w_3D"/>
          <field id="AKt" long_name="temperature vertical diffusion coefficient" unit="meter2 second-1" grid_ref="w_3D"/>
-         <!--  --> 
-         <field id="AKs" long_name="salinity vertical diffusion coefficient" unit="meter2 second-1" grid_ref="w_3D"/>
-         <!-- END  --> 
      </field_group>
 
    </field_definition>

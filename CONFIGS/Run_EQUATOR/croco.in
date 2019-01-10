@@ -1,23 +1,23 @@
 title:
-	Go-Meddy   Example
+	Go-Equator   Example
 
 time_stepping: NTIMES   dt[sec]  NDTFAST  NINFO    ! dt=600(64) 200(128) 100(256), 37 (512), 18 (1024)
-               105120     3000.      65        96
+               109500     2880.      65        96
 
 S-coord: THETA_S,   THETA_B,    Hc (m)
-          1.0d0      0.0d0        2400.d0
+          0.0d0      1.0d0        5000.d0
 
 initial: NRREC  filename
          0
-                          Go_Meddy_rst.nc
+                          Go_Equator_rst.nc
 
 restart:          NRST, NRPFRST / filename
-                  46080     -1
-                          Go_Meddy_rst.nc
+                  54750     -1
+                          Go_Equator_rst.nc
 
 history: LDEFHIS, NWRT, NRPFHIS / filename 
             T     4608    0 
-                          Go_Meddy_his.nc
+                          Go_Equator_his.nc
 
 primary_history_fields: zeta UBAR VBAR  U  V  wrtT(1:NT)
                           T    T   T   T  T    2*T
@@ -45,7 +45,7 @@ vertical_mixing: Akv_bak, Akt_bak [m^2/sec]
                    0.e-6    2*0.e-6
 
 bottom_drag:     RDRG [m/s],  RDRG2,  Zob [m],  Cdb_min, Cdb_max
-                 0.0d-04      0.d-3    0.d-3     0.d-4    0.d-1 
+                 3.0d-04      0.d-3    0.d-3     0.d-4    0.d-1 
 
 gamma2:
                  1.d0
@@ -65,8 +65,15 @@ diagM_history_fields: diag_momentum(1:2)
                             T T
                             
 spectral_diags: navgspec nwrtspec
-		96	 1152                          
+		30	 30                          
 
 spectral_diags_kt: navgspec_kt nwrtspec_kt N_kt / levels
-                    48         48          2    
-                    -1100.  -600.          
+                    288         288          3    
+                    -1100.  -600.   -10.        
+
+spectral_diags_kxt: navgspec_kt nwrtspec_kt M_kt / lat_kt
+                    30         30          3    
+                    -5.  0.   5.        
+
+wind: wind_tau0,  wind_ka,   wind_wa
+       0.5e-4        -6.283e-6   2.204e-6

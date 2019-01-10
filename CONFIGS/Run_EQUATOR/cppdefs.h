@@ -1,4 +1,4 @@
-! $Id: cppdefs.h 1628 2015-01-10 13:53:00Z marchesiello $
+
 !
 !======================================================================
 ! CROCO is a branch of ROMS developped at IRD and INRIA, in France
@@ -95,6 +95,7 @@
 # define DEGREE
 # define ANA_INITIAL
 # undef BV_VAR
+# define NEW_S_COORD
 !                       Forcing
 # define ANA_SMFLUX
 # define ANA_STFLUX
@@ -123,9 +124,9 @@
 
 		/* Forçage autour de l'équateur à l'ouest sur v*/
 
-# define RAPPEL_VBARCLINE 
-# define RAPPEL_VBAR 
-# if defined  RAPPEL_VBARCLINE || defined RAPPEL_VBAR
+# undef RAPPEL_VCLINE 
+# undef RAPPEL_VBAR 
+# if defined  RAPPEL_VCLINE || defined RAPPEL_VBAR
 #    define NS_SPONGE
 #    undef WEST_SPONGE
 #    define UV_VIS2
@@ -146,6 +147,15 @@
 #   define LMD_CONVEC
 # endif
 
+
+ 		/* Diagnostics */ 
+# define  DIAG_SPEC             /* save spectral diagnostics */
+# undef  DIAG_SPEC_KT             /* save spectral diagnostics cumulated on kx,ky*/
+# define  DIAG_SPEC_KXT             /* save spectral diagnostics only on kx*/
+# if defined DIAG_SPEC || defined DIAG_SPEC_KT|| defined DIAG_SPEC_KXT
+#   define  DIAGNOSTICS_UV
+#   define  DIAGNOSTICS_TS
+# endif
 
 #endif /* END OF CONFIGURATION CHOICE */
 

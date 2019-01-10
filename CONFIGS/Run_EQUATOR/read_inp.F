@@ -14,6 +14,13 @@
       subroutine read_inp (ierr)        ! parameters  from  startup 
                                         ! script file using keywords
                                         ! to recognize variables.
+# if defined DIAG_SPEC
+      use diagspec
+# endif /* DIAG_SPEC */
+# if defined DIAG_SPEC_KT || defined DIAG_SPEC_KXT
+      use diagspec_kt
+# endif /* DIAG_SPEC_KT */
+
 !     implicit none
 #include "param.h"
 #include "scalars.h"
@@ -644,6 +651,62 @@ c        close(testunit)
 
 # endif
 #endif /*DIAGNOSTICS_UV */
+ 
+! spectral Diagnostics of Energy.
+# if defined DIAG_SPEC
+      elseif (keyword(1:kwlen).eq.'spectral_diags') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) navgspec, nwrtspec
+        MPI_master_only write(stdout,
+     &    '(5x,A/,8x,A,I5,/,8x,A,I5)')
+     &    'Spectral diagnostics:','navgspec:', navgspec,  'nwrtspec:', nwrtspec
+# endif /* DIAG_SPEC */
+
+
+! Temporal spectral Diagnostics of Energy cumulated on kx,ky.
+# if defined DIAG_SPEC_KT
+      elseif (keyword(1:kwlen).eq.'spectral_diags_kt') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) navgspec_kt, nwrtspec_kt, N_kt
+        if (N_kt>Nmax_kt) N_kt=Nmax_kt
+        read(input,*,err=95) depth_kt(1:N_kt)
+        MPI_master_only write(stdout,
+     &    '(5x,A/,5x,A,I5,/,5x,A,I5,/,5x,A,I5,/,5x,A,10F5.1)')
+     &    'Temporal Spectral diagnostics:',
+     &    'navgspec_kt:', navgspec_kt, 
+     &    'nwrtspec_kt:', nwrtspec_kt,
+     &    'N_kt:', N_kt,
+     &    'depth_kt:', depth_kt(1:N_kt)
+# endif /* DIAG_SPEC_KT */
+
+! Temporal spectral Diagnostics of Energy cumulated on kx
+# if defined DIAG_SPEC_KXT
+      elseif (keyword(1:kwlen).eq.'spectral_diags_kxt') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) navgspec_kt, nwrtspec_kt, M_kt
+        if (M_kt>Mmax_kt) M_kt=Mmax_kt
+        read(input,*,err=95) lat_kt(1:M_kt)
+        MPI_master_only write(stdout,
+     &    '(5x,A/,5x,A,I5,/,5x,A,I5,/,5x,A,I5,/,5x,A,10F5.1)')
+     &    'Temporal Spectral diagnostics:',
+     &    'navgspec_kt:', navgspec_kt, 
+     &    'nwrtspec_kt:', nwrtspec_kt,
+     &    'M_kt:', M_kt,
+     &    'lat_kt:', lat_kt(1:M_kt)
+# endif /* DIAG_SPEC_KXT */
+ 
+! wind forcing parameters
+# if defined BASIN_EQ
+      elseif (keyword(1:kwlen).eq.'wind') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        print*,'in wind'
+        read(input,*,err=95) wind_tau0, wind_ka, wind_wa
+        MPI_master_only write(stdout,
+     &    '(5x,A/,8x,A,1pe10.3,/,8x,A,1pe10.3,/,8x,A,1pe10.3)')
+     &    'Wind forcing:','wind_tau0:', wind_tau0,  'wind_ka:', wind_ka,
+     &    'wind_wa:', wind_wa
+# endif /* BASIN_EQ */
+
 #ifdef DIAGNOSTICS_BIO
 !
 ! Diagnostics Biology file name.
