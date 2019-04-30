@@ -6,7 +6,7 @@ Le répertoire croco contient le code CROCO de base
 Le répertoire CONFIGS contient les différentes configurations:  
 - Run_MEDDY : Meddy dans une configuration idéalisée
 - Run_MOZ   : Tourbillon dans la configuration réaliste du canal du Mozambique
-- Run_JETN  : Jet et marée interne dans une configuration idéalisée  
+- [Run_JETN](CONFIGS/Run_JETN/readme.md) : Jet et marée interne dans une configuration idéalisée  
 
 Le répertoire util contient des utilitaires python  
 - clean_croco.py : pour supprimer tous les xios_client* et xios_server* (sauf le 0) à partir du niveau de répertoire courant et dans les deux niveaux inférieurs  
@@ -16,7 +16,10 @@ Le répertoire util contient des utilitaires python
 
 Installation
 =============
+
+```
 git clone https://github.com/slgentil/croco.git
+```
 
 Compilation
 ============
@@ -27,7 +30,13 @@ L'exécutable croco et un lien symbolique vers l'exécutable xios_server.exe son
 
 Lancement sur Datarmor
 ======================
-_chain_datarmor.py workdir nbchain elaptim resolution jobname restart_  
+
+```
+python chain_datarmor.py workdir nbchain elaptim resolution jobname restart
+```
+
+avec:
+
 - workdir : répertoire qui sera créé sous DATAWORK ou SCRATCH selon la variable WORK du script python
 - nbchain : nombre de chainages  
 - elaptim : temps elapsed pour chaque chainage HH:MM:SS  

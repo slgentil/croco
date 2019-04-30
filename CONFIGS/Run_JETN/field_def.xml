@@ -1,0 +1,149 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+   <field_definition level="1" enabled=".TRUE.">   
+      <field_group id="Vertical_dimension_rho" domain_ref="1point" axis_ref="s_rho"  >
+         <field id="Cs_r" long_name="ocean s roms coordinate at rho point"  />
+         <field id="sc_r" long_name="S-coordinate stretching curves at RHO-points"  />
+      </field_group>
+      <field_group id="Vertical_dimension_w"  domain_ref="1point" axis_ref="s_w"  >
+         <field id="Cs_w" long_name="ocean s roms coordinate at w point"  />
+         <field id="sc_w" long_name="S-coordinate stretching curves at W-points"  />
+      </field_group>
+      <field_group id="scalar" domain_ref="1point"  >
+         <field id="hc" long_name="S-coordinate parameter, critical depth"  />
+         <field id="theta_s" long_name="S-coordinate surface control parameter"  />
+         <field id="theta_b" long_name="S-coordinate bottom control parameter"  />
+         <field id="Tcline" long_name="S-coordinate surface/bottom layer width"  />
+         <field id="Vtransform" long_name="vertical terrain-following transformation equation"  />
+    </field_group>
+     <!-- T grid -->
+     <field_group id="rho" grid_ref="rho_2D">
+         <field id="h" long_name="bathymetry at RHO-points" unit="meter" />
+         <field id="f" long_name="Coriolis parameter at RHO-points" unit="second-1" />
+         <field id="pm" long_name="curvilinear coordinates metric in XI" unit="meter-1" />
+         <field id="pn" long_name="curvilinear coordinates metric in ETA" unit="meter-1" />
+
+
+         <field id="x_rho" long_name="x-locations of RHO-points" unit="meter" />
+         <field id="y_rho" long_name="y-locations of RHO-points" unit="none" />
+
+         <field id="zeta" long_name="free-surface" unit="meter" />
+         <field id="bostr" long_name="Kinematic bottom stress" unit="N/m2" />
+         <field id="wstr" long_name="Kinematic wind stress" unit="N/m2" />
+         <field id="temp" long_name="potential temperature" unit="Celsius" grid_ref="rho_3D" />
+
+
+         <field id="w" long_name="vertical velocity" unit="meter second-1" grid_ref="rho_3D"/>
+         <field id="levels_rho" long_name="levels depths (rho)" standard_name="levels depths (rho)" unit="m" grid_ref="rho_3D" />
+         <field id="levels_w" long_name="levels depths (w)" standard_name="levels depths (w)" unit="m" grid_ref="w_3D" />
+         <field id="levels_u" long_name="levels depths (u)" standard_name="levels depths (u)" unit="m" grid_ref="u_3D" />
+         <field id="levels_v" long_name="levels depths (v)" standard_name="levels depths (v)" unit="m" grid_ref="v_3D" />
+
+
+         <field id="hbl" long_name="depth of planetary boundary layer" unit="meter" />
+         <field id="rho" long_name="density anomaly" unit="kilogram meter-3" grid_ref="rho_3D"/>
+         <field id="shflx" long_name="surface net heat flux" unit="Watts meter-2" />
+         <field id="swrad" long_name="Short-wave surface radiation" unit="Watts meter-2" />
+         <field id="ssh_t_cos" long_name="ssh x cos" unit="m" />
+         <field id="ssh_t_sin" long_name="ssh x sin" unit="m" />
+         <field id="T_t_cos" long_name="T x cos" unit="degC" grid_ref="rho_3D" />
+         <field id="T_t_sin" long_name="T x sin" unit="degC" grid_ref="rho_3D" />
+
+         <field id="ssh_t_dirac" long_name="ssh x dirac" unit="m" />
+         <field id="T_t_dirac" long_name="T x dirac" unit="degC" grid_ref="rho_3D" />
+
+         <field id="ssh_a" field_ref="zeta" operation="average" />
+         <field id="T_a" field_ref="temp" grid_ref="rho_3D" operation="average" />
+         <field id="ssh_t_cosa" field_ref="ssh_t_cos" operation="average" />
+         <field id="ssh_t_sina" field_ref="ssh_t_sin" operation="average" />
+         <field id="T_t_cosa" field_ref="T_t_cos" grid_ref="rho_3D" operation="average" />
+         <field id="T_t_sina" field_ref="T_t_sin" grid_ref="rho_3D" operation="average" />
+         <field id="ssh_t_diraca" field_ref="ssh_t_dirac" operation="average" />
+         <field id="T_t_diraca" field_ref="T_t_dirac" grid_ref="rho_3D" operation="average" />
+         <field id="w_t_cos" long_name="w x cos" unit="m/s" grid_ref="rho_3D"/>
+         <field id="w_t_sin" long_name="w x sin" unit="m/s" grid_ref="rho_3D"/>
+         <field id="w_t_dirac" long_name="w x dirac" unit="m/s" grid_ref="rho_3D"/>
+
+         <field id="w_a" field_ref="w" operation="average" grid_ref="rho_3D" />
+         <field id="w_t_cosa" field_ref="w_t_cos" operation="average" grid_ref="rho_3D" />
+         <field id="w_t_sina" field_ref="w_t_sin" operation="average" grid_ref="rho_3D" />
+         <field id="w_t_diraca" field_ref="w_t_dirac" operation="average" grid_ref="rho_3D" />
+
+         <field id="T_vmodes" long_name="temperature modal projection" unit="degC" grid_ref="rho_vm" />
+         <field id="p_vmodes" long_name="p modal projection" unit="Pa" grid_ref="rho_vm" />
+
+         <field id="T_vmodes_t_cos" long_name="temperature modal projection x cos" unit="degC" grid_ref="rho_vm" />
+         <field id="T_vmodes_t_sin" long_name="temperature modal projection x sin" unit="degC" grid_ref="rho_vm" />
+         <field id="p_vmodes_t_cos" long_name="p modal projection x cos" unit="Pa" grid_ref="rho_vm" />
+         <field id="p_vmodes_t_sin" long_name="p modal projection x sin" unit="Pa" grid_ref="rho_vm" />
+
+         <field id="ke" long_name="depth averaged kinetic energy" unit="m^2/s^2" />
+         <field id="ens" long_name="depth averaged enstrophy" unit="1/s^2" />
+         <field id="rot" long_name="rotational" unit="1/s" grid_ref="rho_3D" />
+
+         <field id="Tdebug" long_name="temperature" unit="degC" grid_ref="rho_3D" />
+     </field_group>
+        
+        
+     <!-- U grid -->
+     <field_group id="u" grid_ref="u_2D">
+         <field id="ubar" long_name="vertically integrated u-momentum component" unit="meter second-1"/>
+         <field id="sustr" long_name="surface u-momentum stress" unit="N/m2" />
+         <field id="bustr" long_name="bottom  u-momentum stress" unit="N/m2" />
+         <field id="u" long_name="v-momentum component" unit="meter second-1" grid_ref="u_3D"/>
+         <field id="u_t_cos" long_name="u x cos" unit="m/s" grid_ref="u_3D"/>
+         <field id="u_t_sin" long_name="u x sin" unit="m/s" grid_ref="u_3D"/>
+         <field id="u_t_dirac" long_name="u x dirac" unit="m/s" grid_ref="u_3D"/>
+
+         <field id="u_a" field_ref="u" operation="average" grid_ref="u_3D"/>
+         <field id="u_t_cosa" field_ref="u_t_cos" operation="average" grid_ref="u_3D"/>
+         <field id="u_t_sina" field_ref="u_t_sin" operation="average" grid_ref="u_3D"/>
+         <field id="u_t_diraca" field_ref="u_t_dirac" operation="average" grid_ref="u_3D"/>
+
+         <field id="u_vmodes" long_name="u modal projection" unit="m/s" grid_ref="u_vm"/>
+
+         <field id="u_vmodes_t_cos" long_name="u modal projection x cos" unit="m/s" grid_ref="u_vm"/>
+         <field id="u_vmodes_t_sin" long_name="u modal projection x sin" unit="m/s" grid_ref="u_vm"/>
+
+     </field_group>
+
+     <!-- V grid -->
+     <field_group id="v" grid_ref="v_2D">
+         <field id="vbar" long_name="vertically integrated v-momentum component" unit="meter second-1"/>
+         <field id="svstr" long_name="surface v-momentum stress" unit="N/m2" />
+         <field id="bvstr" long_name="bottom  v-momentum stress" unit="N/m2" />
+         <field id="v" long_name="v-momentum component" unit="meter second-1" grid_ref="v_3D"/>
+         <field id="v_t_cos" long_name="v x cos" unit="m/s" grid_ref="v_3D"/>
+         <field id="v_t_sin" long_name="v x sin" unit="m/s" grid_ref="v_3D"/>
+         <field id="v_t_dirac" long_name="v x dirac" unit="m/s" grid_ref="v_3D"/>
+
+         <field id="v_a" field_ref="v" operation="average" grid_ref="v_3D" />
+         <field id="v_t_cosa" field_ref="v_t_cos" operation="average" grid_ref="v_3D" />
+         <field id="v_t_sina" field_ref="v_t_sin" operation="average" grid_ref="v_3D" />
+         <field id="v_t_diraca" field_ref="v_t_dirac" operation="average" grid_ref="v_3D" />
+
+         <field id="v_vmodes" long_name="v modal projection" unit="m/s" grid_ref="v_vm"/>
+
+         <field id="v_vmodes_t_cos" long_name="v modal projection x cos" unit="m/s" grid_ref="v_vm"/>
+         <field id="v_vmodes_t_sin" long_name="v modal projection x sin" unit="m/s" grid_ref="v_vm"/>
+     </field_group>
+    
+     <!-- W grid -->
+     <field_group id="w" grid_ref="w_2D">
+         <field id="omega" long_name="S-coordinate vertical momentum component" unit="meter second-1" grid_ref="w_3D"/>
+         <field id="AKv" long_name="vertical viscosity coefficient" unit="meter2 second-1" grid_ref="w_3D"/>
+         <field id="AKt" long_name="temperature vertical diffusion coefficient" unit="meter2 second-1" grid_ref="w_3D"/>
+     </field_group>
+
+   </field_definition>
