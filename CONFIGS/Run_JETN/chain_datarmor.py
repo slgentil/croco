@@ -6,7 +6,7 @@
  
   [syntaxe] : romschain workdir nbchain elaptim resolution jobname
       arguments:
-          workdir : répertoire qui sera créé sous $WORK
+          workdir : repertoire qui sera cree dans WORKDIR
           nb_chain : nombre de chainages
           elap_time : temps elapsed pour le job HH:MM:SS
           resolution : resolution, 1 pour 1km, 2 pour 2km, 4 pour 4km 
@@ -21,15 +21,15 @@ import shutil
 # check number of arguments
 
 if  len(sys.argv) < 7 :
-    print '--------------------------------------------------------------------------------'
-    print '[syntaxe] : chain_datarmor.py workdir nbchain elaptim resolution jobname restart' 
-    print '--------------------------------------------------------------------------------'
-    print 'workdir : répertoire qui sera créé sous $WORK'
-    print 'nbchain : nombre de chainages'
-    print 'elaptim : temps elapsed pour chaque chainage HH:MM:SS  '
-    print 'resolution : resolution 4 pour 4km, 2 pour 2km'
-    print 'jobname : nom générique des batchs'   
-    print 'restart : 0 (initial) or 1 (restart)' 
+    print('--------------------------------------------------------------------------------')
+    print('[syntaxe] : chain_datarmor.py workdir nbchain elaptim resolution jobname restart') 
+    print('--------------------------------------------------------------------------------')
+    print('workdir : répertoire qui sera créé sousORKDIR')
+    print('nbchain : nombre de chainages')
+    print('elaptim : temps elapsed pour chaque chainage HH:MM:SS  ')
+    print('resolution : resolution 4 pour 4km, 2 pour 2km')
+    print('jobname : nom générique des bchs')
+    print('restart : 0 (initial) or 1 (restart)')
     quit()
 
 workdir=sys.argv[1]
@@ -49,7 +49,7 @@ elif resolution==1:
     nbproc_roms=960
     nbproc_xios=48   
 else:
-    print 'resolution not implemented yet'
+    print('resolution not implemented yet')
     quit()
     
 nb_cores = nbproc_roms+nbproc_xios    
@@ -179,6 +179,6 @@ numjob=f.read()
 commande='qrls '+numjob[:-1]     
 
 
-print 'Put the restart files in '+RPATH+'/t0'
-print 'Change directory: cd '+RPATH+'/t1'
-print 'Run commande : '+commande
+print('Put the restart files in '+RPATH+'/t0')
+print('Change directory: cd '+RPATH+'/t1')
+print('Run commande : '+commande)
