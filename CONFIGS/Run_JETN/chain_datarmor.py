@@ -165,7 +165,6 @@ for t in range(1,nbchain+1):
     tdir='t'+str(t)   
     os.chdir(RPATH+'/'+tdir)
 
-
     if (t == 1):
         commande='qsub -h job_datarmor'  
     else:
@@ -179,6 +178,6 @@ numjob=f.read()
 commande='qrls '+numjob[:-1]     
 
 
-print('Put the restart files in '+RPATH+'/t0')
-print('Change directory: cd '+RPATH+'/t1')
+if restart:
+    print('Put the restart files in '+RPATH+'/t0')
 print('Run commande : '+commande)
