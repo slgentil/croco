@@ -50,6 +50,7 @@ fort.*
 *.out
 *.err
 *.app
+croco
 xios_server.exe
 
 # Kernel Module Compile Results
