@@ -1,1 +1,0 @@
-src_global/MAIN_launch_cvtk_fast.bash

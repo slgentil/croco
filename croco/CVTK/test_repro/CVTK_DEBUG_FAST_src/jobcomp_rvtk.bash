@@ -1,1 +1,0 @@
-jobcomp_rvtk_datarmor.bash

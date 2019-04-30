@@ -1,7 +1,0 @@
-#!/bin/bash
-
-TEST_TYPE="VORT"
-
-dir_home="$HOME/GIT/croco/CVTK/test_repro/CVTK_DEBUG_FAST_src/Scripts_vort"
-dir_test="$DATAWORK/CVTK_DEBUG_REG_DEV/TESTROOT/VORT"
-dir_web="/home/datawork-croco/public/ftp/CVTK_FAST"
