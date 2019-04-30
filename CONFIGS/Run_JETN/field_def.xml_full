@@ -277,6 +277,7 @@
 
          <field id="Tdebug" long_name="temperature" unit="degC" grid_ref="rho_3D" />
      </field_group>
+#endif
         
 #ifdef SEDIMENT
      <!-- SEDIMENT -->        
