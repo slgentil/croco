@@ -33,7 +33,7 @@ conda create -n croco -c conda-forge python=3.7 dask dask-jobqueue \
             jupyterlab ipywidgets \
             cartopy geopandas scikit-learn seaborn \
             hvplot geoviews datashader nodejs \
-	          intake-xarray gcsfs \
+            intake-xarray gcsfs \
             cmocean gsw \
             pytide pyinterp \
             xgcm
