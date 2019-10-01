@@ -7,6 +7,8 @@ CROCO_FILES/
 CVTK/
 Run/
 
+croco_osi/lporoms
+
 clean~
 clean
 *.swp
@@ -16,7 +18,7 @@ clean
 __pycache__/
 *.py[cod]
 
-# eclipse related files 
+# eclipse related files
 .project
 .pydevproject
 .settings/
@@ -57,5 +59,3 @@ xios_server.exe
 
 # Kernel Module Compile Results
 *.mod*
-
-

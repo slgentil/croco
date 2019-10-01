@@ -17,9 +17,36 @@ Le répertoire util contient des utilitaires python
 Installation
 =============
 
+Download the repository:
 ```
 git clone https://github.com/slgentil/croco.git
 ```
+
+For pre/post processing, install an appropriate conda-environment.
+Download Miniconda3 (i.e. for python3) from the [conda website](https://conda.io/miniconda.html) and run:
+```
+bash Miniconda3-latest-Linux-x86_64.sh
+bash
+conda update conda
+conda create -n croco -c conda-forge python=3.7 dask dask-jobqueue \
+            xarray zarr netcdf4 python-graphviz \
+            jupyterlab ipywidgets \
+            cartopy geopandas scikit-learn seaborn \
+            hvplot geoviews datashader nodejs \
+	          intake-xarray gcsfs \
+            cmocean gsw \
+            pytide pyinterp \
+            xgcm
+conda activate croco
+conda install pywavelets
+# install croco_visu, parcels ...
+cd croco; pip install -e .
+jupyter labextension install @jupyter-widgets/jupyterlab-manager \
+                             @pyviz/jupyterlab_pyviz \
+                             jupyter-leaflet
+```
+
+see also [conda doc](doc/conda.md)
 
 Compilation
 ============
@@ -47,4 +74,3 @@ avec:
 Le répertoire workdir est créé dans DATAWORK ou SCRATCH  
 Ce répertoire contient des sous-répertoires t1,t2,... , un répertoire par chainage  
 Le script python prépare le batch et vous indique comment le lancer.  
-
