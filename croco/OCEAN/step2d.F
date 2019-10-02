@@ -10,7 +10,9 @@
 !======================================================================
 !
 #include "cppdefs.h"
-#ifndef NBQ
+
+#if !defined NBQ || (defined AGRIF && defined NBQ_CHILD_ONLY)
+
 #define PRED_COUPLED_MODE
 
       subroutine step2d (tile)

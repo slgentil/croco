@@ -10,7 +10,9 @@
 !======================================================================
 !
 #include "cppdefs.h"
-#ifndef NBQ
+
+#if !defined NBQ || (defined AGRIF && defined NBQ_CHILD_ONLY)
+
 #define PRED_COUPLED_MODE
 
       subroutine step2d (tile)
@@ -1583,10 +1585,10 @@ C$OMP END MASTER
 ! all open boundaries, if any.
 !-----------------------------------------------------------------------
 !
-      call u2dbc_tile (istr,iend,jstr,jend, UFx) 
+      call u2dbc_tile (Istr,Iend,Jstr,Jend, UFx) 
 ! aponte bug? (
-!      call v2dbc_tile (istr,iend,jstr,jend, UFx)
-      call v2dbc_tile (istr,iend,jstr,jend, VFe)
+!      call v2dbc_tile (Istr,Iend,Jstr,Jend, UFx)
+      call v2dbc_tile (Istr,Iend,Jstr,Jend, VFe)
 ! aponte bug? )
 
 #ifdef OBC_VOLCONS

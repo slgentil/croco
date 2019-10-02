@@ -11,9 +11,9 @@
 !
 #include "cppdefs.h"
 
-! aponte flt (
 #if defined FLOATS && defined MPI
-      subroutine step_floats_mpi (Lstr,Lend)
+
+      subroutine step_floats_mpi (tile,Lstr,Lend)
 !
 !================================================== John M. Klinck ===
 !  Copyright (c) 2001 Rutgers/UCLA                                   !
@@ -36,7 +36,11 @@
 #include "ocean2d.h"
 #include "ocean3d.h"
 #include "scalars.h"
+# include "work.h"
+# include "private_scratch.h"
+
 c--#define CDEBUG
+      integer tile,trd,omp_get_thread_num
       integer Lstr, Lend, mon_thread, tmpnfp1, tmpnf, 
      & tmpnfm1, tmpnfm2, entier
       integer i, itrc, iflt, level, rcoeft,rcoefx,rcoefy, 
@@ -50,6 +54,10 @@ c--#define CDEBUG
 # endif      
       integer node_float
       integer i_offset, j_offset
+
+# include "compute_tile_bounds.h" 
+            trd=omp_get_thread_num()
+
       i_offset=mod(mynode,NP_XI)*Lm
       j_offset=(mynode/NP_XI)*Mm
       
@@ -190,52 +198,13 @@ c    &     Tinfo(ixgrd,iflt), Tinfo(iygrd,iflt)
 !
       nfltmax=0
       do iflt=Lstr,Lend
-!        if ( fltgrd(iflt).eq.level ) then
         if ( trackinfo(1,iflt) .eq. 1
      &            .and. level .eq. trackinfo(3,iflt)  ! Agrif
      &            .and. mynode .eq. trackinfo(2,iflt) ) then ! MPI
-!# ifdef MPI
-!        if ( trackinfo(1,iflt) .ge. 0
-!     &              .and. node_float .eq.  trackinfo(2,iflt) ) then
-!       node_float= mod(int((trackinfo(ixgrd,iflt)-0.5)/dble(Lm)),NP_XI)
-!       node_float= node_float
-!     &                 + int((Tinfo(iygrd,iflt)-0.5)/dble(Mm))*NP_XI
-!         if ( node_float .eq. mynode  ) then
-!# endif
           nfltmax=nfltmax+1
           indx(nfltmax)=iflt
-#  ifdef EW_PERIODIC
-          track(ixgrd,nf,iflt)= mod(track(ixgrd,nf,iflt)-0.5D0,
-     &                 dble(LLm0)) + 0.5D0
-          track(ixgrd,nfm1,iflt) = track(ixgrd,nf,iflt) + 
-     &        mod(track(ixgrd,nfm1,iflt)-track(ixgrd,nf,iflt),
-     &             dble(LLm0))
-          track(ixgrd,nfm2,iflt) = track(ixgrd,nf,iflt) +  
-     &        mod(track(ixgrd,nfm2,iflt)-track(ixgrd,nf,iflt),
-     &             dble(LLm0))
-          track(ixgrd,nfm3,iflt) = track(ixgrd,nf,iflt) +  
-     &        mod(track(ixgrd,nfm3,iflt)-track(ixgrd,nf,iflt),
-     &             dble(LLm0))
-#  endif
-#  ifdef NS_PERIODIC
-          track(iygrd,nf,iflt)= mod(track(iygrd,nf,iflt)-0.5D0,
-     &                 dble(MMm0)) + 0.5D0
-          track(iygrd,nfm1,iflt) = track(iygrd,nf,iflt) +  
-     &        mod(track(iygrd,nfm1,iflt)-track(ixgrd,nf,iflt),
-     &             dble(MMm0))
-          track(iygrd,nfm2,iflt) = track(iygrd,nf,iflt) +
-     &        mod(track(iygrd,nfm2,iflt)-track(iygrd,nf,iflt),
-     &             dble(MMm0))
-          track(iygrd,nfm3,iflt) = track(iygrd,nf,iflt) +
-     &        mod(track(iygrd,nfm3,iflt)-track(iygrd,nf,iflt),
-     &             dble(MMm0))
-#  endif
-
         endif
       enddo
-
-! tmp debug
-!      write(*,*) 'step', mynode, nfltmax
       
 !
 !---------------------------------------------------------------------
@@ -244,8 +213,6 @@ c    &     Tinfo(ixgrd,iflt), Tinfo(iygrd,iflt)
 !---------------------------------------------------------------------
 !
       do id=1,nfltmax
-!        write(*,*) 'pos (XA) ', track(ixgrd,nf,iflt), '   ',
-!     &     track(iygrd,nf,iflt), '  ', track(izgrd,nf,iflt)
         iflt=indx(id)
         track(ixgrd,nfp1,iflt)=track(ixgrd,nf,iflt)+
      &                       dt/24.*(55.*track(ixrhs,nf  ,iflt)-
@@ -258,15 +225,15 @@ c    &     Tinfo(ixgrd,iflt), Tinfo(iygrd,iflt)
      &                                37.*track(iyrhs,nfm2,iflt)-
      &                                 9.*track(iyrhs,nfm3,iflt))
 # ifdef SOLVE3D
-        track(izgrd,nfp1,iflt)=track(izgrd,nf,iflt)+
-     &                        dt/24.*(55.*track(izrhs,nf  ,iflt)-
+        track(izgrd,nfp1,iflt)=track(izgrd,nf,iflt)
+#if !defined SIGMA_FLOATS && !defined DEPTH_FLOATS
+     &                       + dt/24.*(55.*track(izrhs,nf  ,iflt)-
      &                                59.*track(izrhs,nfm1,iflt)+
      &                                37.*track(izrhs,nfm2,iflt)-
      &                                 9.*track(izrhs,nfm3,iflt))
-!        write(*,*) 'debug0', track(izgrd,nfp1,iflt)
-        track(izgrd,nfp1,iflt)=max(1.,min(float(N-1),
+#endif
+        track(izgrd,nfp1,iflt)=max(1.,min(float(N),
      &                     track(izgrd,nfp1,iflt)))
-!        write(*,*) 'debug1', track(izgrd,nfp1,iflt)
 # endif
       enddo
 
@@ -278,7 +245,7 @@ c    &     Tinfo(ixgrd,iflt), Tinfo(iygrd,iflt)
 # ifdef SOLVE3D
       call rhs_floats_mpi (u(START_2D_ARRAY,1,nnew), 
      &                 v(START_2D_ARRAY,1,nnew),
-     &                 W(START_2D_ARRAY,0),
+     &                 We(START_2D_ARRAY,0),
      &                           nfltmax, indx)
 
 # else
@@ -311,6 +278,7 @@ c    &     Tinfo(ixgrd,iflt), Tinfo(iygrd,iflt)
      &                  5.*track(iyrhs,nfm1,iflt)+
      &                     track(iyrhs,nfm2,iflt) )))
 # ifdef SOLVE3D
+#if !defined SIGMA_FLOATS && !defined DEPTH_FLOATS
         track(izgrd,nfp1,iflt)=1./270*(
      &          19.* track(izgrd,nfp1,iflt)+
      &         251.*(track(izgrd,nf,iflt)+ dt/24.*(
@@ -318,11 +286,55 @@ c    &     Tinfo(ixgrd,iflt), Tinfo(iygrd,iflt)
      &                 19.*track(izrhs,nf  ,iflt)-
      &                  5.*track(izrhs,nfm1,iflt)+
      &                     track(izrhs,nfm2,iflt) )))
+#endif
 
-!        write(*,*) 'debug2', track(izgrd,nfp1,iflt)
-        track(izgrd,nfp1,iflt)=max(1., min(float(N-1),
+        track(izgrd,nfp1,iflt)=max(1., min(float(N),
      &                      track(izgrd,nfp1,iflt)))
-!        write(*,*) 'debug3', track(izgrd,nfp1,iflt)
+
+#ifdef DEPTH_FLOATS
+!     find sigma level corresponding to initial depth to force the 
+!     float to stay at the same depth
+        zfloat=Tinfo(izgrd,iflt)
+
+        if (zfloat.lt.0.0) then
+          xfloat0=INT(track(ixgrd,nfp1,iflt))
+          d1=track(ixgrd,nfp1,iflt)-xfloat0
+          xfloat0=xfloat0-i_offset
+          yfloat0=INT(track(iygrd,nfp1,iflt))
+          d2=track(iygrd,nfp1,iflt)-yfloat0
+          yfloat0=yfloat0-j_offset
+          track(izgrd,nfp1,iflt)=0. ! default bottom value
+          summ=0.
+          do index1=0,1
+            xfloat=xfloat0+index1
+            do index2=0,1
+              yfloat=yfloat0+index2
+
+              temp=((1-index1)*(1-d1)+index1*d1)*
+     &               ((1-index2)*(1-d2)+index2*d2)
+              summ=summ+temp
+          
+              do k=N,1,-1
+
+                if ((z_w(xfloat,yfloat,k)-zfloat)*
+     &              (zfloat-z_w(xfloat,yfloat,k-1)).ge.0.0) then
+                  temp2=(FLOAT(k-1)+
+     &                  (zfloat-z_w(xfloat,yfloat,k-1))
+     &                  /Hz(xfloat,yfloat,k))
+                  track(izgrd,nfp1,iflt)=track(izgrd,nfp1,iflt)+temp2*temp
+                endif
+              enddo
+
+            enddo
+          enddo
+
+          if (summ .ne. 0) then 
+            track(izgrd,nfp1,iflt)=track(izgrd,nfp1,iflt)/summ
+          endif
+
+        endif
+
+#endif /* DEPTH_FLOATS */
 
 # endif
       enddo
@@ -356,36 +368,20 @@ c        enddo
 CDEBUG      write(*,*)'Tinfo(itstr)',Tinfo(itstr,iflt)
 CDEBUG      write(*,*)'Tinfo(igrd)',nint(Tinfo(igrd,iflt))
 CDEBUG      write(*,*)'level',level
-!        write(*,*) 'time', time
 
-!        if (nint(Tinfo(igrd,iflt)).eq.level .and.
         if ( trackinfo(3,iflt).eq.level .and. ! Agrif
      &       trackinfo(2,iflt).eq.mynode .and. ! MPI
      &       Tinfo(itstr,iflt).gt.cff1 .and.
      &       Tinfo(itstr,iflt).lt.cff2) then
 
-!       write(*,*) 'time', time
-!       write(*,*) 'Tinfo(itstr,iflt)', Tinfo(itstr,iflt)
-!# ifdef MPI
-!       node_float= mod(int((Tinfo(ixgrd,iflt)-0.5)/dble(Lm)),NP_XI)
-!       node_float= node_float
-!     &                 + int((Tinfo(iygrd,iflt)-0.5)/dble(Mm))*NP_XI
-!         if ( node_float .eq. mynode  ) then
-!         if ( nint(Tinfo(inode,iflt)) .eq. mynode  ) then
-! could also use trackinfo above
-!# endif
           trackinfo(1,iflt)=1 ! activate float
           nfltmax=nfltmax+1   ! Add newly released floats
           indx(nfltmax)=iflt  ! to the list
-!# ifdef MPI
-!         endif
-!# endif
         endif
       enddo
 
       do id=nfltmax_bak+1,nfltmax
         iflt=indx(id)
-!        fltgrd(iflt)=nint(Tinfo(igrd,iflt)) 
         track(ixgrd,0,iflt)=Tinfo(ixgrd,iflt)
         track(iygrd,0,iflt)=Tinfo(iygrd,iflt)
         track(ixgrd,1,iflt)=Tinfo(ixgrd,iflt)
@@ -395,9 +391,7 @@ CDEBUG      write(*,*)'level',level
         track(ixgrd,3,iflt)=Tinfo(ixgrd,iflt)
         track(iygrd,3,iflt)=Tinfo(iygrd,iflt)
         write(*,'(A20,I4,A10,F6.1,A10,I4)') 'release of float ',iflt,' at day ', 
-     &                           tdays ,' on node ',int(trackinfo(2,iflt))  
-!       write(*,*) 'position is (XA) ', track(ixgrd,i,iflt),
-!     & '    ', track(iygrd,i,iflt)
+     &                           tdays ,' on node ',int(trackinfo(2,iflt)) 
        i=0
 
 !     DETERMINATION OF FLOAT SIGMA LEVEL (WITH WEIGHTS) 
@@ -463,7 +457,7 @@ CDEBUG      write(*,*)'level',level
 # ifdef SOLVE3D
       call rhs_floats_mpi (u(START_2D_ARRAY,1,nnew),
      &                 v(START_2D_ARRAY,1,nnew),
-     &                 W(START_2D_ARRAY,0),
+     &                 We(START_2D_ARRAY,0),
      &                           nfltmax, indx)
 
 # else
@@ -555,6 +549,33 @@ CDEBUG      write(*,*)'level',level
      &                            ifsal, nfltmax, indx)
           endif
 #  endif
+
+          if (wrtflt(indxfltUV)) then
+            call interp_u3d_type_mpi (u(START_2D_ARRAY,1,nnew),
+     &                            ifu, nfltmax, indx)
+            call interp_v3d_type_mpi (v(START_2D_ARRAY,1,nnew),
+     &                            ifv, nfltmax, indx)
+          endif
+          if (wrtflt(indxfltAccel)) then
+            call interp_u3d_type_mpi (u(START_2D_ARRAY,1,nstp),
+     &                            0, nfltmax, indx)
+            trackaux(ifdudt,:)=( trackaux(ifu,:) - 
+     &                              trackaux(0,:))/dt
+            call interp_v3d_type_mpi (v(START_2D_ARRAY,1,nstp),
+     &                            0, nfltmax, indx)
+            trackaux(ifdvdt,:)=( trackaux(ifv,:) - 
+     &                              trackaux(0,:))/dt
+          endif
+          if (wrtflt(indxfltPres)) then
+            workr=0.
+            call prsgrd_tile (Istr,Iend,Jstr,Jend, 
+     &                  A3d(1,1,trd), A3d(1,2,trd), 
+     &                  workr(Istr-2:Iend+2,Jstr-2:Jend+2,:),
+     &                  A2d(1,1,trd), A2d(1,2,trd), A2d(1,3,trd),
+     &                  A2d(1,4,trd), A2d(1,5,trd), A2d(1,6,trd))
+            call interp_r3d_type_mpi (workr(START_2D_ARRAY,1),
+     &                            ifpres, nfltmax, indx)
+          endif
 # endif /* SOLVE3D */
 
           if (wrtflt(indxfltGrd)) then
@@ -579,7 +600,7 @@ CDEBUG      write(*,*)'level',level
 
 # ifdef AGRIF
         endif  !Agrif_laststep
-# endif AGRIF
+# endif /* AGRIF */
 
       endif  !diagfloats
 
@@ -701,7 +722,6 @@ c    &       ,' IBM ZOE = ', ibmdata(ibmzoe,iflt)
 
 #endif /* FLOATS */
 
-! aponte flt )
       return
       end
 

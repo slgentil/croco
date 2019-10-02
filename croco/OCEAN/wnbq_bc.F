@@ -191,8 +191,8 @@
 #  else           /* alternative to open */
         do k=1,N                                     ! Western edge closed
           do j=jstr,jend                             ! ======= ==== ======
-                                                     !  (no-slip: default)
-            qdmw_nbq(Istr-1,j,k)=0.           
+                                                     !  (no flux)
+            qdmw_nbq(Istr-1,j,k)=qdmw_nbq(Istr,j,k)
           enddo
         enddo
 
@@ -301,8 +301,8 @@
 #  else
         do k=1,N                                    ! Eastern edge closed
           do j=jstr,jend                            ! ======= ==== ======
-                                                    !  (no-slip: default)
-             qdmw_nbq(Iend+1,j,k)=0.
+                                                    !  (no flux)
+             qdmw_nbq(Iend+1,j,k)=qdmw_nbq(Iend,j,k)
           enddo
         enddo
 
@@ -415,8 +415,8 @@
 #  else
         do k=1,N                                     ! Southern edge closed
           do i=Istr,Iend                             ! ======== ==== ======
-                                                     !  (no-slip: default)
-            qdmw_nbq(i,Jstr-1,k)=0.
+                                                     !  (no flux)
+            qdmw_nbq(i,Jstr-1,k)=qdmw_nbq(i,Jstr,k)
           enddo
         enddo
 
@@ -526,8 +526,8 @@
 #  else
         do k=1,N                                      ! Northern edge closed
           do i=Istr,Iend                              ! ======== ==== ======
-                                                      !   (no-slip: default)
-            qdmw_nbq(i,Jend+1,k)=0.
+                                                      !   (no flux)
+            qdmw_nbq(i,Jend+1,k)=qdmw_nbq(i,Jend,k)
           enddo
         enddo
 #  endif

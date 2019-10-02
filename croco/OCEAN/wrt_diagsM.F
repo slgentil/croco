@@ -170,17 +170,40 @@
 !
 ! indxMHmix
 !
-           workr=MHmix(:,:,:,itrc)
+           workr=MHmix(:,:,:,itrc,nstp)
            call fillvalue3d(workr,nciddiaM,diaMHmix(itrc),
      &                      indxMHmix+itrc-1,
-     &                      record,ivar,type)  
+     &                      record,ivar,type)
+!
+! indxMHdiff
+!
+           workr=MHdiff(:,:,:,itrc)
+           call fillvalue3d(workr,nciddiaM,diaMHdiff(itrc),
+     &                      indxMHdiff+itrc-1,
+     &                      record,ivar,type)
 !
 ! indxMVmix
 !
            workr=MVmix(:,:,:,itrc)
            call fillvalue3d(workr,nciddiaM,diaMVmix(itrc),
      &                      indxMVmix+itrc-1,
-     &                      record,ivar,type)  
+     &                      record,ivar,type)
+!
+! indxMVmix2
+!
+           workr=MVmix2(:,:,:,itrc)
+           call fillvalue3d(workr,nciddiaM,diaMVmix2(itrc),
+     &                      indxMVmix2+itrc-1,
+     &                      record,ivar,type)
+!
+! indxMBaro
+!
+# if defined DIAGNOSTICS_BARO
+           workr=MBaro(:,:,:,itrc)
+           call fillvalue3d(workr,nciddiaM,diaMBaro(itrc),
+     &                      indxMBaro+itrc-1,
+     &                      record,ivar,type)
+# endif
 #if defined MRL_WCI
 !
 ! indxMvf
@@ -263,8 +286,13 @@
       write(*,*) 'MVadv(i,j,k,itrc)   ',MVadv(i,j,k,itrc)
       write(*,*) 'MCor(i,j,k,itrc)    ',MCor(i,j,k,itrc)
       write(*,*) 'MPrsgrd(i,j,k,itrc) ',MPrsgrd(i,j,k,itrc)
-      write(*,*) 'MHmix(i,j,k,itrc)   ',MHmix(i,j,k,itrc)
+      write(*,*) 'MHmix(i,j,k,itrc)   ',MHmix(i,j,k,itrc,nstp)
+      write(*,*) 'MHdiff(i,j,k,itrc)  ',MHdiff(i,j,k,itrc)
       write(*,*) 'MVmix(i,j,k,itrc)   ',MVmix(i,j,k,itrc)
+      write(*,*) 'MVmix2(i,j,k,itrc)  ',MVmix2(i,j,k,itrc)
+# if defined DIAGNOSTICS_BARO
+      write(*,*) 'MBaro(i,j,k,itrc) ',MBaro(i,j,k,itrc)
+# endif
 # ifdef MRL_WCI
       write(*,*) 'Mvf(i,j,k,itrc)     ',Mvf(i,j,k,itrc)
       write(*,*) 'Mbrk(i,j,k,itrc)    ',Mbrk(i,j,k,itrc)
@@ -282,8 +310,9 @@
      &                                  +  MVadv(i,j,k,itrc)
      &                                  +  MCor(i,j,k,itrc)
      &                                  +  MPrsgrd(i,j,k,itrc)
-     &                                  +  MHmix(i,j,k,itrc)
+     &                                  +  MHmix(i,j,k,itrc,nstp)
      &                                  +  MVmix(i,j,k,itrc)
+     &                                  +  MVmix2(i,j,k,itrc)
 # ifdef MRL_WCI
      &                                  +  Mvf(i,j,k,itrc)
      &                                  +  Mbrk(i,j,k,itrc)

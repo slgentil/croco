@@ -19,6 +19,8 @@
       common /nbq_log3/ SOUTH_INTER_NBQ
       logical NORTH_INTER_NBQ       
       common /nbq_log4/ NORTH_INTER_NBQ
+      logical M2bc_nbq_flag
+      common /nbq_M2bc/ M2bc_nbq_flag
 
 !********************************************************************** 
       integer iteration_nbq_max  
@@ -69,15 +71,11 @@
       common /nbq_qdmw_nbq/ qdmw_nbq
 
 !**********************************************************************       
-# ifdef MPI       
-      real thetadiv_nbq(GLOBAL_2D_ARRAY,0:N)
-# else
-      real thetadiv_nbq(GLOBAL_2D_ARRAY_EXT_NBQ,0:N)
-# endif      
+      real thetadiv_nbq(GLOBAL_2D_ARRAY,N)
       common /nbq_thetadiv_nbq/ thetadiv_nbq
-      real thetadiv2_nbq(GLOBAL_2D_ARRAY,0:N)
+      real thetadiv2_nbq(GLOBAL_2D_ARRAY,N)
       common /nbq_thetadiv2_nbq/ thetadiv2_nbq
-      real thetadiv3_nbq(GLOBAL_2D_ARRAY,0:N)
+      real thetadiv3_nbq(GLOBAL_2D_ARRAY,N)
       common /nbq_thetadiv3_nbq/ thetadiv3_nbq
 
 !**********************************************************************
@@ -110,6 +108,11 @@
       common /nbq_DU_nbq/ DU_nbq
       real DV_nbq(GLOBAL_2D_ARRAY)
       common /nbq_DV_nbq/ DV_nbq
+      real rho_grd(GLOBAL_2D_ARRAY,N)
+      common/nbq_rho_grd/rho_grd
+
+      real rho_bak(GLOBAL_2D_ARRAY,N)
+      common/nbq_rho_bak/rho_bak
 
 # ifdef NBQ_MASS
       real rho_nbq_avg1(GLOBAL_2D_ARRAY,0:N)
@@ -118,15 +121,6 @@
       common /nbq_rhobar/ rhobar_nbq
       real rhobar_nbq_avg1(GLOBAL_2D_ARRAY)
       common /nbq_rhobar_AVG1/ rhobar_nbq_avg1
-#  ifndef NBQ_ZETAW
-      real rhobar_nbq_int(GLOBAL_2D_ARRAY)
-      common /nbq_rhobar_int/ rhobar_nbq_int
-#  endif
-# endif
-
-# ifdef NBQ_ZETAW 
-      real rho_bak(GLOBAL_2D_ARRAY,N)
-      common/nbq_rho_bak/rho_bak
 # endif
 
       real ru_int_nbq_2d (GLOBAL_2D_ARRAY)  
@@ -140,37 +134,10 @@
       common /nbq_rvbar/ rvbar_nbq
 
 !**********************************************************************
-      real e(GLOBAL_2D_ARRAY)
-      common /nbq_e/ e
-      real eomn(GLOBAL_2D_ARRAY)
-      common /nbq_eomn/ eomn
-      real cosa(GLOBAL_2D_ARRAY)
-      common /nbq_cosa/ cosa
-      real sina(GLOBAL_2D_ARRAY)
-      common /nbq_sina/ sina
-
-!**********************************************************************
-      real Hzw_half_nbq(GLOBAL_2D_ARRAY,0:N)
-      common /grid_Hzw_half_nbq/ Hzw_half_nbq
-# ifndef NBQ_ZETAW
-      real zr_half_nbq(GLOBAL_2D_ARRAY,N)
-      common /grid_zr_half_nbq/ zr_half_nbq
-      real zw_half_nbq(GLOBAL_2D_ARRAY,0:N)
-      common /grid_zw_half_nbq/ zw_half_nbq     
-# endif    
-
-# if defined NBQ_MASS && !defined NBQ_ZETAW 
-       real Hzr_half_nbq(GLOBAL_2D_ARRAY,N)
-       common /grid_Hzr_half_nbq/ Hzr_half_nbq
-# endif
-
-      real zr_nbq(GLOBAL_2D_ARRAY,N,4)
-      common /nbq_zr/ zr_nbq
       real zw_nbq(GLOBAL_2D_ARRAY,0:N,4)
       common /nbq_zw/ zw_nbq
-
-      real Hz_bak2(GLOBAL_2D_ARRAY,1:N)
-      common /nbq_H_bak2/ Hz_bak2
+      real Hzw_half_nbq(GLOBAL_2D_ARRAY,0:N)
+      common /grid_Hzw_half_nbq/ Hzw_half_nbq
 
 # ifdef NBQ_HZCORRECT
        real Hz_correct(GLOBAL_2D_ARRAY,N)
@@ -180,9 +147,14 @@
       common/corr_Hz/Hz_corr
 #  endif
 # endif
-  
+
+# ifdef NBQ_HZ_PROGNOSTIC
+      real Hz_bak2(GLOBAL_2D_ARRAY,1:N)
+      common /nbq_H_bak2/ Hz_bak2
+# endif
+
 !**********************************************************************
-# ifdef NBQ_PERF
+# ifdef NBQ_GRID_SLOW
       real dthetadiv_nbqdz(GLOBAL_2D_ARRAY,0:N,2)
       common /nbq_nods3/ dthetadiv_nbqdz
       real dZdxq_w(GLOBAL_2D_ARRAY,0:N+1)
@@ -190,47 +162,21 @@
       real dZdyq_w(GLOBAL_2D_ARRAY,0:N+1)
       common /nbq_nods7/ dZdyq_w
 # else
-#  ifdef NBQ_ZETAW
       real dthetadiv_nbqdz(GLOBAL_2D_ARRAY)
       common /nbq_nods3/ dthetadiv_nbqdz
       real dZdxq_w(GLOBAL_2D_ARRAY,0:N+1)
       common /nbq_nods5/ dZdxq_w
       real dZdyq_w(GLOBAL_2D_ARRAY,0:N+1)
       common /nbq_nods7/ dZdyq_w
-#  endif
-# endif /* NBQ_PERF */
+# endif /* NBQ_GRID_SLOW */
 
 !**********************************************************************
-# ifdef NBQ_ZETAW
-      real wsurf_nbq(GLOBAL_2D_ARRAY,4)
-      common /nbq_wsurf/wsurf_nbq
+      real wsurf_nbq(GLOBAL_2D_ARRAY)
+      common /nbq_wsurf/ wsurf_nbq
       real usurf_nbq(GLOBAL_2D_ARRAY)
-      common /nbq_usurf/usurf_nbq
+      common /nbq_usurf/ usurf_nbq
       real vsurf_nbq(GLOBAL_2D_ARRAY)
-      common /nbq_vsurf/vsurf_nbq
-
-      integer :: kbak2,kold2
-      common /gridext1/kbak2,kold2
-
-      real cff4
-      common /com_cff4/ cff4
-      real cff5
-      common /com_cff5/ cff5
-      real cff6
-      common /com_cff6/ cff6
-      real cff7
-      common /com_cff7/ cff7
-      real cff8
-      common /com_cff8/ cff8
-      real cff9
-      common /com_cff9/ cff9
-      real cff10
-      common /com_cff10/ cff10
-
-      integer IstrU2,JstrV2
-      integer IstrR2,IendR2
-      integer JstrR2,JendR2
-# endif /* NBQ_ZETAW */
+      common /nbq_vsurf/ vsurf_nbq
 
 !**********************************************************************
 # if defined OBC_NBQ && defined OBC_NBQORLANSKI

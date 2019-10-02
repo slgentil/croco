@@ -88,7 +88,7 @@
         <field name="w_t_dirac" grid_ref="w_3D" > @w_t_diraca </field>
        </field_group>
      </file>
-     <file id="output_surf" name="file_surf" output_freq="1d" sync_freq="1d" split_freq="50d" >
+     <file id="output_surf" name="file_surf" output_freq="600s" sync_freq="1d" split_freq="50d" >
        <field_group id="surf_fields" operation="instant" >
         <field field_ref="zeta" name="ssh" grid_ref="rho_2D" />
         <field field_ref="temp" name="T" grid_ref="rho_3Dxy" />
@@ -169,5 +169,20 @@
   
   </context>
 
+  <!-- ========================================================================== -->
+  <!-- ========================================================================== -->
+
+  
+  <context id="xios">
+      <variable_definition>
+          <variable id="buffer_size"               type="integer">50000000</variable>
+          <variable id="buffer_server_factor_size" type="integer">2</variable>
+          <variable id="info_level"                type="integer">0</variable>
+          <variable id="using_server"              type="boolean">true</variable>
+          <variable id="using_oasis"               type="boolean">false</variable>
+          <variable id="oasis_codes_id"            type="string" >oceanx</variable>
+          <variable id="print_file"                type="bool"   >true</variable>
+      </variable_definition>
+  </context>
 </simulation>
 

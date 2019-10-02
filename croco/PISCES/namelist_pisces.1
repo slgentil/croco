@@ -57,7 +57,7 @@
    xkmort     =  1.E-7   ! half saturation constant for mortality
    ferat3     =  3.E-6   ! Fe/C in zooplankton 
    wsbio2     =  30.     ! Big particles sinking speed
-   ln_sink_new = .true.  ! Semi-Lagrangian advective flux algorithm.
+   ln_sink_new = .false.  ! Semi-Lagrangian advective flux algorithm.
    niter1max  =  10
    niter2max  =  50
 /
@@ -155,7 +155,7 @@
    ln_sedmeta  =  .true.   ! boolean for sediment metamodel from midlleburg (2006) 
    sedfeinput  =  1E-9     ! Coastal release of Iron
    dustsolub   =  0.014    ! Solubility of the dust
-   mfrac       =  1.0    ! Fe mineral fraction of dust
+   mfrac       =  0.035    ! Fe mineral fraction of dust
    wdust       =  2.0      ! Dust sinking speed
    diazolight  = 50        ! Diazotrophs sensitivity to light (W/m2)
    nitrfix     = 1.E-7     ! Nitrogen fixation rate

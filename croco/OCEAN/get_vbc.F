@@ -253,6 +253,25 @@
 #    endif
 #   endif
 #  endif /* BULK_FLUX */
+
+!
+!---------------------------------------------------------------
+!
+!---------------------------------------------------------------
+!
+
+#ifdef SEA_ICE_NOFLUX
+      do j=JstrR,JendR
+        do i=IstrR,IendR
+              if( t(i,j,N,nrhs,itemp) .le. -1.8 ) then
+                   stflx(i,j,itemp)=0.
+#   if defined LMD_SKPP || defined LMD_BKPP || defined GLS_MIX2017 || defined GLS_MIXING
+                   srflx(i,j)=0.
+#    endif
+              endif
+        enddo
+      enddo
+#endif
 !
 !---------------------------------------------------------------
 ! Flux correction to surface net heat flux.
@@ -296,6 +315,22 @@
         enddo
       enddo
 #  endif /* !BULK_EP */
+
+!
+!---------------------------------------------------------------
+!
+!---------------------------------------------------------------
+!
+
+!#ifdef SEA_ICE_NOFLUX
+!      do j=JstrR,JendR
+!        do i=IstrR,IendR
+!              if( t(i,j,N,nrhs,itemp) .le. -1.8 ) then
+!                   stflx(i,j,isalt)=0.
+!              endif
+!        enddo
+!      enddo
+!#endif
 !
 !--------------------------------------------------------------
 ! Flux correction to surface salt flux.
@@ -313,8 +348,12 @@
 !
       do j=JstrR,JendR
         do i=IstrR,IendR
-          stflx(i,j,isalt)=stflx(i,j,isalt)+
-     &                  dqdt(i,j)*(t(i,j,N,nrhs,isalt)-sss(i,j))
+          stflx(i,j,isalt)=stflx(i,j,isalt)
+# ifdef SFLX_CORR_COEF
+     &  -Hz(i,j,N)/(dSdt*day2sec)*(t(i,j,N,nrhs,isalt)-sss(i,j))
+# else
+     &                 +dqdt(i,j)*(t(i,j,N,nrhs,isalt)-sss(i,j))
+# endif
         enddo
       enddo
 #   endif

@@ -372,7 +372,7 @@
      &                                            lvar, text(1:lvar))
 # endif
            lvar=lenstr(vname(3,indxTHmix+itrc-1))
-           ierr=nf_put_att_text (ncid, diaTHmix(itrc), 'units', lvar,
+           ierr=nf_put_att_text (ncid, vidTHmix(itrc), 'units', lvar,
      &                             vname(3,indxTHmix+itrc-1)(1:lvar))
            lvar=lenstr(vname(4,indxTHmix+itrc-1))
            ierr=nf_put_att_text (ncid,vidTHmix(itrc), 'field',
@@ -397,7 +397,7 @@
      &       lvar, text(1:lvar))
 # endif
            lvar=lenstr(vname(3,indxTVmix+itrc-1))
-           ierr=nf_put_att_text (ncid, diaTVmix(itrc), 'units', lvar,
+           ierr=nf_put_att_text (ncid, vidTVmix(itrc), 'units', lvar,
      &                             vname(3,indxTVmix+itrc-1)(1:lvar))
            lvar=lenstr(vname(4,indxTVmix+itrc-1))
            ierr=nf_put_att_text (ncid,vidTVmix(itrc), 'field',
@@ -553,7 +553,7 @@
      &                                            lvar, text(1:lvar))
 # endif
            lvar=lenstr(vname(3,indxTHmix_mld+itrc-1))
-           ierr=nf_put_att_text (ncid,diaTHmix_mld(itrc), 'units', lvar,
+           ierr=nf_put_att_text (ncid,vidTHmix_mld(itrc), 'units', lvar,
      &                            vname(3,indxTHmix_mld+itrc-1)(1:lvar))
            lvar=lenstr(vname(4,indxTHmix_mld+itrc-1))
            ierr=nf_put_att_text (ncid,vidTHmix_mld(itrc), 'field',
@@ -578,7 +578,7 @@
      &       lvar, text(1:lvar))
 # endif
            lvar=lenstr(vname(3,indxTVmix_mld+itrc-1))
-           ierr=nf_put_att_text (ncid,diaTVmix_mld(itrc), 'units', lvar,
+           ierr=nf_put_att_text (ncid,vidTVmix_mld(itrc), 'units', lvar,
      &                            vname(3,indxTVmix_mld+itrc-1)(1:lvar))
            lvar=lenstr(vname(4,indxTVmix_mld+itrc-1))
            ierr=nf_put_att_text (ncid,vidTVmix_mld(itrc), 'field',
@@ -671,7 +671,7 @@
 ! ----- ---------- -----
 !
         ierr=nf_enddef(ncid)
-        write(stdout,'(6x,4A,1x,A,i4)') 
+        MPI_master_only write(stdout,'(6x,4A,1x,A,i4)')
 #ifdef AVRH
      &        'DEF_DIAG_AVG - Created ',
 #else      

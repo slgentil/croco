@@ -53,7 +53,7 @@ c     *        if (may_day_flag.ne.0) return    !-->  EXIT
             ierr=nf_inq_varid (ncidqbar,'temp_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'temp_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'temp_src_time', qbarname(1:lstr)
 c              goto 99           !--> ERROR
             endif
 #ifdef SALINITY
@@ -62,7 +62,7 @@ c              goto 99           !--> ERROR
             ierr=nf_inq_varid (ncidqbar,'salt_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'salt_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'salt_src_time', qbarname(1:lstr)
 c              goto 99           !--> ERROR
             endif
 #endif /* SALINITY  */ 
@@ -73,7 +73,7 @@ c              goto 99           !--> ERROR
             ierr=nf_inq_varid (ncidqbar,'no3_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'no3_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'no3_src_time', qbarname(1:lstr)
 c     goto 99           !--> ERROR
             endif
 !     
@@ -82,7 +82,7 @@ c     goto 99           !--> ERROR
             ierr=nf_inq_varid (ncidqbar,'phyto_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'phyto_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'phyto_src_time', qbarname(1:lstr)
 c     goto 99           !--> ERROR
             endif
 !     
@@ -91,7 +91,7 @@ c     goto 99           !--> ERROR
             ierr=nf_inq_varid (ncidqbar,'zoo_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'zoo_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'zoo_src_time', qbarname(1:lstr)
 c     goto 99           !--> ERROR
             endif
 !     
@@ -100,7 +100,7 @@ c     goto 99           !--> ERROR
             ierr=nf_inq_varid (ncidqbar,'chla_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'chla_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'chla_src_time', qbarname(1:lstr)
 c     goto 99           !--> ERROR            
             endif
 !     
@@ -110,7 +110,7 @@ c     goto 99           !--> ERROR
             ierr=nf_inq_varid (ncidqbar, 'o2_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'o2_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'o2_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
 #  endif
@@ -122,7 +122,7 @@ c     goto 99                                     !--> ERROR
             ierr=nf_inq_varid (ncidqbar,'det_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'det_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'det_src_time', qbarname(1:lstr)
 c     goto 99           !--> ERROR
             endif
 # endif
@@ -130,26 +130,26 @@ c     goto 99           !--> ERROR
 # ifdef BIO_N2ChlPZD2
           elseif (itrc.eq.iNH4_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'nh4_src_time', tsrc_tid(itrc))
+            ierr=nf_inq_varid (ncidqbar, 'nh4_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'nh4_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'nh4_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iDet1) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'det1_src_time', tsrc_tid(itrc))
+            ierr=nf_inq_varid (ncidqbar, 'det1_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'det1_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'det1_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif             
           elseif (itrc.eq.iDet2) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'det2_src_time', tsrc_tid(itrc))
+            ierr=nf_inq_varid (ncidqbar, 'det2_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'det2_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'det2_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
 # endif
@@ -159,7 +159,7 @@ c     goto 99                                     !--> ERROR
             ierr=nf_inq_varid (ncidqbar,'no3_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'no3_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'no3_src_time', qbarname(1:lstr)
 c     goto 99           !--> ERROR
             endif
           elseif (itrc.eq.iNO2_) then
@@ -167,15 +167,15 @@ c     goto 99           !--> ERROR
             ierr=nf_inq_varid (ncidqbar,'no2_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'no2_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'no2_src_time', qbarname(1:lstr)
 c     goto 99           !--> ERROR
             endif
           elseif (itrc.eq.iNH4_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'nh4_src_time', tsrc_tid(itrc))
+            ierr=nf_inq_varid (ncidqbar, 'nh4_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'nh4_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'nh4_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iPhy1) then
@@ -184,7 +184,7 @@ c     goto 99                                     !--> ERROR
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'sphyto_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'sphyto_src_time', qbarname(1:lstr)
 c     goto 99           !--> ERROR
             endif
           elseif (itrc.eq.iPhy2) then
@@ -193,7 +193,7 @@ c     goto 99           !--> ERROR
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'lphyto_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'lphyto_src_time', qbarname(1:lstr)
 c     goto 99           !--> ERROR
             endif
           elseif (itrc.eq.iZoo1) then
@@ -201,7 +201,7 @@ c     goto 99           !--> ERROR
             ierr=nf_inq_varid (ncidqbar,'szoo_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'szoo_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'szoo_src_time', qbarname(1:lstr)
 c     goto 99           !--> ERROR
             endif
           elseif (itrc.eq.iZoo2) then
@@ -209,28 +209,28 @@ c     goto 99           !--> ERROR
             ierr=nf_inq_varid (ncidqbar,'lzoo_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'lzoo_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'lzoo_src_time', qbarname(1:lstr)
 c     goto 99           !--> ERROR
             endif
           elseif (itrc.eq.iDet1) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'det1_src_time', tsrc_tid(itrc))
+            ierr=nf_inq_varid (ncidqbar, 'det1_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'det1_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'det1_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif             
           elseif (itrc.eq.iDet2) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'det2_src_time', tsrc_tid(itrc))
+            ierr=nf_inq_varid (ncidqbar, 'det2_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'det2_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'det2_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iDON) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'don_src_time', tsrc_tid(itrc))
+            ierr=nf_inq_varid (ncidqbar, 'don_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
               write(stdout,3) 'don_src_time', qbarname(1:lstr)
@@ -238,19 +238,19 @@ c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iO2) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (ncidclm, 'o2_src_time', tsrc_tid(itrc))
+            ierr=nf_inq_varid (ncidqbar, 'o2_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'o2_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'o2_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
 #   ifdef NITROUS_OXIDE
           elseif (itrc.eq.iN2O) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (ncidclm, 'n2o_src_time', tsrc_tid(itrc))
+            ierr=nf_inq_varid (ncidqbar, 'n2o_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'n2o_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'n2o_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
 #   endif
@@ -261,221 +261,221 @@ c     goto 99                                     !--> ERROR
             ierr=nf_inq_varid (ncidqbar,'no3_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'no3_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'no3_src_time', qbarname(1:lstr)
 c     goto 99           !--> ERROR
             endif
           elseif (itrc.eq.iDIC_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'dic_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'dic_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'dic_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'dic_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iTAL_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'talk_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'talk_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'talk_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'talk_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iOXY_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'o2_src_time', tsrc_tid(itrc))
+            ierr=nf_inq_varid (ncidqbar, 'o2_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'o2_src_time', qbarname(1:lstr)
+              MPI_master_only  write(stdout,3) 'o2_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iCAL_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'cal_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'cal_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'cal_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'cal_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iPO4_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'po4_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'po4_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'po4_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'po4_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iPOC_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'poc_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'poc_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'poc_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'poc_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iSIL_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'si_src_time', tsrc_tid(itrc))
+            ierr=nf_inq_varid (ncidqbar, 'si_src_time', tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'si_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'si_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iPHY_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'phy_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'phy_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'phy_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'phy_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iZOO_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'zoo_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'zoo_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'zoo_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'zoo_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iDOC_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'doc_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'doc_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'doc_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'doc_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iDIA_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'dia_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'dia_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'dia_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'dia_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iMES_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'mes_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'mes_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'mes_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'mes_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iBSI_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'bsi_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'bsi_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'bsi_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'bsi_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iFER_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'fer_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'fer_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'fer_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'fer_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iBFE_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'bfe_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'bfe_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'bfe_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'bfe_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iGOC_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'goc_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'goc_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'goc_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'goc_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iSFE_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'sfe_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'sfe_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'sfe_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'sfe_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iDFE_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'dfe_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'dfe_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'dfe_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'dfe_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iDSI_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'dsi_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'dsi_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'dsi_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'dsi_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iNFE_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'nfe_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'nfe_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'nfe_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'nfe_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iNCH_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'nch_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'nch_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'nch_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'nch_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iDCH_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'dch_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'dch_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'dch_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'dch_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iNO3_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'no3_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'no3_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'no3_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'no3_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
           elseif (itrc.eq.iNH4_) then
             got_tsrc(itrc)=.true.
-            ierr=nf_inq_varid (tsrc_id, 'nh4_src_time', 
+            ierr=nf_inq_varid (ncidqbar, 'nh4_src_time', 
      &           tsrc_tid(itrc))
             if (ierr .ne. nf_noerr) then
               got_tsrc(itrc)=.false.
-              write(stdout,3) 'nh4_src_time', qbarname(1:lstr)
+              MPI_master_only write(stdout,3) 'nh4_src_time', qbarname(1:lstr)
 c     goto 99                                     !--> ERROR
             endif
             

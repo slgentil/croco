@@ -90,68 +90,67 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
      &                          /dble(Lm)),NP_XI)
                 node_float= node_float
      &                 + floor((track(iygrd,nf,iflt)-0.5)
-     &                       /dble(Mm))*NP_XI
+     &                       /dble(Mm ))*NP_XI
                 if ( node_float .eq. p_W ) then
-                  write(*,*) 'MessPassFloats: 1.1',mynode, node_float,iflt
+C                   write(*,'(A,i4,A,i4,A,i4)') 'exchange float number ',
+C      &                 iflt,' from proc ',mynode,' to proc ',p_W            
                   if (i0+Npts .ge. Nptsmax) then
-                    write(*,*) 'exchange_floats: increase Nptsmax >',i0+Npts
+                   write(*,*)'exchange_floats:increase Nptsmax>',i0+Npts
                     call MPI_Finalize (ierr)
                     stop
-                endif
-                ! iflt
-                ibuf_sndW(i0+1) = dble(iflt)
-                i0=i0+1
-                ! track EW periodic
-                if (ii == 0) then
-                  do i=0,NFT 
-                    track(ixgrd,i,iflt) = 
-     &                 modulo( (track(ixgrd,i,iflt)+dble(LLm))+float(LLm)/2.,
-     &                     float(LLm) ) - float(LLm)/2. + float(LLm)
-                  enddo 
-                endif         
-                do j=1,NFV
-                  do i=0,NFT
-                    ibuf_sndW(i0+j+i*NFV) = track(j,i,iflt)
+                  endif
+                  ! iflt
+                  ibuf_sndW(i0+1) = dble(iflt)
+                  i0=i0+1
+                  ! track EW periodic
+                  if (ii == 0 .and. track(ixgrd,nf,iflt) < iminmpi) then
+                    do i=0,NFT 
+                     track(ixgrd,i,iflt)=track(ixgrd,i,iflt)+dble(LLm-1)
+                    enddo 
+                  endif         
+                  do j=1,NFV
+                    do i=0,NFT
+                      ibuf_sndW(i0+j+i*NFV) = track(j,i,iflt)
+                    enddo
                   enddo
-                enddo
-                i0=i0+NFV*(NFT+1)
-                ! trackaux
-                do j=1,NDIAGS
-                  ibuf_sndW(i0+j) = trackaux(j,iflt)
-                enddo
-                i0=i0+NDIAGS
-                ! update node number
-                trackinfo(2,iflt)=node_float
-                ! trackinfo
-                do j=1,3
-                  ibuf_sndW(i0+j) = dble(trackinfo(j,iflt))
-                enddo
-                i0=i0+3
-                ! number of floats exchanged
-                ifltmax=ifltmax+1
+                  i0=i0+NFV*(NFT+1)
+                  ! trackaux
+                  do j=1,NDIAGS
+                    ibuf_sndW(i0+j) = trackaux(j,iflt)
+                  enddo
+                  i0=i0+NDIAGS
+                  ! update node number
+                  trackinfo(2,iflt)=node_float
+                  ! trackinfo
+                  do j=1,3
+                    ibuf_sndW(i0+j) = dble(trackinfo(j,iflt))
+                  enddo
+                  i0=i0+3
+                  ! number of floats exchanged
+                  ifltmax=ifltmax+1
 
+                endif
               endif
-            endif
-          enddo                 
+            enddo                 
           
-          ibuf_sndW(1)=dble(ifltmax)
-          call MPI_Irecv (ibuf_revW, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                        p_W, 2, ocean_grid_comm, req(1), ierr)  
-          if (ierr .ne. 0) then
-             call MPI_Error_string(ierr,string_error,string_len)
-             print*,'---> MessPassFloats: 1.1 (recv):',string_error
-             call MPI_Finalize (ierr)
-             stop
-          endif      
-          call MPI_Send  (ibuf_sndW, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                        p_W, 1, ocean_grid_comm,         ierr)  
-          if (ierr .ne. 0) then
-             call MPI_Error_string(ierr,string_error,string_len)
-             print*,'---> MessPassFloats: 1.1 (send):',string_error
-             call MPI_Finalize (ierr)
-             stop
-          endif       
-         endif
+            ibuf_sndW(1)=dble(ifltmax)
+            call MPI_Irecv (ibuf_revW, Nptsmax, MPI_DOUBLE_PRECISION,
+     &                        p_W, 2, MPI_COMM_WORLD, req(1), ierr)  
+            if (ierr .ne. 0) then
+               call MPI_Error_string(ierr,string_error,string_len)
+               print*,'---> MessPassFloats: 1.1 (recv):',string_error
+               call MPI_Finalize (ierr)
+               stop
+            endif      
+            call MPI_Send  (ibuf_sndW, Nptsmax, MPI_DOUBLE_PRECISION,
+     &                        p_W, 1, MPI_COMM_WORLD,         ierr)  
+            if (ierr .ne. 0) then
+               call MPI_Error_string(ierr,string_error,string_len)
+               print*,'---> MessPassFloats: 1.1 (send):',string_error
+               call MPI_Finalize (ierr)
+               stop
+            endif       
+          endif
         else
           if (EAST_INTER) then
             ifltmax=0
@@ -165,9 +164,10 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
      &                 + int((track(iygrd,nf,iflt)-0.5)
      &                       /dble(Mm))*NP_XI
                 if ( node_float .eq. p_E ) then
-                  write(*,*) 'MessPassFloats: 1.2', mynode, node_float, iflt
+C                   write(*,'(A,i4,A,i4,A,i4)') 'exchange float number ',
+C      &                 iflt,' from proc ',mynode,' to proc ',p_E    
                   if (i0+Npts .ge. Nptsmax) then
-                    write(*,*) 'exchange_floats: increase Nptsmax >',i0+Npts
+                   write(*,*)'exchange_floats:increase Nptsmax>',i0+Npts
                     call MPI_Finalize (ierr)
                     stop
                   endif
@@ -175,11 +175,9 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
                   ibuf_sndE(i0+1) = dble(iflt)
                   i0=i0+1
                   ! track EW periodic
-                  if (ii == NP_XI-1) then  
+                  if (ii == NP_XI-1 .and. track(ixgrd,nf,iflt)>imaxmpi) then 
                     do i=0,NFT 
-                      track(ixgrd,i,iflt) = 
-     &                   modulo( (track(ixgrd,i,iflt)-dble(LLm))+float(LLm)/2.,
-     &                     float(LLm) )-float(LLm)/2.
+                     track(ixgrd,i,iflt)=track(ixgrd,i,iflt)-dble(LLm-1)
                     enddo    
                   endif         
                   do j=1,NFV
@@ -208,7 +206,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
             enddo
             ibuf_sndE(1)=dble(ifltmax)
             call MPI_Irecv (ibuf_revE, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                        p_E, 1, ocean_grid_comm, req(2), ierr) 
+     &                        p_E, 1, MPI_COMM_WORLD, req(2), ierr) 
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.2 (send):',string_error
@@ -216,7 +214,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
               stop
             endif             
             call MPI_Send  (ibuf_sndE, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                         p_E, 2, ocean_grid_comm,         ierr)  
+     &                         p_E, 2, MPI_COMM_WORLD,         ierr)  
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.2 (send):',string_error
@@ -239,16 +237,22 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
      &                 + int((track(iygrd,nf,iflt)-0.5)
      &                       /dble(Mm))*NP_XI
                 if ( node_float .eq. p_S ) then
-                  write(*,*) 'MessPassFloats: 1.3', mynode, node_float, iflt
+C                   write(*,'(A,i4,A,i4,A,i4)') 'exchange float number ',
+C      &                 iflt,' from proc ',mynode,' to proc ',p_S    
                   if (i0+Npts .ge. Nptsmax) then
-                    write(*,*) 'exchange_floats: increase Nptsmax >',i0+Npts
+                   write(*,*)'exchange_floats:increase Nptsmax>',i0+Npts
                     call MPI_Finalize (ierr)
                     stop
                   endif             
                   ! iflt
                   ibuf_sndS(i0+1) = dble(iflt)
                   i0=i0+1
-                  ! track NS periodic à faire
+                  ! track NS periodic
+                  if (jj == 0 .and. track(iygrd,nf,iflt) < jminmpi) then
+                    do i=0,NFT 
+                     track(iygrd,i,iflt)=track(iygrd,i,iflt)+dble(MMm-1)
+                    enddo 
+                  endif         
             
                   do j=1,NFV
                     do i=0,NFT
@@ -276,7 +280,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
             enddo
             ibuf_sndS(1)=dble(ifltmax)
             call MPI_Irecv (ibuf_revS, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                        p_S, 4, ocean_grid_comm, req(3), ierr) 
+     &                        p_S, 4, MPI_COMM_WORLD, req(3), ierr) 
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.3 (send):',string_error
@@ -284,7 +288,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
               stop
             endif             
             call MPI_Send  (ibuf_sndS, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                        p_S, 3, ocean_grid_comm,         ierr)
+     &                        p_S, 3, MPI_COMM_WORLD,         ierr)
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.3 (send):',string_error
@@ -305,17 +309,22 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
      &                 + int((track(iygrd,nf,iflt)-0.5)
      &                       /dble(Mm))*NP_XI
                 if ( node_float .eq. p_N ) then
-                  write(*,*) 'MessPassFloats: 1.4', mynode, node_float, iflt
+C                   write(*,'(A,i4,A,i4,A,i4)') 'exchange float number ',
+C      &                 iflt,' from proc ',mynode,' to proc ',p_N    
                   if (i0+Npts .ge. Nptsmax) then
-                    write(*,*) 'exchange_floats: increase Nptsmax >',i0+Npts
+                   write(*,*)'exchange_floats:increase Nptsmax>',i0+Npts
                     call MPI_Finalize (ierr)
                     stop
                   endif             
                   ! iflt
                   ibuf_sndN(i0+1) = dble(iflt)
                   i0=i0+1
-                  ! track NS periodic a faire
-    
+                  ! track NS periodic
+                  if (jj == NP_ETA-1 .and. track(iygrd,nf,iflt)>jmaxmpi) then 
+                    do i=0,NFT 
+                     track(iygrd,i,iflt)=track(iygrd,i,iflt)-dble(MMm-1)
+                    enddo    
+                  endif         
                   do j=1,NFV
                     do i=0,NFT
                       ibuf_sndN(i0+j+i*NFV) = track(j,i,iflt)
@@ -342,7 +351,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
             enddo
             ibuf_sndN(1)=dble(ifltmax)
             call MPI_Irecv (ibuf_revN, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                         p_N, 3, ocean_grid_comm, req(4), ierr) 
+     &                         p_N, 3, MPI_COMM_WORLD, req(4), ierr) 
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.4 (send):',string_error
@@ -350,7 +359,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
               stop
             endif          
             call MPI_Send  (ibuf_sndN, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                         p_N, 4, ocean_grid_comm,         ierr)
+     &                         p_N, 4, MPI_COMM_WORLD,         ierr)
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.4 (send):',string_error
@@ -377,25 +386,29 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
      &                 + int((track(iygrd,nf,iflt)-0.5)
      &                       /dble(Mm))*NP_XI
                 if ( node_float .eq. p_SW ) then
-                  write(*,*) 'MessPassFloats: 1.5', mynode, node_float, iflt
+C                   write(*,'(A,i4,A,i4,A,i4)') 'exchange float number ',
+C      &                 iflt,' from proc ',mynode,' to proc ',p_SW    
                   if (i0+Npts .ge. Nptsmax) then
-                     write(*,*) 'exchange_floats: increase Nptsmax >',i0+Npts
+                   write(*,*)'exchange_floats:increase Nptsmax>',i0+Npts
                      call MPI_Finalize (ierr)
                      stop
                   endif             
                   ! iflt
                   ibuf_sndSW(i0+1) = dble(iflt)
                   i0=i0+1
-                  
-                  ! track if EW periodic
-                  if (ii == 0) then
+
+                  ! track EW periodic
+                  if (ii == 0 .and. track(ixgrd,nf,iflt) < iminmpi) then
                     do i=0,NFT 
-                      track(ixgrd,i,iflt) = 
-     &                  modulo( (track(ixgrd,i,iflt)+dble(LLm))+float(LLm)/2.,
-     &                     float(LLm) ) - float(LLm)/2. + float(LLm)
+                     track(ixgrd,i,iflt)=track(ixgrd,i,iflt)+dble(LLm-1)
                     enddo 
-                  endif                  
-                  ! track if NS periodic a faire
+                  endif  
+                  ! track NS periodic
+                  if (jj == 0 .and. track(iygrd,nf,iflt) < jminmpi) then
+                    do i=0,NFT 
+                     track(iygrd,i,iflt)=track(iygrd,i,iflt)+dble(MMm-1)
+                    enddo 
+                  endif          
    
                   do j=1,NFV
                      do i=0,NFT
@@ -424,7 +437,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
             ibuf_sndSW(1)=dble(ifltmax)
 
             call MPI_Irecv (ibuf_revSW, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                         p_SW, 6, ocean_grid_comm, req(5), ierr) 
+     &                         p_SW, 6, MPI_COMM_WORLD, req(5), ierr) 
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.5 (send):',string_error
@@ -432,7 +445,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
               stop
             endif          
             call MPI_Send  (ibuf_sndSW, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                         p_SW, 5, ocean_grid_comm,         ierr)
+     &                         p_SW, 5, MPI_COMM_WORLD,         ierr)
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.5 (send):',string_error
@@ -453,24 +466,28 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
      &                 + int((track(iygrd,nf,iflt)-0.5)
      &                       /dble(Mm))*NP_XI
                 if ( node_float .eq. p_NE ) then
-                  write(*,*) 'MessPassFloats: 1.6', mynode, node_float, iflt
+C                   write(*,'(A,i4,A,i4,A,i4)') 'exchange float number ',
+C      &                 iflt,' from proc ',mynode,' to proc ',p_NE    
                   if (i0+Npts .ge. Nptsmax) then
-                     write(*,*) 'exchange_floats: increase Nptsmax >',i0+Npts
+                   write(*,*)'exchange_floats:increase Nptsmax>',i0+Npts
                      call MPI_Finalize (ierr)
                      stop
                   endif             
                   ! iflt
                   ibuf_sndNE(i0+1) = dble(iflt)
                   i0=i0+1
-                  ! track EW periodic 
-                  if (ii == NP_XI-1) then  
+                  ! track EW periodic
+                  if (ii == NP_XI-1 .and. track(ixgrd,nf,iflt)>imaxmpi) then 
                     do i=0,NFT 
-                      track(ixgrd,i,iflt) = 
-     &                  modulo( (track(ixgrd,i,iflt)-dble(LLm))+float(LLm)/2.,
-     &                     float(LLm) )-float(LLm)/2.
+                     track(ixgrd,i,iflt)=track(ixgrd,i,iflt)-dble(LLm-1)
                     enddo    
-                  endif                   
-                  ! track NS periodic a faire
+                  endif         
+                  ! track NS periodic
+                  if (jj == NP_ETA-1 .and. track(iygrd,nf,iflt)>jmaxmpi) then 
+                    do i=0,NFT 
+                     track(iygrd,i,iflt)=track(iygrd,i,iflt)-dble(MMm-1)
+                    enddo    
+                  endif         
     
                   do j=1,NFV
                      do i=0,NFT
@@ -499,7 +516,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
             ibuf_sndNE(1)=dble(ifltmax)
 
             call MPI_Irecv (ibuf_revNE, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                         p_NE, 5, ocean_grid_comm, req(6), ierr) 
+     &                         p_NE, 5, MPI_COMM_WORLD, req(6), ierr) 
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.6 (send):',string_error
@@ -507,7 +524,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
               stop
             endif          
             call MPI_Send  (ibuf_sndNE, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                         p_NE, 6, ocean_grid_comm,         ierr)
+     &                         p_NE, 6, MPI_COMM_WORLD,         ierr)
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.6 (send):',string_error
@@ -532,24 +549,28 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
      &                 + int((track(iygrd,nf,iflt)-0.5)
      &                       /dble(Mm))*NP_XI
                 if ( node_float .eq. p_SE ) then
-                  write(*,*) 'MessPassFloats: 1.7', mynode, node_float, iflt
+C                   write(*,'(A,i4,A,i4,A,i4)') 'exchange float number ',
+C      &                 iflt,' from proc ',mynode,' to proc ',p_SE    
                   if (i0+Npts .ge. Nptsmax) then
-                     write(*,*) 'exchange_floats: increase Nptsmax >',i0+Npts
+                   write(*,*)'exchange_floats:increase Nptsmax>',i0+Npts
                      call MPI_Finalize (ierr)
                      stop
                   endif             
                   ! iflt
                   ibuf_sndSE(i0+1) = dble(iflt)
                   i0=i0+1
-                  ! track EW periodic 
-                  if (ii == NP_XI-1) then  
-                    do i=0,NFT 
-                      track(ixgrd,i,iflt) = 
-     &                  modulo( (track(ixgrd,i,iflt)-dble(LLm))+float(LLm)/2.,
-     &                     float(LLm) )-float(LLm)/2.
-                    enddo    
-                  endif                   
                   ! track NS periodic
+                  if (jj == 0 .and. track(iygrd,nf,iflt) < jminmpi) then
+                    do i=0,NFT 
+                     track(iygrd,i,iflt)=track(iygrd,i,iflt)+dble(MMm-1)
+                    enddo 
+                  endif      
+                  ! track EW periodic
+                  if (ii == NP_XI-1 .and. track(ixgrd,nf,iflt)>imaxmpi) then 
+                    do i=0,NFT 
+                     track(ixgrd,i,iflt)=track(ixgrd,i,iflt)-dble(LLm-1)
+                    enddo    
+                  endif            
   
                   do j=1,NFV
                      do i=0,NFT
@@ -578,7 +599,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
             ibuf_sndSE(1)=dble(ifltmax)
 
             call MPI_Irecv (ibuf_revSE, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                         p_SE, 8, ocean_grid_comm, req(7), ierr) 
+     &                         p_SE, 8, MPI_COMM_WORLD, req(7), ierr) 
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.7 (send):',string_error
@@ -586,7 +607,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
               stop
             endif          
             call MPI_Send  (ibuf_sndSE, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                         p_SE, 7, ocean_grid_comm,         ierr)
+     &                         p_SE, 7, MPI_COMM_WORLD,         ierr)
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.7 (send):',string_error
@@ -608,24 +629,28 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
      &                 + int((track(iygrd,nf,iflt)-0.5)
      &                       /dble(Mm))*NP_XI
                 if ( node_float .eq. p_NW ) then
-                  write(*,*) 'MessPassFloats: 1.8', mynode, node_float, iflt
+C                   write(*,'(A,i4,A,i4,A,i4)') 'exchange float number ',
+C      &                 iflt,' from proc ',mynode,' to proc ',p_NW    
                   if (i0+Npts .ge. Nptsmax) then
-                     write(*,*) 'exchange_floats: increase Nptsmax >',i0+Npts
+                   write(*,*)'exchange_floats:increase Nptsmax>',i0+Npts
                      call MPI_Finalize (ierr)
                      stop
                   endif             
                   ! iflt
                   ibuf_sndNW(i0+1) = dble(iflt)
                   i0=i0+1
-                  ! track EW periodic
-                  if (ii == 0) then
+                  ! track NS periodic
+                  if (jj == NP_ETA-1 .and. track(iygrd,nf,iflt)>jmaxmpi) then 
                     do i=0,NFT 
-                      track(ixgrd,i,iflt) = 
-     &                  modulo( (track(ixgrd,i,iflt)+dble(LLm))+float(LLm)/2.,
-     &                     float(LLm) ) - float(LLm)/2. + float(LLm)
+                     track(iygrd,i,iflt)=track(iygrd,i,iflt)-dble(MMm-1)
+                    enddo    
+                  endif         
+                  ! track EW periodic
+                  if (ii == 0 .and. track(ixgrd,nf,iflt) < iminmpi) then
+                    do i=0,NFT 
+                     track(ixgrd,i,iflt)=track(ixgrd,i,iflt)+dble(LLm-1)
                     enddo 
-                  endif                   
-                  ! track NS periodic a faire
+                  endif         
   
                   do j=1,NFV
                      do i=0,NFT
@@ -654,7 +679,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
             ibuf_sndNW(1)=dble(ifltmax)
 
             call MPI_Irecv (ibuf_revNW, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                         p_NW, 7, ocean_grid_comm, req(8), ierr) 
+     &                         p_NW, 7, MPI_COMM_WORLD, req(8), ierr) 
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.8 (send):',string_error
@@ -662,7 +687,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
               stop
             endif          
             call MPI_Send  (ibuf_sndNW, Nptsmax, MPI_DOUBLE_PRECISION,
-     &                         p_NW, 8, ocean_grid_comm,         ierr)
+     &                         p_NW, 8, MPI_COMM_WORLD,         ierr)
             if (ierr .ne. 0) then
               call MPI_Error_string(ierr,string_error,string_len)
               print*,'---> MessPassFloats: 1.8 (send):',string_error
@@ -686,7 +711,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
         endif
         ifltmax=nint(ibuf_revW(1))        
         if (ifltmax .ge. 1) then
-          write(*,*) 'MessPassFloats: 2.1', mynode, p_W
+C           write(*,*) 'MessPassFloats: 2.1', mynode, p_W
           i0=1
           do k=1,ifltmax
             ! iflt
@@ -723,7 +748,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
         endif                
         ifltmax=nint(ibuf_revE(1))
         if (ifltmax .ge. 1) then
-          write(*,*) 'MessPassFloats: 2.2', mynode, p_E
+C           write(*,*) 'MessPassFloats: 2.2', mynode, p_E
           i0=1
           do k=1,ifltmax
             ! iflt
@@ -759,7 +784,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
         endif     
         ifltmax=nint(ibuf_revS(1))
         if (ifltmax .ge. 1) then
-          write(*,*) 'MessPassFloats: 2.3', mynode, p_S
+C           write(*,*) 'MessPassFloats: 2.3', mynode, p_S
           i0=1
           do k=1,ifltmax
             ! iflt
@@ -796,7 +821,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
         endif            
         ifltmax=nint(ibuf_revN(1))
         if (ifltmax .ge. 1) then
-          write(*,*) 'MessPassFloats: 2.4', mynode, p_N
+C           write(*,*) 'MessPassFloats: 2.4', mynode, p_N
           i0=1
           do k=1,ifltmax
             ! iflt
@@ -836,7 +861,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
         endif            
         ifltmax=nint(ibuf_revSW(1))
         if (ifltmax .ge. 1) then
-          write(*,*) 'MessPassFloats: 2.5', mynode, p_SW
+C           write(*,*) 'MessPassFloats: 2.5', mynode, p_SW
           i0=1
           do k=1,ifltmax
             ! iflt
@@ -873,7 +898,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
         endif            
         ifltmax=nint(ibuf_revNE(1))
         if (ifltmax .ge. 1) then
-          write(*,*) 'MessPassFloats: 2.6', mynode, p_NE
+C           write(*,*) 'MessPassFloats: 2.6', mynode, p_NE
           i0=1
           do k=1,ifltmax
             ! iflt
@@ -910,7 +935,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
         endif            
         ifltmax=nint(ibuf_revSE(1))
         if (ifltmax .ge. 1) then
-          write(*,*) 'MessPassFloats: 2.7', mynode, p_SE
+C           write(*,*) 'MessPassFloats: 2.7', mynode, p_SE
           i0=1
           do k=1,ifltmax
             ! iflt
@@ -947,7 +972,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
         endif            
         ifltmax=nint(ibuf_revNW(1))
         if (ifltmax .ge. 1) then
-          write(*,*) 'MessPassFloats: 2.8', mynode, p_NW
+C           write(*,*) 'MessPassFloats: 2.8', mynode, p_NW
           i0=1
           do k=1,ifltmax
             ! iflt
@@ -974,7 +999,7 @@ CSDISTRIBUTE_RESHAPE A(BLOCK_PATTERN) BLOCK_CLAUSE
         endif
       endif
 
-      call MPI_Barrier(ocean_grid_comm,ierr)
+      call MPI_Barrier(MPI_COMM_WORLD,ierr)
 
 #else
       subroutine exchange_floats_empty

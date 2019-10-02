@@ -8,133 +8,6 @@
 # or
 #        make depend
 #
-# WARNING: File is not found:  module_parallel_nbq.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  module_nbq.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  module_interface_oa.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  xios.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  sbc_oce.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  module_nh.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  netcdf.inc
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  Agrif_Grids.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  SetNumberofcells.h
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  GetNumberofcells.h
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  include_use_Alloc_agrif.h
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  allocations_calls_agrif.h
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  modtype_agrif.h
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  probdim_agrif.h
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  keys_agrif.h
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  param.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  Agrif_Util.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  Agrif_UTIL.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  parameter.h
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  mod_prism.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  mod_prism_proto.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.Basin
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.Canyon_A
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.Canyon_B
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.Equator
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.Grav_adj
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.Innershelf
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.River
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.Seamount
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.Shelfront
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.Soliton
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.Overflow
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.Upwelling
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.Vortex
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  etalon_data.h.Jet
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  AGRIF_Util.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  xios_module.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  AGRIF_UTIL.F90
-# This file is excluded from the dependency list.
-#
-# WARNING: File is not found:  AGRIF_types.F90
-# This file is excluded from the dependency list.
-#
-# Number of files given for dependency analysis:      260
-#
-# Number of newly discovered files:                   118
-#
-# Number of files excluded from dependency analysis:   39
-#
-# Total number of files analyzed for dependencies:    378
-#
-# Total number of code lines in all files:         153142
-#
 #
 module_checkmpi.F90: 
 #
@@ -422,6 +295,7 @@ ana_vmix.o:
 analytical.o: analytical.F cppdefs.h param.h ocean2d.h ocean3d.h grid.h forces.h 
 analytical.o: scalars.h compute_extended_bounds.h compute_auxiliary_bounds.h sediment.h 
 analytical.o: bbl.h  coupling.h wkb_wwave.h sources.h boundary.h set_global_definitions.h 
+analytical.o: wave_maker.h
 analytical.o: 
 #
 autotiling.o: autotiling.F cppdefs.h param.h mpi_roms.h scalars.h ncscrum.h 
@@ -898,13 +772,12 @@ rho_eos.o:
 #
 rhs3d.o: rhs3d.F cppdefs.h param.h ocean3d.h grid.h nbq.h forces.h diagnostics.h 
 rhs3d.o: scalars.h compute_auxiliary_bounds.h private_scratch.h coupling.h 
-rhs3d.o: u_hadv_order5.h v_hadv_order5.h uvhadv_tvd.h u_vadv_order5.h uvadv_order5.h 
-rhs3d.o: vvadv_order5.h cppdefs_dev.h 
-rhs3d.o:
+rhs3d.o: u_hadv_order5.h v_hadv_order5.h uvhadv_tvd.h u_vadv_order5.h v_vadv_order5.h 
+rhs3d.o: 
 #
 rhs3d_w_nh.o: rhs3d_w_nh.F cppdefs.h param.h ocean3d.h grid.h nbq.h forces.h 
 rhs3d_w_nh.o: scalars.h compute_auxiliary_bounds.h private_scratch.h coupling.h 
-rhs3d_w_nh.o: cppdefs_dev.h 
+rhs3d_w_nh.o: w_hadv_order5.h w_vadv_order5.h cppdefs_dev.h 
 rhs3d_w_nh.o:
 #
 rhs_floats.o: rhs_floats.F cppdefs.h param.h ocean3d.h grid.h scalars.h 
@@ -961,7 +834,7 @@ set_nudgcof.o: scalars.h compute_extended_bounds.h private_scratch.h climat.h
 set_nudgcof.o: cppdefs_dev.h 
 set_nudgcof.o:
 #
-set_nudgcof_fine.o: set_nudgcof_fine.F cppdefs.h param.h grid.h mixing.h 
+set_nudgcof_fine.o: set_nudgcof_fine.F cppdefs.h param.h grid.h nbq.h mixing.h 
 set_nudgcof_fine.o: scalars.h compute_extended_bounds.h private_scratch.h climat.h 
 set_nudgcof_fine.o: cppdefs_dev.h 
 set_nudgcof_fine.o:
@@ -1000,17 +873,10 @@ step2d.o: compute_tile_bounds.h scalars.h compute_auxiliary_bounds.h private_scr
 step2d.o: coupling.h sources.h tides.h set_global_definitions.h zoom.h cppdefs_dev.h 
 step2d.o:
 #
-step3d_fast_zeta2d.o: step3d_fast_zeta2d.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h 
-step3d_fast_zeta2d.o: nbq.h forces.h mixing.h compute_tile_bounds.h scalars.h 
-step3d_fast_zeta2d.o: private_scratch.h climat.h coupling.h sources.h tides.h 
-step3d_fast_zeta2d.o: zoom.h cppdefs_dev.h 
-step3d_fast_zeta2d.o:
-#
-step3d_fast_zetaw.o: step3d_fast_zetaw.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h 
-step3d_fast_zetaw.o: nbq.h forces.h mixing.h compute_tile_bounds.h scalars.h 
-step3d_fast_zetaw.o: private_scratch.h climat.h coupling.h sources.h 
-step3d_fast_zetaw.o: zoom.h cppdefs_dev.h 
-step3d_fast_zetaw.o:
+step3d_fast.o: step3d_fast.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h nbq.h 
+step3d_fast.o: mixing.h compute_tile_bounds.h scalars.h compute_auxiliary_bounds.h 
+step3d_fast.o: climat.h coupling.h sources.h set_global_definitions.h zoom.h cppdefs_dev.h 
+step3d_fast.o:
 #
 step3d_t.o: step3d_t.F cppdefs.h param.h ocean3d.h grid.h forces.h mixing.h diagnostics.h 
 step3d_t.o: scalars.h compute_auxiliary_bounds.h private_scratch.h climat.h sources.h 

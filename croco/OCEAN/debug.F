@@ -45,6 +45,7 @@
       character*(*) :: comment,typevar
       integer i0,j0,i,j,i1,j1,i2,j2
 # ifdef OPENMP
+#  undef mynode
       integer mynode 
 # endif         
       integer iseq1, iseq2, jseq1, jseq2

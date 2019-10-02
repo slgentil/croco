@@ -74,7 +74,7 @@
           goto 99                                         !--> ERROR
         endif
 
-# if defined SFLX_CORR && !defined QCORRECTION
+# if defined SFLX_CORR && !defined SFLX_CORR_COEF && !defined QCORRECTION
         lvar=lenstr(vname(1,indxdQdSST))
         ierr=nf_inq_varid (ncidfrc, vname(1,indxdQdSST)(1:lvar),
      &                                                    dqdt_id)
@@ -99,7 +99,7 @@
         itsss=2
         sss_time(1)=-1.E+20
         sss_time(2)=-1.E+20
-# if defined SFLX_CORR && !defined QCORRECTION
+# if defined SFLX_CORR && !defined SFLX_CORR_COEF && !defined QCORRECTION
         scldqdt=1./(rho0*Cp)
 # endif
       endif
@@ -136,7 +136,7 @@
           goto 99                                         !--> ERROR
         endif
 
-# if defined SFLX_CORR && !defined QCORRECTION
+# if defined SFLX_CORR && !defined SFLX_CORR_COEF && !defined QCORRECTION
         if (lsssgrd.eq.1) then
           ierr=nf_fread (dqdtg(START_2D_ARRAY,i), ncidfrc, dqdt_id,
      &                                            sss_rec,  r2dvar)
@@ -149,7 +149,7 @@
         endif
 # endif
        itsss=i
-# if defined SFLX_CORR && !defined QCORRECTION
+# if defined SFLX_CORR && !defined SFLX_CORR_COEF && !defined QCORRECTION
       MPI_master_only write(stdout,'(6x,A,1x,A,1x,g12.4,1x,I4)') 
      &              'GET_SSS    --',
      &              'Read SSS and dQdSST fields     for time =', cff
@@ -216,20 +216,20 @@
             do j=JstrR,JendR
               do i=IstrR,IendR
                 sss(i,j)=sssg(i,j,itsss)
-# if defined SFLX_CORR && !defined QCORRECTION
+# if defined SFLX_CORR && !defined SFLX_CORR_COEF && !defined QCORRECTION
                 dqdt(i,j)=scldqdt*dqdtg(i,j,itsss)
 # endif
               enddo
             enddo
           else
             val1=sssp(itsss)
-# if defined SFLX_CORR && !defined QCORRECTION
+# if defined SFLX_CORR && !defined SFLX_CORR_COEF && !defined QCORRECTION
             val2=scldqdt*dqdtp(itsss)
 # endif
             do j=JstrR,JendR
               do i=IstrR,IendR
                 sss(i,j)=val1
-# if defined SFLX_CORR && !defined QCORRECTION
+# if defined SFLX_CORR && !defined SFLX_CORR_COEF && !defined QCORRECTION
                 dqdt(i,j)=val2
 # endif
               enddo
@@ -245,7 +245,7 @@
 !
       elseif (cff1.ge.0. .and. cff2.ge.0.) then
         if (ZEROTH_TILE .and. cff1.lt.dt) synchro_flag=.TRUE.
-# if defined SFLX_CORR && !defined QCORRECTION
+# if defined SFLX_CORR && !defined SFLX_CORR_COEF && !defined QCORRECTION
         cff=scldqdt/(cff1+cff2)
         cff3=cff1*cff
         cff4=cff2*cff
@@ -257,20 +257,20 @@
           do j=JstrR,JendR
             do i=IstrR,IendR
               sss(i,j)=cff1*sssg(i,j,it1)+cff2*sssg(i,j,it2)
-# if defined SFLX_CORR && !defined QCORRECTION
+# if defined SFLX_CORR && !defined SFLX_CORR_COEF && !defined QCORRECTION
               dqdt(i,j)=cff3*dqdtg(i,j,it1)+cff4*dqdtg(i,j,it2)
 # endif
             enddo
           enddo
         else
           val1=cff1*sssp(it1)+cff2*sssp(it2)
-# if defined SFLX_CORR && !defined QCORRECTION
+# if defined SFLX_CORR && !defined SFLX_CORR_COEF && !defined QCORRECTION
           val2=cff3*dqdtp(it1)+cff4*dqdtp(it2)
 # endif
           do j=JstrR,JendR
             do i=IstrR,IendR
               sss(i,j)=val1
-# if defined SFLX_CORR && !defined QCORRECTION
+# if defined SFLX_CORR && !defined SFLX_CORR_COEF && !defined QCORRECTION
               dqdt(i,j)=val2
 # endif
             enddo

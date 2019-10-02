@@ -196,7 +196,7 @@ C$OMP BARRIER
       real tau_mean(PRIVATE_2D_SCRATCH_ARRAY)
 #  endif
       integer i, j, k, ised
-      real eps 
+      real eps, Dstp
       real cff, cff1, cff2, cff3, cff4, cff5
       real a_slopex, a_slopey, sed_angle
       real bedld, bedld_mass, dzdx, dzdy
@@ -205,7 +205,7 @@ C$OMP BARRIER
 #  ifdef BEDLOAD_SOULSBY
       real theta_mean, theta_wav, w_asym
       real theta_max, theta_max1, theta_max2
-      real phi_x1, phi_x2, phi_x, phi_y, Dstp
+      real phi_x1, phi_x2, phi_x, phi_y
       real bedld_x, bedld_y, tau_cur, waven, wavec
 #  endif
       real kdmax,Kbh,Kbh2,Kdh,Fwave
@@ -439,10 +439,10 @@ C$OMP BARRIER
 ! FX_r and FE_r have dimensions of kg.
 !
             bedld=8.0*(MAX((ABS(tau_wX(i,j))*osmgd-0.047),0.0)**1.5)
-     &                                   *smgdr*IGN(1.0,tau_wX(i,j))
+     &                                   *smgdr*SIGN(1.0,tau_wX(i,j))
             FX_r(i,j)=bedld*on_r(i,j)*dt
             bedld=8.0*(MAX((ABS(tau_wE(i,j))*osmgd-0.047),0.0)**1.5)
-     &                                   *smgdr*IGN(1.0,tau_wE(i,j))
+     &                                   *smgdr*SIGN(1.0,tau_wE(i,j))
             FE_r(i,j)=bedld*om_r(i,j)*dt
 #   else
 !
@@ -1080,6 +1080,9 @@ C$OMP BARRIER
 #  include "scalars.h"
 #  include "grid.h"
 #  include "mixing.h"
+#  ifndef BBL
+#   include "forces.h"
+#  endif
    
       integer Istr,Iend,Jstr,Jend
       real Hz_inv(PRIVATE_1D_SCRATCH_ARRAY,N),  
@@ -1101,14 +1104,12 @@ C$OMP BARRIER
 !  and current interaction
 !-----------------------------------------------------------------------
 !
+      do j=Jstr,Jend
+        do i=Istr,Iend
 #  ifdef BBL
-      do j=Jstr-1,Jend+1
-        do i=Istr-1,Iend+1
           tau_w(i,j)=sqrt( bustrcwmax(i,j)**2
      &                    +bvstrcwmax(i,j)**2)
 #  else
-      do j=J_EXT_RANGE
-        do i=I_EXT_RANGE
           tau_w(i,j)=0.5*sqrt( (bustr(i,j)+bustr(i+1,j))**2
      &                        +(bvstr(i,j)+bvstr(i,j+1))**2)
 #  endif
@@ -1340,51 +1341,18 @@ C$OMP BARRIER
       integer imin,jmin,imax,jmax
       real cff,cff1,cff2,cff3,cff4,tau_water,Zr
       real tau_w(PRIVATE_2D_SCRATCH_ARRAY)
-
-#  ifdef EW_PERIODIC
-#   define I_EXT_RANGE Istr-1,Iend+1
-#  else
-      if (WESTERN_EDGE) then
-        imin=Istr
-      else
-        imin=Istr-1
-      endif
-      if (EASTERN_EDGE) then
-        imax=Iend
-      else
-        imax=Iend+1
-      endif
-#   define I_EXT_RANGE imin,imax
-#  endif
-#  ifdef NS_PERIODIC
-#   define J_EXT_RANGE Jstr-1,Jend+1
-#  else
-      if (SOUTHERN_EDGE) then
-        jmin=Jstr
-      else
-        jmin=Jstr-1
-      endif
-      if (NORTHERN_EDGE) then
-        jmax=Jend
-      else
-        jmax=Jend+1
-      endif
-#   define J_EXT_RANGE jmin,jmax
-#  endif
 !
 !-----------------------------------------------------------------------
 !  Compute bottom skin-friction stress due to combined maximum wave 
 !  and current interaction
 !-----------------------------------------------------------------------
 !
+      do j=Jstr,Jend
+        do i=Istr,Iend
 #  ifdef BBL
-      do j=Jstr-1,Jend+1
-        do i=Istr-1,Iend+1
           tau_w(i,j)=sqrt( bustrcwmax(i,j)**2
      &                    +bvstrcwmax(i,j)**2)
 #  else
-      do j=J_EXT_RANGE
-        do i=I_EXT_RANGE
           tau_w(i,j)=0.5*sqrt( (bustr(i,j)+bustr(i+1,j))**2
      &                        +(bvstr(i,j)+bvstr(i,j+1))**2)
 #  endif
@@ -1401,7 +1369,7 @@ C$OMP BARRIER
       do j=jstr,jend
         do ised=1,NST
           do i=istr,iend
-          indx=itrc_sed+ised-1     
+            indx=itrc_sed+ised-1     
 ! 
 !  Calculate critical shear stress in Pa
 !  => change for COHESIVE bed here

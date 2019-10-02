@@ -26,9 +26,7 @@
       implicit none
 
       integer Istr,Iend,Jstr,Jend
-# ifdef NBQ_ZETAW
       integer imin,imax,jmin,jmax
-# endif
 # include "param.h"
 # include "scalars.h"
 # include "private_scratch.h"
@@ -52,7 +50,6 @@
 #  define Hzr_half_nbq Hz
 # endif
 
-# ifdef NBQ_ZETAW
 !
 !----------------------------------------------------------------------
 ! Sets indices
@@ -108,7 +105,6 @@
           Hzw_half_nbq(i,j,N)=z_w(i,j,N)-z_r(i,j,N)
         enddo
       enddo 
-# endif /* NBQ_ZETAW */
 
       do k=1,N
         do j=JstrV-2,Jend+1

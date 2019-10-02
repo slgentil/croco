@@ -52,15 +52,28 @@
       real cff,cff1,cff2, cff3,cff4
 # ifdef BULK_EP
       real cff5,cff6
-# endif
+# endif      
 # ifndef BULK_SM_UPDATE
       real cff7,cff8
 # endif
 # ifdef RELATIVE_WIND
-      real cff9,cff10
-# endif
+      integer imax,jmax
+      real swparam0            ! setup coupling coeff
+      parameter (swparam0=1)   ! see param.h
+# endif   
+!     
 # include "compute_extended_bounds.h"
-
+!
+# ifdef RELATIVE_WIND
+#  ifdef MPI
+       imax=IendR+1
+       jmax=JendR+1
+#  else
+       imax=min(IendR+1,Lm+1)
+       jmax=min(JendR+1,Mm+1)
+#  endif
+# endif
+       
       !===== == === === ======= ========= 
       ! Loop on all the forcing datasets:
       !===== == === === ======= =========  
@@ -152,38 +165,78 @@
           enddo
         elseif (blkvar_id.eq.9) then
 # ifdef RELATIVE_WIND
+!
+!     Compute relative winds ---
+!     
+          cff=swparam0          ! set current-wind coupling parameter
           do j=JstrR,JendR
-#  ifdef MPI
-            do i=IstrR,Lmmpi+2
-#  else
-            do i=IstrR,LLm+2
-#  endif
+            do i=IstrR,imax
+              !cff=swparam(i,j)
               uwnd(i,j)=cff1*uwndg(i,j,it1)+cff2*uwndg(i,j,it2)
-              uwnd(i,j)=uwnd(i,j)-u(i,j,N,nrhs)
+     &                                       -cff*u(i,j,N,nrhs)
             enddo
           enddo
-#  ifdef MPI
-          do j=JstrR,Mmmpi+2
-#  else
-          do j=JstrR,MMm+2
-#  endif
-            do i=IstrR,IendR
+
+          do j=JstrR,jmax
+            do i=IstrR,IendR+1
+              !cff=swparam(i,j)
               vwnd(i,j)=cff1*vwndg(i,j,it1)+cff2*vwndg(i,j,it2)
-              vwnd(i,j)=vwnd(i,j)-v(i,j,N,nrhs)
+     &                                      -cff*v(i,j,N,nrhs)
             enddo
           enddo
-          do j=JstrR,JendR
-            do i=IstrR,IendR
-              cff9 =0.5*(uwnd(i,j)+uwnd(i+1,j  ))
-              cff10=0.5*(vwnd(i,j)+vwnd(i  ,j+1))
-              wspd(i,j)=sqrt(cff9*cff9 + cff10*cff10)
+          
+          do j=JstrR,min(JendR,Mm)
+            do i=IstrR,min(IendR,Lm)
+                wspd(i,j)=sqrt(0.25*(uwnd(i,j)+uwnd(i+1,j  ))**2+
+     &                         0.25*(vwnd(i,j)+vwnd(i  ,j+1))**2)
             enddo
           enddo
-#  ifdef MPI
+#    ifndef EW_PERIODIC
+            if (WESTERN_EDGE) then
+              do j=Jstr,Jend
+                wspd(Istr-1,j)=wspd(Istr,j)
+              enddo
+            endif
+            if (EASTERN_EDGE) then
+              do j=Jstr,Jend
+                wspd(Iend+1,j)=wspd(Iend,j)
+              enddo
+            endif
+#    endif
+#    ifndef NS_PERIODIC
+            if (SOUTHERN_EDGE) then
+              do i=Istr,Iend
+                wspd(i,Jstr-1)=wspd(i,Jstr)
+              enddo
+            endif
+            if (NORTHERN_EDGE) then
+              do i=Istr,Iend
+                wspd(i,Jend+1)=wspd(i,Jend)
+              enddo
+            endif
+#     ifndef EW_PERIODIC
+            if (WESTERN_EDGE .and. SOUTHERN_EDGE) then
+              wspd(Istr-1,Jstr-1)=wspd(Istr,Jstr)
+            endif
+            if (WESTERN_EDGE .and. NORTHERN_EDGE) then
+              wspd(Istr-1,Jend+1)=wspd(Istr,Jend)
+            endif
+            if (EASTERN_EDGE .and. SOUTHERN_EDGE) then
+              wspd(Iend+1,Jstr-1)=wspd(Iend,Jstr)
+            endif
+            if (EASTERN_EDGE .and. NORTHERN_EDGE) then
+              wspd(Iend+1,Jend+1)=wspd(Iend,Jend)
+            endif
+#     endif
+#    endif
+         
+#    if defined EW_PERIODIC || defined NS_PERIODIC || defined  MPI
 	  call exchange_r2d_tile(Istr,Iend,Jstr,Jend,
      &                           wspd(START_2D_ARRAY))
 #  endif
-# else
+!
+# else  /* RELATIVE_WIND */
+!         
           do j=JstrR,JendR
             do i=IstrR,IendR
               wspd(i,j)=cff1*wspdg(i,j,it1)+cff2*wspdg(i,j,it2)
@@ -195,10 +248,10 @@
               sustr(i,j)=cff7*sustrg(i,j,it1)+cff8*sustrg(i,j,it2)
               svstr(i,j)=cff7*svstrg(i,j,it1)+cff8*svstrg(i,j,it2)
 #   endif /* BULK_SM_UPDATE */
-#  endif
+#  endif 
             enddo
           enddo
-# endif
+# endif /* RELATIVE_WIND */
         endif
 
       !====== == ==== ============== 

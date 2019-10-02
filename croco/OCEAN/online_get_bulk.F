@@ -104,7 +104,8 @@
 ! Open the file
 !
           lvar=lenstr(bulkfilename(blkvar_id))
-      print*, 'Open :',bulkfilename(blkvar_id)(1:lvar)
+          MPI_master_only print*, 'Open :',
+     &              bulkfilename(blkvar_id)(1:lvar)
           ierr=nf_open(bulkfilename(blkvar_id)(1:lvar), nf_nowrite, 
      &                 ncidbulkO(blkvar_id)) 
           if (ierr. ne. nf_noerr) goto 4            !--> ERROR
@@ -259,6 +260,13 @@
 ! Computation of the time in seconds for time interpolation
 !
           bulk_timeO(iblk,blkvar_id)=daycfsr*day2sec
+
+!       if (blkvar_id.eq.1) then
+!       MPI_master_only write (*,*) 'in get bulk_timeO',
+!     & bulk_timeO(3-iblk,blkvar_id), bulk_timeO(iblk,blkvar_id)
+!       MPI_master_only write (*,*) 'in get daycfsr',
+!     & daycfsr
+!       endif
 !
 ! Initialize bulk_timeO(itbulkO(blkvar_id),blkvar_id)
 !
@@ -419,6 +427,8 @@
 !-----
 !
 !
+
+
           call interpolate_bulk_online(NX,NY,lon,lat,var,
      &                                 blkvar_id,iblk)
 !

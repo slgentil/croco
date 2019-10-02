@@ -14,6 +14,7 @@
      &           u(i,j,k+2,nrhs), u(i,j,k+3,nrhs), vel)
           enddo
         enddo
+
         do i=IstrU,Iend
           vel=0.5*(We(i,j,2)+We(i-1,j,2))
           FC(i,2)=vel*
@@ -28,12 +29,14 @@
      &         u(i,j,N-1,nrhs), u(i,j,N  ,nrhs), vel)
 
           vel=0.5*(We(i,j,1)+We(i-1,j,1))
-          FC(i,1)=FLUX2(
-     &             u(i,j,1,nrhs), u(i,j,2,nrhs), vel, cdif)
+          FC(i,1)=vel*
+     &            FLUX2(
+     &            u(i,j,1,nrhs), u(i,j,2,nrhs), vel, cdif)
 
           vel=0.5*(We(i,j,N-1)+We(i-1,j,N-1))
-          FC(i,N-1)=FLUX2(
-     &             u(i,j,N-1,nrhs), u(i,j,N,nrhs), vel, cdif)
+          FC(i,N-1)=vel*
+     &              FLUX2(
+     &              u(i,j,N-1,nrhs), u(i,j,N,nrhs), vel, cdif)
 
 #   ifdef MOVING_BATHY
           FC(i,0)=0.5*u(i,j,1,nrhs)*

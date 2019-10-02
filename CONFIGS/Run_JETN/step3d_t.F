@@ -45,6 +45,9 @@
 # ifdef DIAGNOSTICS_TS
 # include "diagnostics.h"
 # endif
+# ifdef DIAGNOSTICS_PV
+#  include "diags_pv.h"
+# endif
       integer Istr,Iend,Jstr,Jend, itrc, i,j,k, indx, kmld
      &       ,imin,imax,jmin,jmax,iAkt,nadv
 # ifdef PSOURCE
@@ -72,6 +75,7 @@
 
 #ifdef JET_DECAY
       real jet_decay_time, jet_decay_coeff
+#endif
 !
 #ifdef MASKING
 # define SWITCH *
@@ -271,7 +275,8 @@
 ! (swdk is used later in this routine)
 !----------------------------------------------------------
 !
-# if defined LMD_SKPP || defined LMD_BKPP || defined GLS_MIXING
+# if defined LMD_SKPP || defined LMD_BKPP \
+  || defined GLS_MIX2017 || defined GLS_MIXING
 #  define wrk1 FX
 #  define wrk2 FE
       do k=1,N-1
@@ -365,7 +370,8 @@
             do k=1,N-1
               do i=Istr,Iend
                 FC(i,k)=0.
-# if defined LMD_SKPP || defined LMD_BKPP || defined GLS_MIXING
+# if defined LMD_SKPP || defined LMD_BKPP \
+  || defined GLS_MIX2017 || defined GLS_MIXING
      &    +dt*srflx(i,j)*swdk(i,j,k)
 #  ifdef LMD_NONLOCAL
      &    -dt*ghats(i,j,k)*(stflx(i,j,itemp)-srflx(i,j))
@@ -387,6 +393,7 @@
             enddo
 # endif
           endif
+!
 # ifdef SALINITY 
           if (itrc.eq.itemp .or. itrc.eq.isalt) then
 # else
@@ -396,7 +403,7 @@
               do i=Istr,Iend
                 t(i,j,k,nnew,itrc)=t(i,j,k,nnew,itrc)+FC(i,k )
      &                                               -FC(i,k-1)
-# ifdef DIAGNOSTICS_TS
+#  if defined DIAGNOSTICS_TS || defined DIAGNOSTICS_PV
                 TForc(i,j,k,itrc)=(FC(i,k)-FC(i,k-1))
      &                                    /(dt*pm(i,j)*pn(i,j))
 #  ifdef MASKING
@@ -450,7 +457,7 @@
               t(i,j,k,nnew,itrc)=t(i,j,k,nstp,itrc)
             enddo
           enddo
-#  ifdef DIAGNOSTICS_TS
+#  if defined DIAGNOSTICS_TS || defined DIAGNOSTICS_PV
           do k=1,N
             do i=Istr,Iend
                TVmix(i,j,k,itrc)=0.0
@@ -624,7 +631,7 @@
      &                         (tzon(j,k,itrc)-t(i,j,k,nnew,itrc))
 #  endif
 ! aponte itide )
-#  ifdef DIAGNOSTICS_TS
+#  if defined DIAGNOSTICS_TS || defined DIAGNOSTICS_PV
               TForc(i,j,k,itrc)=(TForc(i,j,k,itrc)
      &                    +Tnudgcof(i,j,k,itrc)
      &                    *(tclm(i,j,k,itrc)
@@ -897,7 +904,7 @@
 ! where Trate is updated accordingly
 !======================================================================
 !
-# ifdef DIAGNOSTICS_TS
+#  if defined DIAGNOSTICS_TS || defined DIAGNOSTICS_PV
         do k=1,N
           do j=Jstr,Jend
             do i=Istr,Iend
@@ -919,12 +926,14 @@
 #  endif /* DIAGNOSTICS_TS_ADV */
 !
               cff=pm(i,j)*pn(i,j)/Hz(i,j,k)
+#  ifdef DIAGNOSTICS_TS
               TXadv(i,j,k,itrc)=TXadv(i,j,k,itrc)*cff
               TYadv(i,j,k,itrc)=TYadv(i,j,k,itrc)*cff
               TVadv(i,j,k,itrc)=TVadv(i,j,k,itrc)*cff
+#  endif
+              Trate(i,j,k,itrc)=Trate(i,j,k,itrc)*cff
               TVmix(i,j,k,itrc)=TVmix(i,j,k,itrc)*cff
               TForc(i,j,k,itrc)=TForc(i,j,k,itrc)*cff
-              Trate(i,j,k,itrc)=Trate(i,j,k,itrc)*cff
               THmix(i,j,k,itrc)=0.
             enddo
           enddo
@@ -1097,9 +1106,10 @@
 !
 !======================================================================
 !
-# if defined TS_HADV_WENO5 || defined BIO_HADV_WENO5 || \
-     defined TS_VADV_WENO5 || defined UV_HADV_WENO5 || \
-     defined UV_VADV_WENO5
+# if defined BIO_HADV_WENO5 || \
+     defined TS_HADV_WENO5  || defined TS_VADV_WENO5 || \
+     defined UV_HADV_WENO5  || defined UV_VADV_WENO5 || \
+     defined W_HADV_WENO5   || defined W_VADV_WENO5
 !    
       function flux5_weno(q_im3, q_im2, q_im1, q_i, q_ip1, q_ip2, ua)
 !

@@ -11,7 +11,6 @@
 !
 #include "cppdefs.h"
 
-! aponte flt(
 #if defined FLOATS && defined MPI
 #ifdef SOLVE3D
 
@@ -45,14 +44,12 @@
         i1=int(track(ixgrd,nfp1,iflt))
         i1=i1-i_offset
         i2=i1+1
-!        p2=track(ixgrd,nfp1,iflt)-float(i1)
         p2=track(ixgrd,nfp1,iflt)-dble(i1+i_offset)
         p1=1.-p2
 
         j1=int(track(iygrd,nfp1,iflt))
         j1=j1-j_offset
         j2=j1+1
-!        q2=track(iygrd,nfp1,iflt)-float(j1)
         q2=track(iygrd,nfp1,iflt)-dble(j1+j_offset)
         q1=1.0-q2
 
@@ -121,7 +118,6 @@
         i1=int(track(ixgrd,nfp1,iflt)+0.5)
         i1=i1-i_offset
         i2=i1+1
-!        p2=track(ixgrd,nfp1,iflt)+0.5 - float(i1)
         p2=track(ixgrd,nfp1,iflt)+0.5 - dble(i1+i_offset)
         p1=1.-p2
 
@@ -141,10 +137,8 @@
 !
         q1=rmask(i1,j1)*( 1. - rmask(i1,j2)*(
      &     track(iygrd,nfp1,iflt)-dble(j1+j_offset) ))
-!     &     track(iygrd,nfp1,iflt)-float(j1) ))
         q2=rmask(i1,j2)*(1.-q1)
 #  else
-!        q2=track(iygrd,nfp1,iflt)-float(j1)
         q2=track(iygrd,nfp1,iflt)-dble(j1+j_offset)
         q1=1.-q2
 #  endif
@@ -154,8 +148,9 @@
 
      &                  +p2*(r1*uf(i2,j1,k1)+r2*uf(i2,j1,k2))
      &                               *(pm(i2-1,j1)+pm(i2,j1))
-
-     &      ) + 0.5*q2*( p1*(r2*uf(i1,j2,k1)+r2*uf(i1,j2,k2))
+! bug r1 au lieu de r2
+C      &      ) + 0.5*q2*( p1*(r2*uf(i1,j2,k1)+r2*uf(i1,j2,k2))
+     &      ) + 0.5*q2*( p1*(r1*uf(i1,j2,k1)+r2*uf(i1,j2,k2))
      &                               *(pm(i1-1,j2)+pm(i1,j2))
 
      &                  +p2*(r1*uf(i2,j2,k1)+r2*uf(i2,j2,k2))
@@ -169,18 +164,15 @@
 #  ifdef MASKING
         p1=rmask(i1,j1)*( 1. - rmask(i2,j1)*(
      &     track(ixgrd,nfp1,iflt)-dble(i1+i_offset) ))
-!     &     track(ixgrd,nfp1,iflt)-float(i1) ))
         p2=rmask(i2,j1)*(1.-p1)
 
 #  else
-!        p2=track(ixgrd,nfp1,iflt)-float(i1)
         p2=track(ixgrd,nfp1,iflt)-dble(i1+i_offset)
         p1=1.-p2
 #  endif
         j1=int(track(iygrd,nfp1,iflt)+0.5)
         j1=j1-j_offset
         j2=j1+1
-!        q2=track(iygrd,nfp1,iflt)+0.5 - float(j1)
         q2=track(iygrd,nfp1,iflt)+0.5 - dble(j1+j_offset)
         q1=1.-q2
 
@@ -284,4 +276,3 @@
       subroutine rhs_floats_mpi_empty
       end
 #endif    /* FLOATS */
-! aponte flt )

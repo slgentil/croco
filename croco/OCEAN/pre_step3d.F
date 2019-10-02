@@ -116,17 +116,10 @@
 #  define SWITCH !
 # endif
 
-# if defined NBQ && defined M2FILTER_NONE 
+# ifdef NBQ
 #  define ru_nbq_avg1 ru_nbq
 #  define rv_nbq_avg1 rv_nbq
 #  define rw_nbq_avg1 rw_nbq
-# endif
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!   Caution : version NBQ_MASS && ZETA2D not available
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# if !defined NBQ_ZETAW 
-#      define  Hzr_half_nbq Hz_half
 # endif
 !
 !--------------------------------------------------------------------
@@ -199,84 +192,9 @@
      &                                  +Wi(i,j,k)-Wi(i,j,k-1)     
 # endif     
      &                                                       )
-
-!# if defined NBQ && defined NBQ_MASS && !defined NBQ_ZETAW
-!           Hzr_half_nbq(i,j,k)=Hz_half(i,j,k)
-!    &                         /(rho_nbq_avg1(i,j,k))
-!#  endif
-
           enddo
         enddo
       enddo
-!
-!--------------------------------------------------------------------
-!
-
-!
-!  Set lateral boundary conditions for Hz_half
-!
-#if defined NBQ && !defined NBQ_ZETAW
-# ifndef EW_PERIODIC
-      if (WESTERN_EDGE) then
-        do k=1,N
-          do j=Jstr,Jend
-            Hzr_half_nbq(0,j,k)=Hzr_half_nbq(1,j,k)
-          enddo
-        enddo
-      endif
-      if (EASTERN_EDGE) then
-        do k=1,N
-          do j=Jstr,Jend
-            Hzr_half_nbq(LOCALLM+1,j,k)=Hzr_half_nbq(LOCALLM,j,k)
-          enddo
-        enddo
-      endif
-# endif
-# ifndef NS_PERIODIC
-      if (SOUTHERN_EDGE) then
-        do k=1,N
-          do i=Istr,Iend
-            Hzr_half_nbq(i,0,k)=Hzr_half_nbq(i,1,k)
-          enddo
-        enddo
-      endif
-      if (NORTHERN_EDGE) then
-        do k=1,N
-          do i=Istr,Iend
-            Hzr_half_nbq(i,LOCALMM+1,k)=Hzr_half_nbq(i,LOCALMM,k)
-          enddo
-        enddo
-      endif
-# endif
-# ifndef EW_PERIODIC
-      if (WESTERN_EDGE .and. SOUTHERN_EDGE) then
-        do k=1,N
-          Hzr_half_nbq(0,0,k)=Hzr_half_nbq(1,1,k)
-        enddo
-      endif
-      if (WESTERN_EDGE .and. NORTHERN_EDGE) then
-        do k=1,N
-          Hzr_half_nbq(0,LOCALMM+1,k)=Hzr_half_nbq(1,LOCALMM,k)
-        enddo
-      endif
-      if (EASTERN_EDGE .and. SOUTHERN_EDGE) then
-        do k=1,N
-          Hzr_half_nbq(LOCALLM+1,0,k)=Hzr_half_nbq(LOCALLM,1,k)
-        enddo
-      endif
-      if (EASTERN_EDGE .and. NORTHERN_EDGE) then
-        do k=1,N
-          Hzr_half_nbq(LOCALLM+1,LOCALMM+1,k)=
-     &                     Hzr_half_nbq(LOCALLM,LOCALMM,k)
-        enddo
-      endif
-# endif
-# if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI
-      call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
-     &                        Hzr_half_nbq(START_2D_ARRAY,1))
-# endif
-#endif   
-
 !
 !  Set extended range
 !
@@ -309,56 +227,7 @@
       else
         jmax=Jend+2
       endif
-
 #  endif
-
-#  if !defined NBQ_ZETAW && defined NBQ
-
-!
-!  Compute other vertical grid variables at n+1/2
-!
-      do j=jmin,jmax
-        do i=imin,imax
-           zw_half_nbq(i,j,0)=-h(i,j)
-           zr_half_nbq(i,j,1)=zw_half_nbq(i,j,0)
-     &                        +0.5*Hzr_half_nbq(i,j,1)
-!          Hzr_half_nbq(i,j,0  )=0.
-!          Hzr_half_nbq(i,j,N+1)=0.
-           zw_half_nbq(i,j,1)   =zw_half_nbq(i,j,0)+Hzr_half_nbq(i,j,1)
-        enddo
-      enddo
-      do k=2,N
-        do j=jmin,jmax
-          do i=imin,imax
-            zw_half_nbq(i,j,k)=zw_half_nbq(i,j,k-1)+Hzr_half_nbq(i,j,k)
-            zr_half_nbq(i,j,k)=zr_half_nbq(i,j,k-1)
-     &                 +0.5*(Hzr_half_nbq(i,j,k)+Hzr_half_nbq(i,j,k-1))
-          enddo
-        enddo
-      enddo
-
-      do k=1,N-1
-        do j=jmin,jmax
-          do i=imin,imax
-            Hzw_half_nbq(i,j,k)=zr_half_nbq(i,j,k+1)-zr_half_nbq(i,j,k)
-          enddo
-        enddo
-      enddo
-      
-      do j=jmin,jmax
-        do i=imin,imax
-          Hzw_half_nbq(i,j,0  )=zr_half_nbq(i,j,1)-zw_half_nbq(i,j,0)
-          Hzw_half_nbq(i,j,N  )=zw_half_nbq(i,j,N)-zr_half_nbq(i,j,N)
-        enddo
-      enddo    
-
-!      do j=Jstr-1,Jend+1
-!      do i=Istr-1,Iend+1
-!        qdmw_nbq(i,j,0)=wz(i,j,0,nstp)*0.5*(Hz(i,j,1))
-!      enddo
-!      enddo
-#  endif /* NBQ_ZETAW */
-
 !
 !--------------------------------------------------------------------
 !  Start computation of the auxiliary tracer field
@@ -520,10 +389,18 @@
             cdt=(1.-gamma)*dt
       endif 
 
-#ifdef NBQ
-      ru_int_nbq_2d(:,:) = 0.
-      rv_int_nbq_2d(:,:) = 0.
-#endif
+# ifdef NBQ
+      do j=Jstr,Jend
+        do i=IstrU,Iend
+           ru_int_nbq_2d(i,j)=0.
+        enddo
+      enddo
+      do j=JstrV,Jend
+        do i=Istr,Iend
+           rv_int_nbq_2d(i,j)=0.
+        enddo
+      enddo
+# endif
 
       do j=Jstr,Jend
 
@@ -533,7 +410,8 @@
              DC(i,k)=1./Hz_half(i,j,k)
            enddo   
 # endif
-             DC(i,0)=cdt*pn(i,j)*pm(i,j)
+           DC(i,0)=cdt*pn(i,j)*pm(i,j)
+
         enddo
         
         do itrc=1,NT
@@ -614,16 +492,16 @@
             enddo
           enddo
 
-# ifdef NBQXXX
-          do k=1,N
-            do i=IstrU,Iend
-               ru_int_nbq(i,j,k)=ru_int_nbq(i,j,k)
-     &            - ru_int_nbq_2d(i,j) *(Hz(i,j,k)+Hz(i-1,j,k))
-     &                               /( Zt_avg1(i  ,j)+H(i  ,j)
-     &                                 +Zt_avg1(i-1,j)+H(i-1,j))
-            enddo
-          enddo
-# endif
+!# ifdef NBQ
+!          do k=1,N
+!            do i=IstrU,Iend
+!               ru_int_nbq(i,j,k)=ru_int_nbq(i,j,k)
+!     &            - ru_int_nbq_2d(i,j) *(Hz(i,j,k)+Hz(i-1,j,k))
+!     &                               /( Zt_avg1(i  ,j)+h(i  ,j)
+!     &                                 +Zt_avg1(i-1,j)+h(i-1,j))
+!            enddo
+!          enddo
+!# endif
 
         else 
 
@@ -670,8 +548,8 @@
             do i=IstrU,Iend
                ru_int_nbq(i,j,k)=ru_int_nbq(i,j,k)
      &            - ru_int_nbq_2d(i,j) *(Hz(i,j,k)+Hz(i-1,j,k))
-     &                               /( Zt_avg1(i  ,j)+H(i  ,j)
-     &                                 +Zt_avg1(i-1,j)+H(i-1,j))
+     &                               /( Zt_avg1(i  ,j)+h(i  ,j)
+     &                                 +Zt_avg1(i-1,j)+h(i-1,j))
             enddo
           enddo
 # endif
@@ -715,16 +593,16 @@
               enddo
             enddo
 
-# ifdef NBQXXX
-          do k=1,N
-            do i=Istr,Iend
-               rv_int_nbq(i,j,k)=rv_int_nbq(i,j,k)
-     &            - rv_int_nbq_2d(i,j) *(Hz(i,j,k)+Hz(i,j-1,k))
-     &                               /( Zt_avg1(i,j  )+H(i,j  )
-     &                                 +Zt_avg1(i,j-1)+H(i,j-1))
-            enddo
-          enddo
-# endif
+!# ifdef NBQ
+!          do k=1,N
+!            do i=Istr,Iend
+!               rv_int_nbq(i,j,k)=rv_int_nbq(i,j,k)
+!     &            - rv_int_nbq_2d(i,j) *(Hz(i,j,k)+Hz(i,j-1,k))
+!     &                               /( Zt_avg1(i,j  )+h(i,j  )
+!     &                                 +Zt_avg1(i,j-1)+h(i,j-1))
+!            enddo
+!          enddo
+!# endif
 
           else
 
@@ -772,8 +650,8 @@
             do i=Istr,Iend
                rv_int_nbq(i,j,k)=rv_int_nbq(i,j,k)
      &            - rv_int_nbq_2d(i,j) *(Hz(i,j,k)+Hz(i,j-1,k))
-     &                               /( Zt_avg1(i,j  )+H(i,j  )
-     &                                 +Zt_avg1(i,j-1)+H(i,j-1))
+     &                               /( Zt_avg1(i,j  )+h(i,j  )
+     &                                 +Zt_avg1(i,j-1)+h(i,j-1))
             enddo
           enddo
 # endif
@@ -983,15 +861,19 @@
      &                             u(START_2D_ARRAY,1,nnew))
       call exchange_v3d_3pts_tile (Istr,Iend,Jstr,Jend,
      &                             v(START_2D_ARRAY,1,nnew))
+#   ifdef NBQ    
+      call exchange_w3d_3pts_tile (Istr,Iend,Jstr,Jend,
+     &                             wz(START_2D_ARRAY,0,nnew))
+#   endif
 #  else
       call exchange_u3d_tile (Istr,Iend,Jstr,Jend,
      &                        u(START_2D_ARRAY,1,nnew))
       call exchange_v3d_tile (Istr,Iend,Jstr,Jend,
      &                        v(START_2D_ARRAY,1,nnew))
-#  endif
-#  ifdef NBQ    
+#   ifdef NBQ    
       call exchange_w3d_tile (Istr,Iend,Jstr,Jend,
      &                        wz(START_2D_ARRAY,0,nnew))   
+#   endif
 #  endif
 # endif
 !

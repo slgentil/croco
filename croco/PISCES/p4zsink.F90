@@ -155,19 +155,6 @@ CONTAINS
          END DO
       END DO
 
-!      IF( lwp ) THEN
-!      write(numout,*)
-!      write(numout,*) '  level      Depht          depthw    wsbio3      wsbio4'
-!      DO jk = KRANGE
-!         write(numout,*) ' jk = ',jk,' dept = ',fsdept(jip,jjp,K),'  depw =  ',fsdepw(jip,jjp,jk), &
-!            &            '   e3t = ', fse3t(jip,jjp,K), '  e3w = ', fse3w(jip,jjp,jk), &
-!            &            '   wsbio = ', wsbio3(jip,jjp,jk), '  wsbio4 = ', wsbio4(jip,jjp,jk)
-!      ENDDO
-!      write(numout,*) ' jk = ', jpk+1,'                              depw = ' ,fsdepw(jip,jjp,jpk+1), &
-!            &   '                              e3w = ', fse3w(jip,jjp,jpk+1)
-!      write(numout,*)
-!      ENDIF
-
 
 !   Compute the sedimentation term using p4zsink2 for all
 !   the sinking particles
@@ -284,13 +271,13 @@ CONTAINS
       INTEGER , INTENT(in   )                         ::   jp_tra    ! tracer index index      
       INTEGER , INTENT(in   )                         ::   kiter     ! number of iterations for time-splitting 
       REAL(wp), INTENT(in   ), DIMENSION(PRIV_2D_BIOARRAY, jpk) ::   pwsink    ! sinking speed
-      REAL(wp), INTENT(inout), DIMENSION(PRIV_2D_BIOARRAY, jpk) ::   psinkflx  ! sinking fluxe
+      REAL(wp), INTENT(inout), DIMENSION(PRIV_2D_BIOARRAY, jpk+1) ::   psinkflx  ! sinking fluxe
       !!
       INTEGER  ::   ji, jj, jk, jn, jnt
       REAL(wp) ::   zigma,zew,zign, zflx, zstep
-      REAL(wp), DIMENSION(PRIV_3D_BIOARRAY) ::  ztraz
-      REAL(wp), DIMENSION(PRIV_3D_BIOARRAY) ::  zwsink2
-      REAL(wp), DIMENSION(PRIV_3D_BIOARRAY) ::  zakz, ztrn, ztmp, zdept, zmask
+      REAL(wp), DIMENSION(PRIV_2D_BIOARRAY, jpk+1) ::  ztraz, zakz
+      REAL(wp), DIMENSION(PRIV_2D_BIOARRAY, jpk+1) ::  zwsink2
+      REAL(wp), DIMENSION(PRIV_3D_BIOARRAY) ::  ztrn, ztmp, zdept, zmask
       !!---------------------------------------------------------------------
 
       zstep = rfact2 / FLOAT( kiter ) / 2.
@@ -300,7 +287,7 @@ CONTAINS
             DO ji = IRANGE
                zmask(ji,jj,jk) = tmask(ji,jj,K)
                zdept(ji,jj,jk) = fse3t(ji,jj,K)
-               ztrn (ji,jj,jk) = trn  (ji,jj,K,jp_tra)
+               ztrn (ji,jj,jk) = trn(ji,jj,K,jp_tra)
            END DO
          END DO
       ENDDO
@@ -315,7 +302,7 @@ CONTAINS
          END DO
       END DO
 
-      DO jk = 2, jpk-1
+      DO jk = 1, jpk-1
          DO jj = JRANGE
             DO ji = IRANGE
                zwsink2(ji,jj,jk+1) = -pwsink(ji,jj,jk) / rday * zmask(ji,jj,jk+1)
@@ -326,14 +313,14 @@ CONTAINS
       DO jj = JRANGE
          DO ji = IRANGE
             zwsink2(ji,jj,1)   = 0.
-            zwsink2(ji,jj,jpk) = 0.
+            zwsink2(ji,jj,jpk+1) = 0.
          END DO
       END DO
       !
       ! Vertical advective flux
       DO jnt = 1, 2
          !  first guess of the slopes interior values
-         DO jk = 2, jpk-1
+         DO jk = 2, jpk
             DO jj = JRANGE
                DO ji = IRANGE
                   ztraz(ji,jj,jk) = ( ztrn(ji,jj,jk-1) - ztrn(ji,jj,jk) ) * zmask(ji,jj,jk)
@@ -343,14 +330,14 @@ CONTAINS
          DO jj = JRANGE
             DO ji = IRANGE
                ztraz(ji,jj,1  ) = 0.0
-               ztraz(ji,jj,jpk) = 0.0
+               ztraz(ji,jj,jpk+1) = 0.0
             END DO
          END DO
 
 
          ! slopes
 !         DO jk = KRANGEL
-         DO jk = 2, jpk-1
+         DO jk = 2, jpk
             DO jj = JRANGE
                DO ji = IRANGE
                   zign = 0.25 + SIGN( 0.25, ztraz(ji,jj,jk) * ztraz(ji,jj,jk+1) )
@@ -360,7 +347,7 @@ CONTAINS
          END DO
          
          ! Slopes limitation
-         DO jk = 2, jpk-1
+         DO jk = 2, jpk
             DO jj = JRANGE
                DO ji = IRANGE
                   zakz(ji,jj,jk) = SIGN( 1., zakz(ji,jj,jk) ) *        &
@@ -371,7 +358,7 @@ CONTAINS
 
          
          ! vertical advective flux
-         DO jk = 1, jpk-1
+         DO jk = 1, jpk
             DO jj = JRANGE   
                DO ji = IRANGE  
                   zigma = zwsink2(ji,jj,jk+1) * zstep / fse3w(ji,jj,jk+1)
@@ -385,12 +372,12 @@ CONTAINS
          DO jj = JRANGE
             DO ji = IRANGE
                psinkflx(ji,jj,1  ) = 0.e0
-               psinkflx(ji,jj,jpk) = 0.e0
+               psinkflx(ji,jj,jpk+1) = 0.e0
             END DO
          END DO
          
 
-         DO jk = 1, jpk-1
+         DO jk = 1, jpk
             DO jj = JRANGE
                DO ji = IRANGE
                   zflx = ( psinkflx(ji,jj,jk) - psinkflx(ji,jj,jk+1) ) / zdept(ji,jj,jk)
@@ -402,7 +389,7 @@ CONTAINS
 
       ENDDO
 
-      DO jk = 1, jpk-1
+      DO jk = 1, jpk
          DO jj = JRANGE
             DO ji = IRANGE
                zflx = ( psinkflx(ji,jj,jk) - psinkflx(ji,jj,jk+1) ) / zdept(ji,jj,jk)
@@ -450,7 +437,7 @@ CONTAINS
 #endif
       INTEGER , INTENT(in   )                         ::   jp_tra    ! tracer index index      
       REAL(wp), INTENT(in   ), DIMENSION(PRIV_2D_BIOARRAY, jpk) ::   pwsink    ! sinking speed
-      REAL(wp), INTENT(inout), DIMENSION(PRIV_2D_BIOARRAY, jpk) ::   psinkflx  ! sinking fluxe
+      REAL(wp), INTENT(inout), DIMENSION(PRIV_2D_BIOARRAY, jpk+1) ::   psinkflx  ! sinking fluxe
 !
 !  Local variable declarations.
 !
@@ -491,7 +478,7 @@ CONTAINS
             DO ji = IRANGE
                zmask(ji,jj,jk) = tmask(ji,jj,K)
                zdept(ji,jj,jk) = fse3t(ji,jj,K)
-               ztrn (ji,jj,jk) = trn  (ji,jj,K,jp_tra)
+               ztrn (ji,jj,jk) = trn(ji,jj,K,jp_tra)
            END DO
          END DO
       ENDDO
@@ -595,15 +582,15 @@ CONTAINS
             ENDDO
           ENDDO
           DO ji= IRANGE
-            FC(ji,KSURF)=0.              ! no-flux boundary condition
+            FC(ji,1)=0.              ! no-flux boundary condition
 !
-            qR(ji,KSURF)=qc(ji,KSURF)         ! default strictly monotonic
-            qL(ji,KSURF)=qc(ji,KSURF)         ! conditions
-            qR(ji,KSURF-1)=qc(ji,KSURF-1)
+            qR(ji,1)=qc(ji,1)         ! default strictly monotonic
+            qL(ji,1)=qc(ji,1)         ! conditions
+            qR(ji,2)=qc(ji,1)
 !
-            qL(ji,KSED+1)=qc(ji,KSED)                 ! bottom grid boxes are
-            qR(ji,KSED)=qc(ji,KSED)                 ! re-assumed to be
-            qL(ji,KSED)=qc(ji,KSED)                 ! piecewise constant.
+            qL(ji,jpk-1)=qc(ji,jpk)                 ! bottom grid boxes are
+            qR(ji,jpk)  =qc(ji,jpk)                 ! re-assumed to be
+            qL(ji,jpk)  =qc(ji,jpk)                 ! piecewise constant.
           ENDDO
 !
 !  Apply monotonicity constraint again, since the reconciled interfacial
@@ -681,8 +668,8 @@ CONTAINS
           DO ji=IRANGE
             DO jk=1,jpk-1
                trn(ji,jj,K,jp_tra)=qc(ji,jk)+(FC(ji,jk)-FC(ji,jk+1))*Hz_inv(ji,jk) 
-!               psinkflx(ji,jj,jk,ised)=FC(ji,jk)
-               psinkflx(ji,jj,jk)=(FC(ji,jk)-FC(ji,jk+1))*Hz_inv(ji,jk)
+               psinkflx(ji,jj,jk)=FC(ji,jk)
+!               psinkflx(ji,jj,jk)=(FC(ji,jk)-FC(ji,jk+1))*Hz_inv(ji,jk)
             ENDDO
           ENDDO
         END DO 

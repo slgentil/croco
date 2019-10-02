@@ -8,32 +8,32 @@ S-coord: THETA_S,   THETA_B,    Hc (m)
            7.0d0     2.0d0      200.0d0
 
 grid:  filename
-  CROCO_FILES/croco_grd.nc.1
+    CROCO_FILES/croco_grd.nc.1
 forcing: filename
-  CROCO_FILES/croco_frc.nc.1
+    CROCO_FILES/croco_frc.nc.1
 bulk_forcing: filename
-  CROCO_FILES/croco_blk.nc.1
+    CROCO_FILES/croco_blk.nc.1
 climatology: filename
   XXXXXXXXX
 boundary: filename
   XXXXXXXXX
 initial: NRREC  filename
-          1
-  CROCO_FILES/croco_ini.nc.1
+          1 
+    CROCO_FILES/croco_ini.nc.1
 restart:          NRST, NRPFRST / filename
-                  2160  -1
-  CROCO_FILES/croco_rst.nc.1
+                  2160    -1
+    CROCO_FILES/croco_rst.nc.1
 history: LDEFHIS, NWRT, NRPFHIS / filename 
             T     216     0
-  CROCO_FILES/croco_his.nc.1
+    CROCO_FILES/croco_his.nc.1
 averages: NTSAVG, NAVG, NRPFAVG / filename
             1     216     0
-  CROCO_FILES/croco_avg.nc.1
+    CROCO_FILES/croco_avg.nc.1
 
 primary_history_fields: zeta UBAR VBAR  U  V   wrtT(1:NT)
                           T    T   T   T  T    30*T
-auxiliary_history_fields:   rho Omega  W  Akv  Akt  Aks Visc3d Diff3d  HBL HBBL Bostr Wstr Ustr Vstr Shfl Swfl rsw rlw lat sen HEL
-                             F   F     T   F    T    F    F      F      T   T    T     T    T    T    T    T   10*T             
+auxiliary_history_fields:   rho Omega  W  Akv  Akt  Aks Visc3d Diff3d  HBL HBBL Bostr Wstr Ustr Vstr Shfl Swfl rsw rlw lat sen  HEL
+                             F   F     T   F    T    F    F     F       T   T    T     T    T    T    T    T   10*T             
 gls_history_fields:   TKE  GLS  Lscale
                       T     T    T
 
@@ -73,12 +73,12 @@ nudg_cof:    TauT_in, TauT_out, TauM_in, TauM_out  [days for all]
                 1.       360.      3.      360.
 
 diagnostics:   ldefdia   nwrtdia    nrpfdia /filename
-            T    216     0
-  CROCO_FILES/croco_dia.nc.1
+                  T       216         0
+    CROCO_FILES/croco_dia.nc.1
 
 diag_avg: ldefdia_avg  ntsdia_avg  nwrtdia_avg  nprfdia_avg /filename
-    T     1     216    0
-  CROCO_FILES/croco_dia_avg.nc.1
+               T          1          216            0
+    CROCO_FILES/croco_dia_avg.nc.1
 
 diag3D_history_fields:    diag_tracers3D(1:NT) 
                             30*T
@@ -106,13 +106,88 @@ diagM_history_fields: diag_momentum(1:2)
 diagM_average_fields: diag_momentum_avg(1:2)
 		            T T
 
+
+diags_vrt:   ldefdiags_vrt, nwrtdiags_vrt, nrpfdiags_vrt /filename
+                   T         216        0
+    CROCO_FILES/croco_diags_vrt.nc.1
+
+diags_vrt_avg: ldefdiags_vrt_avg  ntsdiags_vrt_avg  nwrtdiags_vrt_avg  nprfdiags_vrt_avg /filename 
+               T          1         216          0
+    CROCO_FILES/croco_diags_vrt_avg.nc.1
+
+diags_vrt_history_fields: diags_vrt
+                            T 
+
+diags_vrt_average_fields: diags_vrt_avg
+		            T 
+
+
+diags_ek:   ldefdiags_ek, nwrtdiags_ek, nrpfdiags_ek /filename
+                   T         216        0
+    CROCO_FILES/croco_diags_ek.nc.1
+
+diags_ek_avg: ldefdiags_ek_avg  ntsdiags_ek_avg  nwrtdiags_ek_avg  nprfdiags_ek_avg /filename
+               T          1          216          0
+    CROCO_FILES/croco_diags_ek_avg.nc.1
+
+diags_ek_history_fields: diags_ek
+                            T
+
+diags_ek_average_fields: diags_ek_avg
+                            T
+
+surf:   ldefsurf, nwrtsurf, nrpfsurf /filename
+                   T          12        0
+    CROCO_FILES/croco_surf.nc.1
+
+surf_avg: ldefsurf_avg  ntssurf_avg  nwrtsurf_avg  nprfsurf_avg /filename
+               T          1           12          0
+    CROCO_FILES/croco_surf_avg.nc.1
+
+surf_history_fields: surf
+                            T
+
+surf_average_fields: surf_avg
+                            T
+
+
+diags_pv:   ldefdiags_pv, nwrtdiags_pv, nrpfdiags_pv /filename
+                   T         216        0
+    CROCO_FILES/croco_diags_pv.nc.1
+
+diags_pv_avg: ldefdiags_pv_avg  ntsdiags_pv_avg  nwrtdiags_pv_avg  nprfdiags_pv_avg /filename
+               T          1          216          0
+    CROCO_FILES/croco_diags_pv_avg.nc.1
+
+diags_pv_history_fields: diags_pv(1:NT)
+                            30*T
+
+diags_pv_average_fields: diags_pv_avg(1:NT)
+                            30*T
+
+
+diags_eddy:   ldefdiags_eddy, nwrtdiags_eddy, nrpfdiags_eddy /filename
+                   T         216        0
+    CROCO_FILES/croco_diags_eddy.nc.1
+
+diags_eddy_avg: ldefdiags_eddy_avg  ntsdiags_eddy_avg  nwrtdiags_eddy_avg  nprfdiags_eddy_avg /filename
+               T          1          216          0
+    CROCO_FILES/croco_diags_eddy_avg.nc.1
+
+diags_eddy_history_fields: diags_eddy
+                            T
+
+diags_eddy_average_fields: diags_eddy_avg
+                            T
+
+
 diagnostics_bio:   ldefdiabio   nwrtdiabio    nrpfdiabio /filename
-    T    216    0
-  CROCO_FILES/croco_diabio.nc.1
+                        T         216             0
+    CROCO_FILES/croco_diabio.nc.1
 
 diagbio_avg: ldefdiabio_avg  ntsdiabio_avg  nwrtdiabio_avg  nprfdiabio_avg /filename
-     T     1     216     0
-  CROCO_FILES/croco_diabio_avg.nc.1
+                  T              1             216              0
+    CROCO_FILES/croco_diabio_avg.nc.1
 
 diagbioFlux_history_fields:    wrtdiabioFlux 
                                  50*T 
@@ -138,7 +213,7 @@ biology:   forcing file
 sediments: input file
            sediment.in
 sediment_history_fields: bed_thick bed_poros bed_fra(sand,silt)
-                            T         F        T  T
+                            20*F 
 
 bbl_history_fields: Abed Hripple Lripple Zbnot Zbapp Bostrw
                      T      F       F      T     F     T

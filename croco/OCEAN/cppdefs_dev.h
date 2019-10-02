@@ -131,44 +131,40 @@
 # define SOLVE3D
 # define M2FILTER_NONE  /* no filter with NBQ */
 # undef  M2FILTER_POWER
-# define NBQ_ZETAW
 # define NBQ_IMP
+# undef  NBQ_THETAIMP
 # undef  NBQ_FREESLIP
+# undef  NBQ_HZ_PROGNOSTIC
+# ifdef  TANK
+#  undef  NBQ_AM4
+# else
+#  define NBQ_AM4
+# endif
 # undef  TRACETXT
 # undef  DIAG_CFL
 # define HZR Hzr
 /*
-   NBQ Precise or Performance options 
+   NBQ Precise or Performance options (default: NBQ_PERF) 
 */
-# if !defined NBQ_PERF
-#  define NBQ_PRECISE
+# ifndef NBQ_PRECISE
+#  define NBQ_PERF
 # endif
-# ifdef NBQ_PRECISE
-#  define NBQ_MASS                               
-#  define NBQ_ZETAREDIAG
+# ifdef NBQ_PERF
+#  undef  NBQ_MASS
+#  define NBQ_GRID_SLOW
 #  define NBQ_HZCORRECT
 # else
-#  undef  NBQ_MASS
-#  undef  NBQ_ZETAREDIAG
+#  define NBQ_MASS
+#  undef  NBQ_GRID_SLOW
 #  define NBQ_HZCORRECT
 # endif
-/*
-   Options for older ZETA2D code 
-*/
-# ifndef NBQ_ZETAW
-#  undef  NBQ_MASS
-#  undef  NBQ_GRIDEXT
-#  undef  NBQ_ZETAEXP
-#  undef  NBQ_ZETAREDIAG
-#  undef  NBQ_TRACERS
-#  define NBQ_NODS
-# endif
+
 /*
    Options for wz HADV numerical schemes (default C4)
 */
 # ifdef W_HADV_SPLINES  /* Check if options are defined in cppdefs.h */
 # elif defined W_HADV_TVD
-# elif defined W_HADV_WENO5 /* not implemented */
+# elif defined W_HADV_WENO5
 # elif defined W_HADV_C4
 # elif defined W_HADV_C2
 # else
@@ -183,7 +179,7 @@
 */
 # ifdef W_VADV_SPLINES  /* Check if options are defined in cppdefs.h */
 # elif defined W_VADV_TVD
-# elif defined W_VADV_WENO5 /* not implemented */
+# elif defined W_VADV_WENO5
 # elif defined W_VADV_C2
 # else
 #  define W_VADV_SPLINES  /* Splines vertical advection             */
@@ -204,7 +200,7 @@
 #  define NBQ_NUDGING        /* interior/bdy forcing/nudging    */
 #  define NBQCLIMATOLOGY     /* interior/bdy forcing/nudging    */
 #  define NBQ_FRC_BRY        /* bdy forcing/nudging             */
-#  undef  W_FRC_BRY          /* wz bdy forcing/nudging          */
+#  define W_FRC_BRY          /* wz bdy forcing/nudging          */
 # endif
 
 #else                /* Hydrostatic mode */
@@ -231,20 +227,22 @@
    Activate choice of Pressure Gradient formulation
    (default is the Density Jacobian formulation with Cubic 
    Polynomial fit from Shchepetkin et al. (2003). But:
-   1- a cheaper standard Jacobian formulation can also be used 
-   (PGF_BASIC_JACOBIAN), especially for flat or smooth 
-   topography). 
-   2- The Weighted Jacobian formulation of Song & Haidvogel (1994)
-   can also be used by defining the WJ_GRADP key, which then serves 
+   1- This code can be run cheaper for flat bottom cases if
+      terms involving z-grid x/y gradients are removed
+      (PGF_FLAT_BOTTOM)
+   2- a cheaper standard Jacobian formulation can also be used 
+   (PGF_BASIC_JACOBIAN) for smooth topography. 
+   3- The Weighted Jacobian formulation of Song & Haidvogel (1994)
+   can be used in this case by defining WJ_GRADP key, which then serves 
    as the weight value. 
 ======================================================================
 */
 #if defined BASIN || defined EQUATOR  || defined GRAV_ADJ \
                   || defined SOLITON  || defined JET \
                   || defined ACOUSTIC || defined VORTEX \
-                  || defined THACKER  || defined TANK
-# define PGF_BASIC_JACOBIAN
-# undef WJ_GRADP
+                  || defined THACKER  || defined TANK \
+                  || defined KH_INST
+# define PGF_FLAT_BOTTOM
 #elif defined RIP
 # define PGF_BASIC_JACOBIAN
 # define WJ_GRADP 0.125
@@ -294,10 +292,25 @@
 # define UV_MIX_S      /* Default: diffusion along sigma surfaces */
 #endif
 /* 
-   Set keys related to Smagorinsky viscosity 
+   Set keys related to Smagorinsky viscosity or 3D GLS 
 */
+#ifdef UV_VIS_SMAGO_3D
+# define UV_VIS2
+# define TS_DIF2
+# define UV_VIS_SMAGO  
+# define TS_DIF_SMAGO
+#endif
 #ifdef UV_VIS_SMAGO 
-# define VIS_COEF_3D  
+# define VIS_COEF_3D
+#endif
+#ifdef GLS_MIX2017_3D
+# define GLS_MIX2017
+# define GLS_KEPSILON
+# undef  GLS_KOMEGA
+# define UV_VIS2
+# define VIS_COEF_3D
+# undef  TS_DIF2
+# undef  DIF_COEF_3D
 #endif
 /*
    Set UP3 scheme in barotropic equations for 2DH applications
@@ -360,12 +373,6 @@
 /* 
   Options for split-rotated advection-diffusion schemes
 */
-#ifdef TS_HADV_C4      /* 4th-order centered advection with:   */
-# define TS_DIF2       /*   + Laplacian Diffusion              */
-# undef  TS_DIF4       /*                                      */
-# define TS_DIF_SMAGO  /*   + Smagorinsky diffusivity          */
-# define TS_MIX_ISO    /*   + Isopycnal rotation               */ 
-#endif 
 #ifdef TS_HADV_RSUP3   /*  Rotated-Split 3rd-order scheme is:  */
 # define TS_HADV_C4    /*    4th-order centered advection      */
 # undef  TS_DIF2       /*               +                      */
@@ -384,6 +391,14 @@
 # define TS_MIX_GEO    /*        Geopotential rotation         */
 # undef  TS_MIX_ISO    /*     or Isopycnal    rotation         */
 #endif
+#if defined TS_HADV_C4 && !defined TS_HADV_RSUP3     
+                       /* 4th-order centered advection with:   */
+# define TS_DIF2       /*   + Laplacian Diffusion              */
+# undef  TS_DIF4       /*                                      */
+# define TS_DIF_SMAGO  /*   + Smagorinsky diffusivity          */
+# define TS_MIX_ISO    /*   + Isopycnal rotation               */ 
+#endif 
+
 /* 
    TS DIFFUSION: set default orientation
 */
@@ -411,7 +426,7 @@
 #  undef CLIMAT_TS_MIXH_FINE
 # endif
 /*
-   Use 3D viscosity arrays if needed       
+   Use 3D diffusivity arrays if needed       
 */
 #if defined TS_HADV_RSUP3 \
  || defined TS_HADV_RSUP5 || defined TS_DIF_SMAGO
@@ -478,7 +493,7 @@
 #ifdef TIDES
 # ifdef SSH_TIDES
 #  ifdef ZCLIMATOLOGY
-#  elif Z_FRC_BRY
+#  elif defined Z_FRC_BRY
 #  else
 #   define ZCLIMATOLOGY
 #   define ANA_SSH
@@ -486,11 +501,33 @@
 # endif
 # ifdef UV_TIDES
 #  ifdef M2CLIMATOLOGY
-#  elif M2_FRC_BRY
+#  elif defined M2_FRC_BRY
 #  else
 #   define M2CLIMATOLOGY
 #   define ANA_M2CLIMA
 #  endif
+# endif
+#endif
+
+/*
+======================================================================
+    WAVE_MAKER for wave-resolving simulations
+======================================================================
+*/
+#ifdef WAVE_MAKER
+# if defined WAVE_MAKER_JONSWAP || defined WAVE_MAKER_GAUSSIAN \
+                                || defined FLUME_WAVES
+#  define WAVE_MAKER_SPECTRUM
+# endif
+# ifdef WAVE_MAKER_SPECTRUM
+#  ifdef WAVE_MAKER_JONSWAP
+#  elif defined WAVE_MAKER_GAUSSIAN
+#  else
+#   define WAVE_MAKER_JONSWAP
+#  endif
+# endif
+# ifndef WAVE_MAKER_SPECTRUM
+#  define STOKES_WAVES
 # endif
 #endif
 
@@ -729,7 +766,7 @@
 /*                    Update schemes */
 # undef  AGRIF_UPDATE_MIX_LOW
 # define AGRIF_UPDATE_MIX
-# define AGRIF_UPDATE_DECAL
+# undef  AGRIF_UPDATE_DECAL
 /*                    Conservation options */
 # define AGRIF_CONSERV_VOL
 # undef  AGRIF_CONSERV_TRA

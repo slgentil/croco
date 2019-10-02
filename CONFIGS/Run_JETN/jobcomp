@@ -49,8 +49,10 @@ if [[ $OS == Linux ]] ; then
  	LINUX_FC=gfortran
  	export OMPI_FC=gfortran
   else
-    LINUX_FC=ifort
-    export OMPI_FC=ifort
+#        LINUX_FC=ifort
+#        export OMPI_FC=ifort
+        LINUX_FC=gfortran
+        export OMPI_FC=gfortran
   fi
 #
 #	set 32 or 64 Bits executable
@@ -88,8 +90,8 @@ elif [[ $HOSTNAME == *"curie"* ]]; then
   NETCDFLIB=$(nf-config --flibs) 
   NETCDFINC=-I$(nf-config --includedir)
 elif [[ $UNAME == *"Ubuntu"* ]]; then
-  NETCDFINC=-I/export/home/services/netcdf/include
-  NETCDFLIB="-L/export/home/services/netcdf/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lz -lcurl"
+  NETCDFINC="-I/home/dunree/services/hdf5/include -I/home/dunree/services/netcdf/include"
+  NETCDFLIB="-L/home/dunree/services/hdf5/lib -L/home/dunree/services/netcdf/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lz -lcurl"
 else
   NETCDFLIB="-lnetcdf -lnetcdff -llapack -lfftw3 -lfftw3f"
   NETCDFINC=-I$(nf-config --includedir)
@@ -116,9 +118,10 @@ if [[ $HOSTNAME == *"datarmor"* ]]; then
 elif [[ $HOSTNAME == *"curie"* ]]; then 
   XIOS_ROOT_DIR='$(HOME)/lib/XIOS'
 elif [[ $UNAME == *"Ubuntu"* ]]; then
-  XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_ubuntu16_LTS
+  XIOS_ROOT_DIR=/home1/dunree/slgentil/models/XIOS/xios_ubuntu18_LTS
 else
-  XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_ifort
+# XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_ifort
+  XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_gfortran
 fi
 
 #
@@ -141,7 +144,7 @@ fi
 #
 
 LDFLAGS1="$NETCDFLIB $MYLIB"
-CPPFLAGS1="$NETCDFINC -IROMSFILES/AGRIF_INC $MYINC"
+CPPFLAGS1="$NETCDFINC $MYINC"
 #
 # END OF USER'S MODIFICATIONS
 ####################################################
@@ -199,14 +202,16 @@ if [[ $OS == Linux ]] ; then           # ===== LINUX =====
 	if [[ $LINUX_FC == ifort || $LINUX_FC == ifc ]] ; then
 		CPP1="cpp -traditional -DLinux -DIfort"
 		CFT1=ifort
-		FFLAGS1="-O3 -72 -fno-alias -i4 -r8 -fp-model precise $CPPFLAGS1"
+#		FFLAGS1="-O3 -72 -fno-alias -i4 -r8 -fp-model precise $CPPFLAGS1"
+ 		FFLAGS1="-xCORE-AVX2 -O3 -i4 -r8 -ftz -align all -assume byterecl -extend-source -fno-alias -no-prec-div -no-prec-sqrt -ip -g -w -traceback $CPPFLAGS1"
+		# FFLAGS1="-xCORE-AVX2 -O3 -i4 -r8 -align all -assume byterecl -extend-source -fno-alias -no-prec-div -no-prec-sqrt -ip -w $CPPFLAGS1"
 		LDFLAGS1="$LDFLAGS1"
 	elif [[ $LINUX_FC == gfortran ]] ; then
 		CPP1="cpp -traditional -DLinux"
 		CFT1=gfortran
-		FFLAGS1="-O3 -fdefault-real-8 -fdefault-double-8 -mcmodel=medium $CPPFLAGS1"
-#		 FFLAGS1="-O0 -g -fdefault-real-8 -fdefault-double-8 -fbacktrace \
-#			-fbounds-check -finit-real=nan -finit-integer=8888"
+     	# FFLAGS1="-O3 -fdefault-real-8 -fdefault-double-8 -mcmodel=medium -finit-local-zero $CPPFLAGS1"
+		FFLAGS1="-O3 -g -fdefault-real-8 -fdefault-double-8 -fbacktrace \
+			-fbounds-check -finit-local-zero $CPPFLAGS1"
 		LDFLAGS1="$LDFLAGS1"
 	fi
 elif [[ $OS == Darwin ]] ; then        # ===== DARWIN =====
@@ -319,7 +324,8 @@ if $($CPP1 testkeys.F | grep -i -q xiosisdefined) ; then
         CPPFLAGS1="$CPPFLAGS1 -I$XIOS_ROOT_DIR/inc"
         FFLAGS1="$FFLAGS1 -I$XIOS_ROOT_DIR/inc"
         rm $RUNDIR/xios_server.exe
-        ln -s $XIOS_ROOT_DIR/bin/xios_server.exe $RUNDIR/.
+#       ln -s $XIOS_ROOT_DIR/bin/xios_server.exe $RUNDIR/.
+        cp  $XIOS_ROOT_DIR/bin/xios_server.exe $RUNDIR
         $CPP1 -P -traditional -imacros cppdefs.h  ../field_def.xml_full ../field_def.xml
 fi
 #

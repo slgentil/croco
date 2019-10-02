@@ -38,11 +38,11 @@
           if (EAST_INTER) then
             imax=Lmmpi+1
           else
-            imax=Lmmpi-1
+            imax=Lmmpi-2
           endif
 #   else
           imin=3
-          imax=Lm-1
+          imax=Lm-2
 #   endif
 #  endif
 !
@@ -55,7 +55,7 @@
             IF ( j.ge.jmin .and. j.le.jmax ) THEN ! use full stencil
                                                   !
               DO i = IstrU,Iend
-                if ( i.ge.imin .and. i.le.jmax ) then
+                if ( i.ge.imin .and. i.le.imax ) then
                   vel = flux6(Hvom(i-3,j,k),Hvom(i-2,j,k),Hvom(i-1,j,k),
      &                        Hvom(i  ,j,k),Hvom(i+1,j,k),Hvom(i+2,j,k),1.)
                 else

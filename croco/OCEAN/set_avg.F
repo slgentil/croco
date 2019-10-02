@@ -245,6 +245,19 @@ C$    integer omp_get_thread_num
             enddo
           enddo
         endif
+# if defined ANA_VMIX || defined BVF_MIXING \
+  || defined LMD_MIXING || defined LMD_SKPP || defined LMD_BKPP \
+  || defined GLS_MIX2017 || defined GLS_MIXING
+        if (wrtavg(indxbvf)) then
+          do k=0,N
+            do j=JstrR,JendR
+              do i=IstrR,IendR
+                bvf_avg(i,j,k)=cff*(cff1*bvf_avg(i,j,k)+bvf(i,j,k))
+              enddo
+            enddo
+          enddo
+        endif
+# endif
         if (wrtavg(indxO)) then
           do k=0,N
             do j=JstrR,JendR

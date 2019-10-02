@@ -34,23 +34,28 @@ C$    integer omp_get_thread_num
 # ifdef WKB_WWAVE
 #  include "wkb_wwave.h"
 # endif
-#ifdef NBQ
-# include "nbq.h"
-#endif
 !
 #include "compute_extended_bounds.h"
 !
 !  Set f/mn,at horizontal RHO-points.
 !
-
       do j=JstrR,JendR                             ! This array
         do i=IstrR,IendR                           ! is NOT to be 
           fomn(i,j)=f(i,j)/(pm(i,j)*pn(i,j))       ! communicated 
-#ifdef NBQ
+                                                   ! in MPI code; 
+                                                   ! others are...
+# if defined UV_COR_NT || defined CROCO_QH
+!
+!  Horizontal Coriolis parameter e/mn
+!   e = 2 Omega cos(Phi)
+!
+#  ifndef ANA_GRID
+          e(i,j)=2.*Erotation*cos(asin(f(i,j)/(2.*Erotation)))
+#  endif
           eomn(i,j)=e(i,j)/(pm(i,j)*pn(i,j))          
-#endif
-        enddo                                      ! in MPI code; 
-      enddo                                        ! others are...
+# endif
+        enddo
+      enddo
 
 #ifdef EW_PERIODIC
 # define IR_RANGE IstrR,IendR
@@ -86,7 +91,7 @@ C$    integer omp_get_thread_num
           on_r(i,j)=1./pn(i,j)
           pnom_r(i,j)=pn(i,j)/pm(i,j)
           pmon_r(i,j)=pm(i,j)/pn(i,j)
-#ifdef NBQ
+# if defined UV_COR_NT || defined CROCO_QH
 # ifdef CURVGRID
           cosa(i,j) = cos(angler(i,j))
           sina(i,j) = sin(angler(i,j))

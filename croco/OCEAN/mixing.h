@@ -77,7 +77,7 @@
       common /mixing_idRz/idRz
 # ifdef TS_MIX_ISO
       real Rslope_max,Gslope_max
-      parameter (Gslope_max=5., Rslope_max=0.05)
+      parameter (Gslope_max=1., Rslope_max=0.05)
 # endif
 # ifdef TS_MIX_ISO_FILT
       integer ismooth
@@ -102,7 +102,8 @@
 
 # if defined ANA_VMIX || defined BVF_MIXING \
   || defined LMD_MIXING || defined LMD_SKPP || defined LMD_BKPP \
-  || defined GLS_MIX2017 || defined GLS_MIXING
+  || defined GLS_MIX2017 || defined GLS_MIXING \
+  || defined UV_VIS_SMAGO_3D
       real bvf(GLOBAL_2D_ARRAY,0:N)
       common /mixing_bvf/ bvf
 # endif

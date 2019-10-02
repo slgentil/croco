@@ -75,7 +75,7 @@
       phase=0.
       ramp=1.
 # ifdef TIDERAMP
-      ramp=max(0.,0.5*(TANH(50*(dt*sec2day*float(iic-ntstart)-0.5))+0.5))
+      ramp=TANH(dt*sec2day*float(iic-1))
 # endif
       cff=2.*pi*time
 !

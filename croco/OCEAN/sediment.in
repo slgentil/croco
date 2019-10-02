@@ -6,16 +6,22 @@ CROCO - Sediment - Test
       0.050   0.0   2650.  1.6     4.0e-5  0.01    0.14    0.6  0.6
 
 3 BTHK(1:NLAY)
-       0.3E-2   10. 
+       1.    10. 
             
 4 BPOR(1:NLAY)
-       0.41    0.42
+       0.41  0.42
 
 5 Hrip             
        0.03  
 
 6 Lrip
-       0.14  
+       0.14
+
+7 bedload_coeff 
+       0.
+
+8 morph_fac
+      10. 
 
 99 END of sediment input data
 

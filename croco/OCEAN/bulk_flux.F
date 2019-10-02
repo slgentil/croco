@@ -231,6 +231,25 @@
           cer(i,j)=ce
         enddo
       enddo
+
+!
+!---------------------------------------------------------------
+!
+!---------------------------------------------------------------
+!
+
+#ifdef SEA_ICE_NOFLUX
+      do j=jmin,jmax
+        do i=imin,imax
+              if( t(i,j,N,nrhs,itemp) .le. -1.8 ) then
+                   stflx(i,j,itemp)=0.
+#   if defined LMD_SKPP || defined LMD_BKPP || defined GLS_MIX2017 || defined GLS_MIXING
+                   srflx(i,j)=0.
+#    endif
+              endif
+        enddo
+      enddo
+#endif
 !
 !---------------------------------------------------------------
 ! Flux correction to surface net heat flux.
@@ -255,8 +274,12 @@
 # ifdef SFLX_CORR
       do j=jmin,jmax
         do i=imin,imax
-          stflx(i,j,isalt)=stflx(i,j,isalt)+
-     &                  dqdt(i,j)*(t(i,j,N,nrhs,isalt)-sss(i,j))
+          stflx(i,j,isalt)=stflx(i,j,isalt)
+# ifdef SFLX_CORR_COEF
+     &  -Hz(i,j,N)/(dSdt*day2sec)*(t(i,j,N,nrhs,isalt)-sss(i,j))
+# else
+     &                 +dqdt(i,j)*(t(i,j,N,nrhs,isalt)-sss(i,j))
+# endif
 #  ifdef WET_DRY
      &                                           *rmask_wet(i,j)
 #  endif
@@ -762,6 +785,24 @@
       enddo
 !
 !---------------------------------------------------------------
+!
+!---------------------------------------------------------------
+!
+
+#ifdef SEA_ICE_NOFLUX
+      do j=jmin,jmax
+        do i=imin,imax
+              if( t(i,j,N,nrhs,itemp) .le. -1.8 ) then
+                   stflx(i,j,itemp)=0.
+#   if defined LMD_SKPP || defined LMD_BKPP || defined GLS_MIX2017 || defined GLS_MIXING
+                   srflx(i,j)=0.
+#    endif
+              endif
+        enddo
+      enddo
+#endif
+!
+!---------------------------------------------------------------
 ! Flux correction to surface net heat flux.
 !---------------------------------------------------------------
 !
@@ -784,8 +825,12 @@
 # ifdef SFLX_CORR
       do j=jmin,jmax
         do i=imin,imax
-          stflx(i,j,isalt)=stflx(i,j,isalt)+
-     &                  dqdt(i,j)*(t(i,j,N,nrhs,isalt)-sss(i,j))
+          stflx(i,j,isalt)=stflx(i,j,isalt)
+# ifdef SFLX_CORR_COEF
+     &  -Hz(i,j,N)/(dSdt*day2sec)*(t(i,j,N,nrhs,isalt)-sss(i,j))
+# else
+     &                 +dqdt(i,j)*(t(i,j,N,nrhs,isalt)-sss(i,j))
+# endif
 #  ifdef WET_DRY
      &                                           *rmask_wet(i,j)
 #  endif

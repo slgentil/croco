@@ -92,7 +92,26 @@
       if (WESTERN_EDGE) then
 !         write(6,*) 'WEST'
 #  ifdef OBC_COM_WEST
-#   ifdef OBC_COM_NBQORLANSKI
+#   if defined OBC_COM_NBQSPECIFIED || defined OBC_COM_NBQSPECIFIED_WEST
+!                                            Western edge Specified BC
+!                                            ======= ==== ========= ==
+        do k=1,N
+          do j=Jstr,Jend
+#    ifdef NBQ_FRC_BRY
+            qdmu_nbq(Istr,j,k)=unbqbry_west(j,k)         ! specified
+#    else
+            qdmu_nbq(Istr,j,k)=unbqclm(Istr,j,k)
+#    endif
+#    ifdef MASKING
+     &                            *umask(Istr,j)
+#    endif
+#    ifdef WET_DRY
+     &                        *umask_wet(Istr,j)
+#    endif
+          enddo
+        enddo
+
+#   elif defined OBC_COM_NBQORLANSKI
         do k=1,N                             ! Western edge radiation
           do j=Jstr,Jend+1                   ! ======= ==== =========
             grad(Istr  ,j)=(qdmu_nbq_west(j  ,k,1)
@@ -109,7 +128,6 @@
           do j=Jstr,Jend
             dft=qdmu_nbq_west(j,k,2)-qdmu_nbq(Istr+1,j,k)
             dfx=qdmu_nbq(Istr+1,j,k)-qdmu_nbq(Istr+2,j,k)
-
             if (dfx*dft .lt. 0.) then
               dft=0.                       ! <-- cancel cx, if inflow
 #    if defined NBQ_FRC_BRY || defined NBQ_NUDGING
@@ -118,7 +136,6 @@
               tau=tau_out
 #    endif
             endif
- 
             if (dft*(grad(Istr+1,j)+grad(Istr+1,j+1)) .gt. 0.) then
               dfy=grad(Istr+1,j)
             else
@@ -127,7 +144,6 @@
             cff=max(dfx*dfx+dfy*dfy, eps)
             cx=dft*dfx
             cy=min(cff,max(dft*dfy,-cff))
- 
             qdmu_nbq(Istr,j,k)=(  cff*qdmu_nbq_west(j,k,1)
      &                            +cx*qdmu_nbq(Istr+1,j,k)
      &                          -max(cy,0.)*grad(Istr,j  )
@@ -146,25 +162,6 @@
 #    endif
 #    ifdef WET_DRY
      &                                  *umask_wet(Istr,j)
-#    endif
-          enddo
-        enddo
-!
-#   elif defined OBC_COM_NBQSPECIFIED
-!                                            Western edge Specified BC
-!                                            ======= ==== ========= ==
-        do k=1,N
-          do j=Jstr,Jend
-#    ifdef NBQ_FRC_BRY
-            qdmu_nbq(Istr,j,k)=unbqbry_west(j,k)         ! specified
-#    else
-            qdmu_nbq(Istr,j,k)=unbqclm(Istr,j,k)
-#    endif
-#    ifdef MASKING
-     &                            *umask(Istr,j)
-#    endif
-#    ifdef WET_DRY
-     &                        *umask_wet(Istr,j)
 #    endif
           enddo
         enddo
@@ -200,7 +197,8 @@
             cff2=0.5*(h(Istr  ,j)+zeta(Istr  ,j,knew)
      &               +h(Istr-1,j)+zeta(Istr-1,j,knew))
             qdmu_nbq(Istr,j,k)=qdmu_nbq(Istr,j,k)
-     &                         +(DU_nbq(Istr,j)-usum(Istr,j))*cff1/cff2
+     &                         +(DU_nbq(Istr,j)
+     &                            -usum(Istr,j))*cff1/cff2
 #    ifdef MASKING
      &                                 *umask(Istr,j)
 #    endif
@@ -214,7 +212,16 @@
 #  else           /* alternative to open */
         do k=1,N                                      ! Western edge closed
           do j=jstr,jend                              ! ======= ==== ======
-            qdmu_nbq(Istr,j,k)=0.                     !  (no-flux: default)
+#   ifdef MRL_WCI
+            qdmu_nbq(Istr,j,k)=-ust(Istr,j,k)         ! no Lagrangian flux
+                               *0.5*(Hz(Istr  ,j,k)
+     &                              +Hz(Istr-1,j,k))
+#    ifdef MASKING
+     &                       *umask(Istr,j)
+#    endif
+#   else
+            qdmu_nbq(Istr,j,k)=0.                     !  no-flux: default
+#   endif
           enddo
         enddo
 
@@ -227,7 +234,26 @@
 !====================================================================
       if (EASTERN_EDGE) then
 #  ifdef OBC_COM_EAST
-#   ifdef OBC_COM_NBQORLANSKI
+#   if defined OBC_COM_NBQSPECIFIED || defined OBC_COM_NBQSPECIFIED_EAST
+!                                            Eastern edge Specified BC
+!                                            ======= ==== ========= ==
+        do k=1,N
+          do j=Jstr,Jend
+#    ifdef NBQ_FRC_BRY
+            qdmu_nbq(Iend+1,j,k)=unbqbry_east(j,k)       ! specified
+#    else
+            qdmu_nbq(Iend+1,j,k)=unbqclm(Iend+1,j,k)
+#    endif
+#    ifdef MASKING
+     &                              *umask(Iend+1,j)
+#    endif
+#    ifdef WET_DRY
+     &                          *umask_wet(Iend+1,j)
+#    endif
+          enddo
+        enddo
+!
+#   elif defined OBC_COM_NBQORLANSKI
         do k=1,N                             ! Eastern edge radiation
           do j=Jstr,Jend+1                   ! ======= ==== =========
             grad(Iend  ,j)=(qdmu_nbq_east(j  ,k,2)
@@ -242,9 +268,8 @@
 #    endif
           enddo
           do j=Jstr,Jend
-          dft=qdmu_nbq_east(j,k,2)-qdmu_nbq(Iend  ,j,k)
-          dfx=qdmu_nbq(Iend  ,j,k)-qdmu_nbq(Iend-1,j,k)
- 
+            dft=qdmu_nbq_east(j,k,2)-qdmu_nbq(Iend  ,j,k)
+            dfx=qdmu_nbq(Iend  ,j,k)-qdmu_nbq(Iend-1,j,k)
             if (dfx*dft .lt. 0.) then
               dft=0.                      ! <-- cancel cx, if inflow
 #    if defined NBQ_FRC_BRY || defined NBQ_NUDGING
@@ -253,7 +278,6 @@
               tau=tau_out
 #    endif
             endif
- 
             if (dft*(grad(Iend,j)+grad(Iend,j+1)) .gt. 0.) then
               dfy=grad(Iend,j)
             else
@@ -262,7 +286,6 @@
             cff=max(dfx*dfx+dfy*dfy, eps)
             cx=dft*dfx
             cy=min(cff,max(dft*dfy,-cff))
- 
             qdmu_nbq(Iend+1,j,k)=(    cff*qdmu_nbq_east(j,k,1)
      &                                  +cx*qdmu_nbq(Iend,j,k)
      &                            -max(cy,0.)*grad(Iend+1,j  )
@@ -281,25 +304,6 @@
 #    endif
 #    ifdef WET_DRY
      &                                    *umask_wet(Iend+1,j)
-#    endif
-          enddo
-        enddo
-!
-#   elif defined OBC_COM_NBQSPECIFIED
-!                                            Eastern edge Specified BC
-!                                            ======= ==== ========= ==
-        do k=1,N
-          do j=Jstr,Jend
-#    ifdef NBQ_FRC_BRY
-            qdmu_nbq(Iend+1,j,k)=unbqbry_east(j,k)       ! specified
-#    else
-            qdmu_nbq(Iend+1,j,k)=unbqclm(Iend+1,j,k)
-#    endif
-#    ifdef MASKING
-     &                              *umask(Iend+1,j)
-#    endif
-#    ifdef WET_DRY
-     &                          *umask_wet(Iend+1,j)
 #    endif
           enddo
         enddo
@@ -335,8 +339,8 @@
             cff2=0.5*(h(Iend+1,j)+zeta(Iend+1,j,knew)
      &               +h(Iend  ,j)+zeta(Iend  ,j,knew))
             qdmu_nbq(Iend+1,j,k)=qdmu_nbq(Iend+1,j,k)
-     &                           +(DU_nbq(Iend+1,j)-usum(Iend+1,j))
-     &                                                   *cff1/cff2
+     &                           +(DU_nbq(Iend+1,j)
+     &                              -usum(Iend+1,j))*cff1/cff2
 #    ifdef MASKING
      &                               *umask(Iend+1,j)
 #    endif
@@ -350,7 +354,16 @@
 #  else
         do k=1,N                                     ! Eastern edge closed
           do j=jstr,jend                             ! ======= ==== ======
-             qdmu_nbq(Iend+1,j,k)=0.                 !  (no-flux: default)  
+#   ifdef MRL_WCI
+             qdmu_nbq(Iend+1,j,k)=-ust(Iend+1,j,k)   ! no Lagrangian flux
+     &                            *0.5*(Hz(Iend+1,j,k)
+     &                                 +Hz(Iend  ,j,k))
+#    ifdef MASKING
+     &                          *umask(Iend+1,j)
+#    endif
+#   else
+             qdmu_nbq(Iend+1,j,k)=0.                 ! no-flux: default
+#   endif
           enddo
         enddo
 
@@ -367,60 +380,7 @@
 !====================================================================
       if (SOUTHERN_EDGE) then
 #  ifdef OBC_COM_SOUTH
-#   ifdef OBC_COM_NBQORLANSKI
-        do k=1,N                            ! Southern edge radiation
-          do i=IstrU-1,Iend                 ! ======== ==== =========
-            grad(i,Jstr-1)=qdmu_nbq_south(i+1,k,1)
-     &                    -qdmu_nbq_south(i  ,k,1)
-            grad(i,Jstr  )=qdmu_nbq_south(i+1,k,2)
-     &                    -qdmu_nbq_south(i  ,k,2)
-          enddo
-          do i=IstrU,Iend
-            dft=qdmu_nbq_south(i,k,2)-qdmu_nbq(i,Jstr  ,k)
-            dfx=qdmu_nbq(i,Jstr  ,k) -qdmu_nbq(i,Jstr+1,k)
-
-            if (dfx*dft .lt. 0.) then
-              dft=0.                       ! <-- cancel cx, if inflow
-#    if defined NBQ_FRC_BRY || defined NBQ_NUDGING
-              tau=tau_in
-            else
-              tau=tau_out
-#    endif
-            endif
- 
-            if (dft*(grad(i-1,Jstr)+grad(i,Jstr)) .gt. 0.) then
-              dfy=grad(i-1,Jstr)
-            else
-              dfy=grad(i  ,Jstr)
-            endif
-            cff=max(dfx*dfx+dfy*dfy, eps)
-            cx=dft*dfx
-            cy=min(cff,max(dft*dfy,-cff))
-
-            qdmu_nbq(i,Jstr-1,k)=(   cff*qdmu_nbq_south(i,k,1)
-     &                                  +cx*qdmu_nbq(i,Jstr,k)
-     &                            -max(cy,0.)*grad(i-1,Jstr-1)
-     &                            -min(cy,0.)*grad(i  ,Jstr-1)
-     &                                              )/(cff+cx)
-
-#    if defined NBQ_FRC_BRY  || defined NBQ_NUDGING 
-            qdmu_nbq(i,Jstr-1,k)=(1.-tau)*qdmu_nbq(i,Jstr-1,k)
-#     ifdef NBQ_FRC_BRY
-     &                                 +tau*unbqbry_south(i,k)
-#     else     
-     &                                +tau*unbqclm(i,Jstr-1,k)
-#     endif
-#    endif
-#    ifdef MASKING
-     &                                        *umask(i,Jstr-1)
-#    endif
-#    ifdef WET_DRY
-     &                                    *umask_wet(i,Jstr-1)
-#    endif
-          enddo
-        enddo
-!
-#   elif defined OBC_COM_NBQSPECIFIED
+#   if defined OBC_COM_NBQSPECIFIED || defined OBC_COM_NBQSPECIFIED_SOUTH
 !                                           Southern edge Specified BC
 !                                           ======== ==== ========= ==
         do k=1,N
@@ -438,6 +398,56 @@
 #    endif
           enddo
         enddo
+!
+#   elif defined OBC_COM_NBQORLANSKI
+        do k=1,N                            ! Southern edge radiation
+          do i=IstrU-1,Iend                 ! ======== ==== =========
+            grad(i,Jstr-1)=qdmu_nbq_south(i+1,k,1)
+     &                    -qdmu_nbq_south(i  ,k,1)
+            grad(i,Jstr  )=qdmu_nbq_south(i+1,k,2)
+     &                    -qdmu_nbq_south(i  ,k,2)
+          enddo
+          do i=IstrU,Iend
+            dft=qdmu_nbq_south(i,k,2)-qdmu_nbq(i,Jstr  ,k)
+            dfx=qdmu_nbq(i,Jstr  ,k) -qdmu_nbq(i,Jstr+1,k)
+            if (dfx*dft .lt. 0.) then
+              dft=0.                       ! <-- cancel cx, if inflow
+#    if defined NBQ_FRC_BRY || defined NBQ_NUDGING
+              tau=tau_in
+            else
+              tau=tau_out
+#    endif
+            endif
+            if (dft*(grad(i-1,Jstr)+grad(i,Jstr)) .gt. 0.) then
+              dfy=grad(i-1,Jstr)
+            else
+              dfy=grad(i  ,Jstr)
+            endif
+            cff=max(dfx*dfx+dfy*dfy, eps)
+            cx=dft*dfx
+            cy=min(cff,max(dft*dfy,-cff))
+            qdmu_nbq(i,Jstr-1,k)=(   cff*qdmu_nbq_south(i,k,1)
+     &                                  +cx*qdmu_nbq(i,Jstr,k)
+     &                            -max(cy,0.)*grad(i-1,Jstr-1)
+     &                            -min(cy,0.)*grad(i  ,Jstr-1)
+     &                                              )/(cff+cx)
+#    if defined NBQ_FRC_BRY  || defined NBQ_NUDGING 
+            qdmu_nbq(i,Jstr-1,k)=(1.-tau)*qdmu_nbq(i,Jstr-1,k)
+#     ifdef NBQ_FRC_BRY
+     &                                 +tau*unbqbry_south(i,k)
+#     else     
+     &                                +tau*unbqclm(i,Jstr-1,k)
+#     endif
+#    endif
+#    ifdef MASKING
+     &                                        *umask(i,Jstr-1)
+#    endif
+#    ifdef WET_DRY
+     &                                    *umask_wet(i,Jstr-1)
+#    endif
+          enddo
+        enddo
+!
 #   else
 !                                           Southern edge gradient BC
 !                                           ======== ==== ======== ==
@@ -472,8 +482,8 @@
             cff2=0.5*(h(i  ,Jstr-1)+zeta(i  ,Jstr-1,knew)
      &               +h(i-1,Jstr-1)+zeta(i-1,Jstr-1,knew))
             qdmu_nbq(i,Jstr-1,k)=qdmu_nbq(i,Jstr-1,k)
-     &                           +(DU_nbq(i,Jstr-1)-usum(i,Jstr-1))
-     &                                                   *cff1/cff2
+     &                           +(DU_nbq(i,Jstr-1)
+     &                              -usum(i,Jstr-1))*cff1/cff2
 #    ifdef MASKING
      &                             *umask(i,Jstr-1)
 #    endif
@@ -510,60 +520,7 @@
 !====================================================================
       if (NORTHERN_EDGE) then
 #  ifdef OBC_COM_NORTH
-#   ifdef OBC_COM_NBQORLANSKI
-        do k=1,N                            ! Northern edge radiation
-          do i=IstrU-1,Iend                 ! ======== ==== =========
-            grad(i,Jend+1)=qdmu_nbq_north(i+1,k,2)
-     &                    -qdmu_nbq_north(i  ,k,2)
-            grad(i,Jend  )=qdmu_nbq_north(i+1,k,1)
-     &                    -qdmu_nbq_north(i  ,k,1)
-          enddo
-          do i=IstrU,Iend
-            dft=qdmu_nbq_north(i,k,2)-qdmu_nbq(i,Jend  ,k)
-            dfx=qdmu_nbq(i,Jend  ,k) -qdmu_nbq(i,Jend-1,k)
-
-            if (dfx*dft .lt. 0.) then
-              dft=0.                                 ! <-- INFLOW
-#    if defined NBQ_FRC_BRY || defined NBQ_NUDGING
-              tau=tau_in
-            else
-              tau=tau_out
-#    endif
-            endif
- 
-            if (dft*(grad(i-1,Jend)+grad(i,Jend)) .gt. 0.) then
-              dfy=grad(i-1,Jend)
-            else
-              dfy=grad(i  ,Jend)
-            endif
-            cff=max(dfx*dfx+dfy*dfy, eps)
-            cx=dft*dfx
-            cy=min(cff,max(dft*dfy,-cff))
- 
-            qdmu_nbq(i,Jend+1,k)=(   cff*qdmu_nbq_north(i,k,1)
-     &                                  +cx*qdmu_nbq(i,Jend,k)
-     &                            -max(cy,0.)*grad(i-1,Jend+1)
-     &                            -min(cy,0.)*grad(i  ,Jend+1)
-     &                                              )/(cff+cx)
-
-#    if defined NBQ_FRC_BRY  || defined NBQ_NUDGING 
-            qdmu_nbq(i,Jend+1,k)=(1.-tau)*qdmu_nbq(i,Jend+1,k)
-#     ifdef NBQ_FRC_BRY
-     &                                 +tau*unbqbry_north(i,k)
-#     else     
-     &                                +tau*unbqclm(i,Jend+1,k)
-#     endif
-#    endif
-#    ifdef MASKING
-     &                                       *umask(i,Jend+1)
-#    endif
-#    ifdef WET_DRY
-     &                                   *umask_wet(i,Jend+1)
-#    endif
-          enddo
-        enddo
-!
-#   elif defined OBC_COM_NBQSPECIFIED
+#   if defined OBC_COM_NBQSPECIFIED || defined OBC_COM_NBQSPECIFIED_NORTH
 !                                           Northern edge Specified BC
 !                                           ======== ==== ========= ==
         do k=1,N
@@ -581,6 +538,56 @@
 #    endif
           enddo
         enddo
+!
+#   elif defined OBC_COM_NBQORLANSKI
+        do k=1,N                            ! Northern edge radiation
+          do i=IstrU-1,Iend                 ! ======== ==== =========
+            grad(i,Jend+1)=qdmu_nbq_north(i+1,k,2)
+     &                    -qdmu_nbq_north(i  ,k,2)
+            grad(i,Jend  )=qdmu_nbq_north(i+1,k,1)
+     &                    -qdmu_nbq_north(i  ,k,1)
+          enddo
+          do i=IstrU,Iend
+            dft=qdmu_nbq_north(i,k,2)-qdmu_nbq(i,Jend  ,k)
+            dfx=qdmu_nbq(i,Jend  ,k) -qdmu_nbq(i,Jend-1,k)
+            if (dfx*dft .lt. 0.) then
+              dft=0.                                 ! <-- INFLOW
+#    if defined NBQ_FRC_BRY || defined NBQ_NUDGING
+              tau=tau_in
+            else
+              tau=tau_out
+#    endif
+            endif
+            if (dft*(grad(i-1,Jend)+grad(i,Jend)) .gt. 0.) then
+              dfy=grad(i-1,Jend)
+            else
+              dfy=grad(i  ,Jend)
+            endif
+            cff=max(dfx*dfx+dfy*dfy, eps)
+            cx=dft*dfx
+            cy=min(cff,max(dft*dfy,-cff))
+            qdmu_nbq(i,Jend+1,k)=(   cff*qdmu_nbq_north(i,k,1)
+     &                                  +cx*qdmu_nbq(i,Jend,k)
+     &                            -max(cy,0.)*grad(i-1,Jend+1)
+     &                            -min(cy,0.)*grad(i  ,Jend+1)
+     &                                              )/(cff+cx)
+#    if defined NBQ_FRC_BRY  || defined NBQ_NUDGING 
+            qdmu_nbq(i,Jend+1,k)=(1.-tau)*qdmu_nbq(i,Jend+1,k)
+#     ifdef NBQ_FRC_BRY
+     &                                 +tau*unbqbry_north(i,k)
+#     else     
+     &                                +tau*unbqclm(i,Jend+1,k)
+#     endif
+#    endif
+#    ifdef MASKING
+     &                                       *umask(i,Jend+1)
+#    endif
+#    ifdef WET_DRY
+     &                                   *umask_wet(i,Jend+1)
+#    endif
+          enddo
+        enddo
+!
 #   else
 !                                           Northern edge gradient BC
 !                                           ======== ==== ======== ==
@@ -615,8 +622,8 @@
             cff2=0.5*(h(i  ,Jend+1)+zeta(i  ,Jend+1,knew)
      &               +h(i-1,Jstr-1)+zeta(i-1,Jend+1,knew))
             qdmu_nbq(i,Jend+1,k)=qdmu_nbq(i,Jend+1,k)
-     &                           +(DU_nbq(i,Jend+1)-usum(i,Jend+1))
-     &                                                   *cff1/cff2
+     &                           +(DU_nbq(i,Jend+1)
+     &                              -usum(i,Jend+1))*cff1/cff2
 #    ifdef MASKING
      &                             *umask(i,Jend+1)
 #    endif
@@ -671,7 +678,7 @@
           qdmu_nbq(Iend+1,Jstr-1,k)=0.5*(qdmu_nbq(Iend+1,Jstr,k)
      &                                  +qdmu_nbq(Iend,Jstr-1,k))
 #  ifdef MASKING
-     &                                *umask(Iend+1,Jstr-1)
+     &                                  *umask(Iend+1,Jstr-1)
 #  endif
         enddo
       endif
@@ -693,7 +700,7 @@
           qdmu_nbq(Iend+1,Jend+1,k)=0.5*(qdmu_nbq(Iend,Jend+1,k)
      &                                  +qdmu_nbq(Iend+1,Jend,k)) 
 #  ifdef MASKING
-     &                                *umask(Iend+1,Jend+1)
+     &                                  *umask(Iend+1,Jend+1)
 #  endif
         enddo
       endif

@@ -1329,12 +1329,12 @@ C$    integer  trd, omp_get_thread_num
       do k=1,N
         do j=JU_RANGE
           do i=IU_RANGE
-            unbqclm(i,j,k)=0.5*(Hz(i,j,k)+Hz(i-1,j,k))*uclm(i,j,k)
+            unbqclm(i,j,k)=0.5*(Hz(i,j,k)+Hz(i-1,j,k))*u(i,j,k,nrhs)
           enddo
         enddo
         do j=JV_RANGE
           do i=IV_RANGE
-            vnbqclm(i,j,k)=0.5*(Hz(i,j,k)+Hz(i,j-1,k))*vclm(i,j,k)
+            vnbqclm(i,j,k)=0.5*(Hz(i,j,k)+Hz(i,j-1,k))*v(i,j,k,nrhs)
           enddo
         enddo
         do j=JstrR,JendR
@@ -2165,12 +2165,29 @@ C$    integer  trd, omp_get_thread_num
 !
       implicit none          
       integer Istr,Iend,Jstr,Jend, i,j,k, itrc
+# ifdef WAVE_MAKER
+      integer iw,jw
+      real    Du,Dv,Zu,Zv,Zr,Dr,xu,yu,xv,yv,x0,y0,time0, 
+     &        h0,khd,kh,wa,wk,wp,wf,wd,wds,ramp,
+     &        sigma,theta,gamma,Hs,cff_spread,
+     &        cff,cff0,cff1,cff2,cff3,cff4,cff5,
+     &        fmin,fmax,df,dmin,dmax,dd,
+     &        wa1,wk1,wp1,wf1,wa2,wk2,wp2,wf2
+      real    K1, K2, K3, K4, K5, K6
+      parameter (K1=0.6666666666, K2=0.3555555555,
+     &           K3=0.1608465608, K4=0.0632098765,
+     &           K5=0.0217540484, K6=0.0065407983)
+# endif
+
 # include "param.h"
 # include "grid.h"
 # include "scalars.h"
 # include "boundary.h"
+# include "ocean3d.h"
+# include "ocean2d.h"
+# include "coupling.h"
+# include "forces.h"
 ! aponte itide (
-# include "ocean3d.h" 
 ! above should really be changed ...
 # include "climat.h"
 ! aponte itide )
@@ -2179,76 +2196,92 @@ C$    integer  trd, omp_get_thread_num
 !
 # ifdef OBC_WEST
       if (WESTERN_EDGE) then
-#  ifdef Z_FRC_BRY
-        do j=JstrR,JendR
-#   ifdef SWASH
-           zetabry_west(j)=0.2*sin(2*pi*time/20.)      ! long waves of 20 sec period
-!           zetabry_west(j)=0.07*sin(0.420*2*pi*time)   ! GLOBEX B3
-!     &                    +0.03*sin(0.462*2*pi*time)   ! but with 1rst order waves
-#   else
-          zetabry_west(j)=0.
-#   endif
-        enddo
-#  endif
-#  ifdef M2_FRC_BRY
-        do j=JstrR,JendR
-          ubarbry_west(j)=0.
-          vbarbry_west(j)=0.
-        enddo
-#  endif
-#  if defined SOLVE3D && (defined M3_FRC_BRY || defined T_FRC_BRY)
-        do k=1,N
+
+#  ifdef WAVE_MAKER
+!
+!  Wave maker on western boundary
+!
+#    include "wave_maker.h"
+#  else
+
+        if (FIRST_TIME_STEP) then
+#   ifdef Z_FRC_BRY
           do j=JstrR,JendR
-#   ifdef M3_FRC_BRY
-            ubry_west(j,k)=0.
-            vbry_west(j,k)=0.
-#   endif
-#   ifdef T_FRC_BRY
-            do itrc=1,NT
-              tbry_west(j,k,itrc)=0.
-            enddo
-#   endif
+            zetabry_west(j)=zeta(0,j,1)
           enddo
-        enddo
-#  endif    /* SOLVE3D && (M3_FRC_BRY || T_FRC_BRY)*/
+#   endif
+#   ifdef M2_FRC_BRY
+          do j=JstrR,JendR
+            ubarbry_west(j)=ubar(1,j,1)
+            vbarbry_west(j)=vbar(0,j,1)
+          enddo
+#   endif
+#   if defined SOLVE3D && \
+     (defined M3_FRC_BRY || defined W_FRC_BRY || defined T_FRC_BRY)
+          do k=1,N
+            do j=JstrR,JendR
+#    ifdef M3_FRC_BRY
+              ubry_west(j,k)=u(1,j,k,1)
+              vbry_west(j,k)=v(0,j,k,1)
+#    endif
+#    ifdef W_FRC_BRY
+              wbry_west(j,k)=wz(0,j,k,1)
+#    endif
+#    ifdef T_FRC_BRY
+              do itrc=1,NT
+                tbry_west(j,k,itrc)=t(0,j,k,1,itrc)
+              enddo
+#    endif
+            enddo
+          enddo
+#   endif    /* SOLVE3D && (M3_FRC_BRY || W_FRC_BRY || T_FRC_BRY)*/
+        endif
+#  endif /* WAVE_MAKER */
       endif
 # endif /* OBC_WEST */
 !
 # ifdef OBC_EAST
       if (EASTERN_EDGE) then
+        if (FIRST_TIME_STEP) then
 #  ifdef Z_FRC_BRY
-        do j=JstrR,JendR
-          zetabry_east(j)=0.
-        enddo
+          do j=JstrR,JendR
+            zetabry_east(j)=zeta(Iend+1,j,1)
+          enddo
 #  endif
 #  ifdef M2_FRC_BRY
-        do j=JstrR,JendR
-          ubarbry_east(j)=0.
-          vbarbry_east(j)=0.
-        enddo
-#  endif
-#  if defined SOLVE3D && (defined M3_FRC_BRY || defined T_FRC_BRY)
-        do k=1,N
           do j=JstrR,JendR
+            ubarbry_east(j)=ubar(Iend+1,j,1)
+            vbarbry_east(j)=vbar(Iend+1,j,1)
+          enddo
+#  endif
+#  if defined SOLVE3D && \
+     (defined M3_FRC_BRY || defined W_FRC_BRY || defined T_FRC_BRY)
+          do k=1,N
+            do j=JstrR,JendR
 #   ifdef M3_FRC_BRY
-            ubry_east(j,k)=0.
-            vbry_east(j,k)=0.
+              ubry_east(j,k)=u(Iend+1,j,k,1)
+              vbry_east(j,k)=v(Iend+1,j,k,1)
+#   endif
+#   ifdef W_FRC_BRY
+              wbry_east(j,k)=wz(Iend+1,j,k,1)
 #   endif
 #   ifdef T_FRC_BRY
-            do itrc=1,NT
-              tbry_east(j,k,itrc)=0.
-            enddo
+              do itrc=1,NT
+                tbry_east(j,k,itrc)=t(Iend+1,j,k,1,itrc)
+              enddo
 #   endif
+            enddo
           enddo
-        enddo
-#  endif    /* SOLVE3D && (M3_FRC_BRY || T_FRC_BRY)*/
+#  endif    /* SOLVE3D && (M3_FRC_BRY || W_FRC_BRY || T_FRC_BRY)*/
+        endif
       endif
 # endif /* OBC_EAST */
 !
 # ifdef OBC_SOUTH
       if (SOUTHERN_EDGE) then
+!       if (FIRST_TIME_STEP) then
 #  ifdef Z_FRC_BRY
-        do i=IstrR,IendR
+          do i=IstrR,IendR
 
 ! aponte itide (
 ! aponte jetn (
@@ -2258,21 +2291,22 @@ C$    integer  trd, omp_get_thread_num
      &                +Azs_itide*sin(-omega_itide*time) )
      &                * tanh(time/86400.0/5.0)
 #   else
-          zetabry_south(i)=0.
+            zetabry_south(i)=zeta(i,0,1)
 #   endif
 ! aponte jetn )
 ! aponte itide )
-        enddo
+          enddo
 #  endif
 #  ifdef M2_FRC_BRY
-        do i=IstrR,IendR
-          ubarbry_south(i)=0.
-          vbarbry_south(i)=0.
-        enddo
-#  endif
-#  if defined SOLVE3D && (defined M3_FRC_BRY || defined T_FRC_BRY)
-        do k=1,N
           do i=IstrR,IendR
+            ubarbry_south(i)=ubar(i,0,1)
+            vbarbry_south(i)=vbar(i,1,1)
+          enddo
+#  endif
+#  if defined SOLVE3D && \
+     (defined M3_FRC_BRY || defined W_FRC_BRY || defined T_FRC_BRY)
+          do k=1,N
+            do i=IstrR,IendR
 #   ifdef M3_FRC_BRY
 
 ! aponte itide (
@@ -2290,14 +2324,16 @@ C$    integer  trd, omp_get_thread_num
      &             * tanh(time/86400.0/5.0)
 ! aponte jetn )
 #    else
-            ubry_south(i,k)=0.
-            vbry_south(i,k)=0.
+              ubry_south(i,k)=u(i,0,k,1)
+              vbry_south(i,k)=v(i,1,k,1)
 #    endif
 ! aponte itide )
-
+#   endif
+#   ifdef W_FRC_BRY
+              wbry_south(i,k)=wz(i,0,k,1)
 #   endif
 #   ifdef T_FRC_BRY
-            do itrc=1,NT
+              do itrc=1,NT
 
 ! aponte itide (
 ! aponte jetn (
@@ -2312,56 +2348,64 @@ C$    integer  trd, omp_get_thread_num
 ! aponte itide )
 
 #    else
-              tbry_south(i,k,itrc)=0.
+                tbry_south(i,k,itrc)=t(i,0,k,1,itrc)
 #    endif
-            enddo
+              enddo
 #   endif
+            enddo
           enddo
-        enddo
-#  endif    /* SOLVE3D && (M3_FRC_BRY || T_FRC_BRY)*/
+#  endif    /* SOLVE3D && (M3_FRC_BRY || W_FRC_BRY || T_FRC_BRY)*/
+!       endif
       endif
 # endif /* OBC_SOUTH */
 !
 # ifdef OBC_NORTH
       if (NORTHERN_EDGE) then
+!       if (FIRST_TIME_STEP) then
 #  ifdef Z_FRC_BRY
-        do i=IstrR,IendR
+          do i=IstrR,IendR
 ! aponte jetn (
 #   ifdef JETN
           zetabry_north(i)=SSH(i,Jend)
 #   else
-          zetabry_north(i)=0.
+            zetabry_north(i)=zeta(i,Jend+1,1)
+
 #   endif
 ! aponte jetn )
-        enddo
+          enddo
 #  endif
 #  ifdef M2_FRC_BRY
-        do i=IstrR,IendR
-          ubarbry_north(i)=0.
-          vbarbry_north(i)=0.
-        enddo
-#  endif
-#  if defined SOLVE3D && (defined M3_FRC_BRY || defined T_FRC_BRY)
-        do k=1,N
           do i=IstrR,IendR
+            ubarbry_north(i)=ubar(i,Jend+1,1)
+            vbarbry_north(i)=vbar(i,Jend+1,1)
+          enddo
+#  endif
+#  if defined SOLVE3D && \
+     (defined M3_FRC_BRY || defined W_FRC_BRY || defined T_FRC_BRY)
+          do k=1,N
+            do i=IstrR,IendR
 #   ifdef M3_FRC_BRY
-            ubry_north(i,k)=0.
-            vbry_north(i,k)=0.
+              ubry_north(i,k)=u(i,Jend+1,k,1)
+              vbry_north(i,k)=v(i,Jend+1,k,1)
+#   endif
+#   ifdef W_FRC_BRY
+              wbry_north(i,k)=wz(i,Jend+1,k,1)
 #   endif
 #   ifdef T_FRC_BRY
-            do itrc=1,NT
+              do itrc=1,NT
 ! aponte jetn (
 #    ifdef JETN
               tbry_north(i,k,itrc)=tclm(i,Jend,k,itrc)
 #    else
-              tbry_north(i,k,itrc)=0.
+                tbry_north(i,k,itrc)=t(i,Jend+1,k,1,itrc)
 #    endif
 ! aponte jetn )
-            enddo
+              enddo
 #   endif
+            enddo
           enddo
-        enddo
-#  endif    /* SOLVE3D && (M3_FRC_BRY || T_FRC_BRY)*/
+#  endif    /* SOLVE3D && (M3_FRC_BRY || W_FRC_BRY || T_FRC_BRY)*/
+!       endif
       endif
 # endif /* OBC_NORTH */
 !
@@ -2407,31 +2451,15 @@ C$    integer  trd, omp_get_thread_num
       if (WESTERN_EDGE) then
         do k=1,N
           do j=JstrR,JendR
-#  ifdef M3CLIMATOLOGY
             unbqbry_west(j,k)=0.5*(Hz(0,j,k)+Hz(1,j,k))
-     &                                     *uclm(1,j,k)
-#  elif defined M3_FRC_BRY
-            unbqbry_west(j,k)=0.5*(Hz(0,j,k)+Hz(1,j,k))
-     &                                  *ubry_west(j,k)
-#  else
-            unbqbry_west(j,k)=0.
-#  endif
+     &                                   *u(1,j,k,nrhs)
+
             wnbqbry_west(j,k)=0.
             rnbqbry_west(j,k)=0.
-#  ifdef W_FRC_BRY
-            wbry_west(j,k)=0.
-#  endif
           enddo
           do j=JstrR+1,JendR
-#  ifdef M3CLIMATOLOGY
             vnbqbry_west(j,k)=0.5*(Hz(0,j,k)+Hz(0,j-1,k))
-     &                                       *vclm(0,j,k)
-#  elif defined M3_FRC_BRY
-            vnbqbry_west(j,k)=0.5*(Hz(0,j,k)+Hz(0,j-1,k))
-     &                                    *vbry_west(j,k)
-#  else
-            vnbqbry_west(j,k)=0.
-#  endif
+     &                                     *v(0,j,k,nrhs)
           enddo
         enddo
       endif
@@ -2441,31 +2469,14 @@ C$    integer  trd, omp_get_thread_num
       if (EASTERN_EDGE) then
         do k=1,N
           do j=JstrR,JendR
-#  ifdef M3CLIMATOLOGY
             unbqbry_east(j,k)=0.5*(Hz(IendR,j,k)+Hz(IendR-1,j,k))
-     &                                           *uclm(IendR,j,k)
-#  elif defined M3_FRC_BRY
-            unbqbry_east(j,k)=0.5*(Hz(IendR,j,k)+Hz(IendR-1,j,k))
-     &                                            *ubry_east(j,k)
-#  else
-            unbqbry_east(j,k)=0.
-#  endif
+     &                                         *u(IendR,j,k,nrhs)
             wnbqbry_east(j,k)=0.
             rnbqbry_east(j,k)=0.
-#  ifdef W_FRC_BRY
-            wbry_east(j,k)=0.
-#  endif
           enddo
           do j=JstrR+1,JendR
-#  ifdef M3CLIMATOLOGY
             vnbqbry_east(j,k)=0.5*(Hz(IendR,j,k)+Hz(IendR-1,j-1,k))
-     &                                             *vclm(IendR,j,k)
-#  elif defined M3_FRC_BRY
-            vnbqbry_east(j,k)=0.5*(Hz(IendR,j,k)+Hz(IendR-1,j-1,k))
-     &                                              *vbry_east(j,k)
-#  else
-            vnbqbry_east(j,k)=0.
-#  endif
+     &                                           *v(IendR,j,k,nrhs)
           enddo
         enddo
       endif
@@ -2475,31 +2486,14 @@ C$    integer  trd, omp_get_thread_num
       if (SOUTHERN_EDGE) then
         do k=1,N
           do i=IstrR,IendR
-#  ifdef M3CLIMATOLOGY
             vnbqbry_south(i,k)=0.5*(Hz(i,0,k)+Hz(i,1,k))
-     &                                      *vclm(i,1,k)
-#  elif defined M3_FRC_BRY
-            vnbqbry_south(i,k)=0.5*(Hz(i,0,k)+Hz(i,1,k))
-     &                                  *vbry_south(i,k)
-#  else
-            vnbqbry_south(j,k)=0.
-#  endif
+     &                                    *v(i,1,k,nrhs)
             wnbqbry_south(i,k)=0.
             rnbqbry_south(i,k)=0.
-#  ifdef W_FRC_BRY
-            wbry_south(i,k)=0.
-#  endif
           enddo
           do i=IstrR+1,IendR
-#  ifdef M3CLIMATOLOGY
             unbqbry_south(i,k)=0.5*(Hz(i,0,k)+Hz(i-1,0,k))
-     &                                        *uclm(i,0,k)
-#  elif defined M3_FRC_BRY
-            unbqbry_south(i,k)=0.5*(Hz(i,0,k)+Hz(i-1,0,k))
-     &                                    *ubry_south(i,k)
-#  else
-            unbqbry_south(i,k)=0.
-#  endif
+     &                                      *u(i,0,k,nrhs)
           enddo
         enddo
       endif
@@ -2509,31 +2503,14 @@ C$    integer  trd, omp_get_thread_num
       if (NORTHERN_EDGE) then
         do k=1,N
           do i=IstrR,IendR
-#  ifdef M3CLIMATOLOGY
             vnbqbry_north(i,k)=0.5*(Hz(i,JendR,k)+Hz(i,JendR-1,k))
-     &                                            *vclm(i,JendR,k)
-#  elif defined M3_FRC_BRY
-            vnbqbry_north(i,k)=0.5*(Hz(i,JendR,k)+Hz(i,JendR-1,k))
-     &                                            *vbry_north(i,k)
-#  else
-            vnbqbry_north(j,k)=0.
-#  endif
+     &                                          *v(i,JendR,k,nrhs)
             wnbqbry_north(i,k)=0.
             rnbqbry_north(i,k)=0.
-#  ifdef W_FRC_BRY
-            wbry_north(i,k)=0.
-#  endif
           enddo
           do i=IstrR+1,IendR
-#  ifdef M3CLIMATOLOGY
             unbqbry_north(i,k)=0.5*(Hz(i,JendR,k)+Hz(i-1,JendR,k))
-     &                                            *uclm(i,JendR,k)
-#  elif defined M3_FRC_BRY
-            unbqbry_north(i,k)=0.5*(Hz(i,JendR,k)+Hz(i-1,JendR,k))
-     &                                            *ubry_north(i,k)
-#  else
-            unbqbry_north(i,k)=0.
-#  endif
+     &                                          *u(i,JendR,k,nrhs)
           enddo
         enddo
       endif

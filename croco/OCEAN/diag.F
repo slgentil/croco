@@ -60,53 +60,6 @@
       integer my_i_cmax, my_j_cmax, my_k_cmax
 #endif
 
-#ifdef ETALON_CHECK
-      integer ncheck, nparam, iocheck
-      parameter (ncheck=6, nparam=4)
-      integer icheck, check_point(ncheck)
-      character*60 check_line, etalon_line(ncheck)
-      real    A0(nparam), A1(nparam)
-      integer P0(nparam), P1(nparam)
-#if defined BASIN
-#  include "etalon_data.h.Basin"
-# elif defined CANYON_A
-#  include "etalon_data.h.Canyon_A"
-# elif defined CANYON_B
-#  include "etalon_data.h.Canyon_B"
-# elif defined EQUATOR
-#  include "etalon_data.h.Equator"
-# elif defined GRAV_ADJ
-#  include "etalon_data.h.Grav_adj"
-# elif defined INNERSHELF
-#  include "etalon_data.h.Innershelf"
-# elif defined RIVER
-#  include "etalon_data.h.River"
-# elif defined SEAMOUNT
-#  include "etalon_data.h.Seamount"
-# elif defined SHELFRONT
-#  include "etalon_data.h.Shelfront"
-# elif defined SOLITON
-#  include "etalon_data.h.Soliton"
-# elif defined OVERFLOW
-#  include "etalon_data.h.Overflow"
-# elif defined UPWELLING
-#  include "etalon_data.h.Upwelling"
-# elif defined VORTEX
-#  include "etalon_data.h.Vortex"
-# elif defined JET
-#  include "etalon_data.h.Jet"
-!#  if defined AGRIF && defined AGRIF_2WAY
-!#      include "etalon_data.h.VortexAgrif2W"
-!#  elif defined AGRIF && !defined AGRIF_2WAY
-!#       include "etalon_data.h.VortexAgrif"
-!#  elif !defined AGRIF 
-!#   include "etalon_data.h.Vortex"
-!#  endif
-# else
-#  include "etalon_data.h"
-# endif
-#endif
-!
 #ifndef NBQ_MASS
 # define Hzr_half_nbq Hz
 #else
@@ -181,8 +134,8 @@
         
               my_Cu_Nbq=max(my_Cu_Nbq,
      &                (alphax*cz_nbq-cx_nbq)**2+(alphay*cz_nbq-cy_nbq)**2)
-# endif /* NBQ */
               if (Hzr_half_nbq(i,j,k).lt.1.D-10) my_Cu_Nbq_Z=0.D0
+# endif /* NBQ */
             enddo
           enddo
         enddo            
@@ -306,10 +259,12 @@ C$OMP CRITICAL (diag_cr_rgn)
                Cu_Adv3d=my_Cu_Adv
                Cu_W=my_Cu_W
             endif
+# ifdef NBQ
             if(my_Cu_Nbq_X.gt.Cu_Nbq_X)  Cu_Nbq_X = my_Cu_Nbq_X
             if(my_Cu_Nbq_Y.gt.Cu_Nbq_Y)  Cu_Nbq_X = my_Cu_Nbq_Y
             if(my_Cu_Nbq_Z.gt.Cu_Nbq_Z)  Cu_Nbq_X = my_Cu_Nbq_Z    
             if(my_Cu_Nbq.gt.Cu_Nbq)      Cu_Nbq   = my_Cu_Nbq
+# endif             
           endif
 #endif /* DIAG_CFL */
           tile_count=tile_count+1         ! This counter identifies
@@ -378,13 +333,13 @@ C$OMP CRITICAL (diag_cr_rgn)
               write(stdout,3)iic-1,tdays,avgke,avgpe,avgkp,volume,trd
    3          format(I8, F12.5, 1PE16.9, 3(1PE14.7), I3)
 #ifdef DIAG_CFL
-              if (mod(iic-1,10*ninfo).eq.0) then
+              if (mod(iic-1,ninfo).eq.0) then
               write(stdout,4) 'CFL --  INT_3DADV  = ',Cu_adv3d,
      &                             '   EXT_GWAVES = ',Cu_max
               endif
    4          format(10x,A,F6.2,A,F6.2)
 # ifdef NBQ
-              if (mod(iic-1,10*ninfo).eq.0) then
+              if (mod(iic-1,ninfo).eq.0) then
               write(stdout,5) '        NBQ_HADV   = ',
      &                                 sqrt(Cu_Nbq_X**2+Cu_Nbq_Y**2),
      &                             '   NBQ_IMP    = ',sqrt(Cu_Nbq),
@@ -405,41 +360,6 @@ C$OMP CRITICAL (diag_cr_rgn)
                if (echar(i:i).eq.'N' .or. echar(i:i).eq.'n'
      &                      .or. echar(i:i).eq.'*') may_day_flag=1 
               enddo
-#ifdef  ETALON_CHECK
-              do icheck=1,ncheck
-                if (iic-1.eq.check_point(icheck)) then
-                  write(check_line,'(1PE15.9,3(1PE14.7))',
-     &                iostat=iocheck) avgke,avgpe, avgkp,volume
-                  if (check_line .eq. etalon_line(icheck)) then
-                    write(stdout,*) 'PASSED_ETALON_CHECK'
-                  else
-                    read(check_line         ,4,iostat=iocheck)
-     &                                   (A1(i), P1(i), i=1,nparam)
-                    read(etalon_line(icheck),4,iostat=iocheck)
-     &                                   (A0(i), P0(i), i=1,nparam)
-   4                format (F11.9,1x,I3,3(F10.7,1x,I3))
-                    do i=1,nparam
-                      A1(i)=A1(i)-A0(i)*10.**float(P0(i)-P1(i))
-                    enddo
-                    write(check_line, '(F18.9,3F14.7)',
-     &                          iostat=iocheck) (A1(i), i=1,nparam)
-                    j=0
-                    do i=2,60
-                      if (check_line(i-1:i).eq.'0.') then
-                        check_line(i:i)=':'
-                        j=1
-                      elseif (j.eq.1.and.check_line(i:i).eq.'0') then
-                        check_line(i:i)='.'
-                      else
-                        j=0
-                      endif
-                    enddo
-                    write(stdout,'(1x,2A/1x,A)') 'difference:',
-     &               check_line, 'ETALON_CHECK: SOMETHING_IS_WRONG'
-                  endif
-                endif
-              enddo
-#endif
 #ifdef MPI
             endif    ! <-- mynode.eq.0
 #endif

@@ -41,19 +41,8 @@ C$    integer omp_get_thread_num
 # include "sediment.h"
 #endif
       integer Istr,Iend,Jstr,Jend, i,j,k, itrc
-#if defined NBQ && ! defined MPI
-      integer :: mynode
-#endif
 #ifdef SOLITON
       real fac, x,y, x0,y0, cff1,cff2,cff3
-#endif
-#ifdef KH_INST 
-      real rho1_exp,rho2_exp,h1_exp, Lt
-      real d(0:N)
-# endif
-#ifdef GRAV_ADJ_SOLITON
-      real rho1_exp,rho2_exp,h1_exp,amp_exp, Lt
-      real d(0:N)
 #endif
 #ifdef BASIN
       real cff1,cff2
@@ -78,11 +67,16 @@ C$    integer omp_get_thread_num
       real xper,yper,xx,yy,xs,db,eps
 #endif
 #ifdef KH_INST 
+      real rho1_exp,rho2_exp,h1_exp, Lt
+      real d(0:N)
       real zu0,zr0,zint,depth,dz,gam,del,hint,du,drho
+      real zdye10,zdye20
       real hu0,hup0,htemp0,hsalt0,eps3D
 #endif
 #ifdef GRAV_ADJ_SOLITON
       real zint,depth,dz,gam,del
+      real rho1_exp,rho2_exp,h1_exp,amp_exp, Lt
+      real d(0:N)
 #endif
 !
 #include "compute_auxiliary_bounds.h"
@@ -270,159 +264,64 @@ C$    integer omp_get_thread_num
         enddo
 
 #  elif defined KH_INST
-
-! PARAMETERS
-! TRADITIONAL KH INSTABILITY : VELOCITY AND DENSITY SHEARS AT SAME DEPTHS (zu0=zr0)
-        du = 1.  ! Value du that is replaced by the RunBuilder script. 
-        hu0=10.
-        drho=1.2 ! Value of drho to be replaced by the script.
-                       ! Originally 1.2
-        htemp0=10.
-        hsalt0=10.
-!       hsalt0=20.
 !
-! PERTURBATION 3D
-!             eps3D=0.
-              eps3D=0.2
+! Traditional KH instability: 
 !
-! Initializations:
+!  Configuration from Pelletier et al.: linear shear within mixed layer 
 !
-        ubar=0.
-        vbar=0.
-        u   =0.
-        v   =0.
-
-!   #ifdef MPI
-!        if (mynode.eq.0) open(unit=10,file='profil_u.dat')
-!   #else
-!        open(unit=10,file='profil_u.dat')
-!   #endif
-
+        du     = 1.0    ! Value to be replaced by the RunBuilder script. 
+        hu0    = 10.
+        eps3D  = 0.   ! 3D perturbation
+!
         do j=JR_RANGE
-          do i=IU_RANGE
+          do i=IR_RANGE
             depth=h(i,j)
-! TRADITIONAL KH INSTABILITY : VELOCITY AND DENSITY SHEARS AT SAME DEPTHS (zu0=zr0)
-            zu0=-0.5*depth
-! SHIFTED PROFILE FOR THERMOCLINE ENTRAINMENT STUDIES
-!           zu0=-0.4*depth
-! PERTURBATION 
-            hup0=0.15*depth
+            zu0=-0.5*depth   ! u & rho shears at same depth (zu0=zr0)
+!           zu0=-0.4*depth   ! shifted profile for thermocline entrainment studies
+            hup0=0.15*depth  ! perturbation
             hint = 0.
             do k=1,N
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! PELLETIER ET AL CONFIG
-! LINEAR SHEAR WITHIN MIXED LAYER
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-              u(i,j,k,1)  = du * 
-     &           ( - tanh( ( z_r(1,1,k)-zu0 ) / hu0 )  )
-!ajout d'une perturbation
-              u(i,j,k,1)  = u(i,j,k,1)+0.01*du * 
-     &                 (-2.*tanh( ( z_r(1,1,k)-zu0  
-     &                        ) / hup0 ) )*
-     &                 (1-tanh( ( z_r(1,1,k)-zu0  
-     &                          ) / hup0 )**2. )
-     &                *(
-!    &                 1.*sin( 2.*3.14159265/xl*xr(i,j))
-     &               + 1.*sin( 4.*3.14159265/xl*xr(i,j))
-!    &               + 1.*sin( 6.*3.14159265/xl*xr(i,j))
-!    &               + 1.*sin( 8.*3.14159265/xl*xr(i,j))
-!    &               + 1.*sin(10.*3.14159265/xl*xr(i,j))
-!    &               + 1.*sin(12.*3.14159265/xl*xr(i,j))
-     &                 ) 
+              u(i,j,k,1)  = -du*tanh((z_r(1,1,k)-zu0)/hu0)
+              u(i,j,k,1)  = u(i,j,k,1) + 0.01*du *               ! add perturbation
+     &                       (-2.*tanh((z_r(1,1,k)-zu0)/hup0))*
+     &                       (1. -tanh((z_r(1,1,k)-zu0)/hup0)**2.)
+     &                                      *sin(2.*2.*pi/xl*xp(i,j))
+     &                       *(1.+eps3D*(sin( 2.*4.*pi/el*yr(i,j))))
+
               u(i,j,k,2)  = u(i,j,k,1)
-              u(i,j,k,3)  = u(i,j,k,1)
-! Calcul vitesse barotrope
-              ubar(i,j,:) = ubar(i,j,:) + 0.5*(hz(i,j,k)+hz(i-1,j,k))   ! Hzr pas initialise... 
+              v(i,j,k,1)  = 0.
+              v(i,j,k,2)  = 0.
+#   ifdef NBQ
+              wz(i,j,k,1) = -0.01*du*hup0*
+     &                              (1.-tanh((z_w(1,1,k)-zu0)/hup0)**2)
+     &                                  *2.*2.*pi/xl*cos(2.*2.*pi/xl*xp(i,j))
+     &                                  *(1.+eps3D*(sin( 2.*4.*pi/el*yp(i,j))))
+
+              wz(i,j,k,2) = wz(i,j,k,1)
+#   endif
+
+              ubar(i,j,1) = ubar(i,j,1) + 0.5*(Hz(i,j,k)+Hz(i-1,j,k))
      &                                  * u(i,j,k,1)
-              hint = hint               + 0.5*(hz(i,j,k)+hz(i-1,j,k))
-!   #ifdef MPI
-!              if (mynode.eq.0.and.i.eq.4.and.j.eq.1)
-!     &           write (10,*) 0.5*(z_r(i,j,k)+z_r(i-1,j,k)),u(i,j,k,1)
-!   #else
-!              if (i.eq.4.and.j.eq.1)
-!     &           write (10,*) 0.5*(z_r(i,j,k)+z_r(i-1,j,k)),u(i,j,k,1)
-!   #endif
+              hint = hint               + 0.5*(Hz(i,j,k)+Hz(i-1,j,k))
             enddo
             ubar(i,j,1) = ubar(i,j,1) / hint
-            ubar(i,j,2) = ubar(i,j,1)
-            ubar(i,j,3) = ubar(i,j,1)
+            ubar(i,j,:) = ubar(i,j,1)
+            do k=1,N
+                u(i,j,k,1) = u(i,j,k,1) - ubar(i,j,1) 
+                u(i,j,k,2) = u(i,j,k,1)
+            enddo
+            ubar(i,j,1) = 0. 
+            ubar(i,j,:) = ubar(i,j,1)
           enddo
         enddo
 #   ifdef NBQ
-!ajout perturbation sur W
-        do j=lbound(t,2),ubound(t,2)
-           do i=lbound(t,1),ubound(t,1)
-
-            depth=h(i,j)
-! TRADITIONAL KH INSTABILITY : VELOCITY AND DENSITY SHEARS AT SAME DEPTHS (zu0=zr0)
-              zu0=-0.5*depth
-! SHIFTED PROFILE FOR THERMOCLINE ENTRAINMENT STUDIES
-!             zu0=-0.4*depth
-! PERTURBATION 
-              hup0=0.15*depth
-
-              do k=0,N
-!                wz(i,j,k,:) = 0.0*du * 
-                 wz(i,j,k,:) = -0.01*du * 
-     &                         hup0 * 
-     &                 (1-tanh( ( z_w(1,1,k)-zu0  
-     &                        ) / hup0 )**2.    )
-     &                *(3.14159265/xl)*(
-!    &                  2.*cos( 2.*3.14159265/xl*xp(i,j))
-     &               +  4.*cos( 4.*3.14159265/xl*xp(i,j))
-!    &               +  6.*cos( 6.*3.14159265/xl*xp(i,j))
-!    &               +  8.*cos( 6.*3.14159265/xl*xp(i,j))
-!    &               + 10.*cos(10.*3.14159265/xl*xp(i,j))
-!    &               + 12.*cos(12.*3.14159265/xl*xp(i,j))
-     &                 )
-            enddo
+        do j=JR_RANGE
+          do i=IR_RANGE
+              wz(i,j,0,:)=0.
           enddo
         enddo
 #   endif
-!#ifdef MPI
-!        if (mynode.eq.0) close(10) 
-!#else
-!        close(10)
-!#endif
 
-#   if defined EW_PERIODIC || defined NS_PERIODIC || defined  MPI
-      call exchange_u3d_tile (Istr,Iend,Jstr,Jend,   
-     &                                 u(START_2D_ARRAY,1,1))
-      call exchange_u2d_tile (Istr,Iend,Jstr,Jend,   
-     &                                 ubar(START_2D_ARRAY,1))
-      call exchange_u3d_tile (Istr,Iend,Jstr,Jend,   
-     &                                 u(START_2D_ARRAY,1,2))
-      call exchange_u2d_tile (Istr,Iend,Jstr,Jend,   
-     &                                 ubar(START_2D_ARRAY,2))
-      call exchange_u3d_tile (Istr,Iend,Jstr,Jend,   
-     &                                 u(START_2D_ARRAY,1,3))
-      call exchange_u2d_tile (Istr,Iend,Jstr,Jend,   
-     &                                 ubar(START_2D_ARRAY,3))
-      call exchange_v3d_tile (Istr,Iend,Jstr,Jend,       
-     &                                 v(START_2D_ARRAY,1,1))
-      call exchange_v2d_tile (Istr,Iend,Jstr,Jend,   
-     &                                 vbar(START_2D_ARRAY,1))
-      call exchange_v3d_tile (Istr,Iend,Jstr,Jend,       
-     &                                 v(START_2D_ARRAY,1,2))
-      call exchange_v2d_tile (Istr,Iend,Jstr,Jend,   
-     &                                 vbar(START_2D_ARRAY,2))
-      call exchange_v3d_tile (Istr,Iend,Jstr,Jend,       
-     &                                 v(START_2D_ARRAY,1,3))
-      call exchange_v2d_tile (Istr,Iend,Jstr,Jend,   
-     &                                 vbar(START_2D_ARRAY,3))
-#    ifdef S2DV
-      call exchange_w3d_tile (Istr,Iend,Jstr,Jend,
-     &                                 wz(START_2D_ARRAY,0,1))
-      call exchange_w3d_tile (Istr,Iend,Jstr,Jend,
-     &                                 wz(START_2D_ARRAY,0,2))
-      call exchange_w3d_tile (Istr,Iend,Jstr,Jend,
-     &                                 wz(START_2D_ARRAY,0,3))
-#    endif
-
-#   endif
-!******************************
-! KH_INST: end
-!******************************
 #  else
         do k=1,N
           do j=JR_RANGE
@@ -431,9 +330,21 @@ C$    integer omp_get_thread_num
               v(i,j,k,1)=0.
               u(i,j,k,2)=0.
               v(i,j,k,2)=0.
+#   ifdef NBQ
+              wz(i,j,k,:)=0.
+#   endif
             enddo
           enddo
         enddo
+#   ifdef NBQ
+        do j=JR_RANGE
+          do i=IR_RANGE
+             wz(i,j,0,1)=0.
+             wz(i,j,0,2)=0.
+          enddo
+        enddo
+#   endif
+
 #  endif
 
       else   ! nrrec.ne.0.
@@ -597,407 +508,45 @@ C$    integer omp_get_thread_num
         enddo
 
 #  elif defined KH_INST
-
-#   define TH_PROFILE
-#   undef HORN_PROFILE
-
-#   ifdef TH_PROFILE
-#    ifdef MPI
-        if (mynode.eq.0) open(unit=10,file='profil_rho.dat')
-#    else
-        open(unit=10,file='profil_rho.dat')
-#    endif
-
-! PARAMETERS
 !
+! Traditional KH instability: 
 !
-        do j=lbound(t,2),ubound(t,2)
-           do i=lbound(t,1),ubound(t,1)
-
-! PARAMETERS
-              depth=h(i,j)
-! TRADITIONAL KH INSTABILITY : VELOCITY AND DENSITY SHEARS AT SAME DEPTHS (zu0=zr0)
-              zr0=-0.5*depth
-! PERTURBATION 
-              hup0=0.15*depth
-              zr0=-0.5*depth
-
-              do k=1,N
-! TRADITIONAL KH INSTABILITY PROFILE
-                 t(i,j,k,1,itemp) = 
-     &             13.+ 1.0*drho * (
-!    &             13.+ 0.5*drho * (
-!    &             13.- 0.5*drho * (
-     &                0.1*(z_r(1,1,k)-zr0)/depth+ !+strat lin
-     &                   dtanh( (z_r(1,1,k)-zr0)/htemp0 ) 
-     &                                    )  / Tcoef
+!  Configuration from Pelletier et al.: linear shear within mixed layer 
 !
-                 t(i,j,k,2,itemp) = t(i,j,k,1,itemp)
-                 t(i,j,k,3,itemp) = t(i,j,k,1,itemp)
-#ifdef MPI
-                 if (mynode.eq.0.and.i.eq.4.and.j.eq.1) 
-     &              write(10,*) z_r(i,j,k),t(i,j,k,1,itemp)
-#else
-                 if (i.eq.4.and.j.eq.1) 
-     &              write(10,*) z_r(i,j,k),t(i,j,k,1,itemp)
-#endif
-              enddo
-           enddo
-        enddo
-#ifdef MPI
-        if (mynode.eq.0) close(10)
-#else
-        close(10)
-#endif
-
-#ifdef SALINITY
-
-        do j=lbound(t,2),ubound(t,2)
-           do i=lbound(t,1),ubound(t,1)
-
-! PARAMETERS
-              depth=h(i,j)
-!
-! TRADITIONAL KH INSTABILITY : VELOCITY AND DENSITY SHEARS AT SAME DEPTHS (zu0=zr0)
-!             zu0=-0.5*depth
-              zu0=-0.45*depth
-! SHIFTED PROFILE FOR THERMOCLINE ENTRAINMENT STUDIES
-!             zu0=-0.4*depth
-! PERTURBATION 
-              hup0=0.15*depth
-              zr0=-0.5*depth
-!             zr0=-0.2*depth
-
-              do k=1,N
-                 t(i,j,k,1,isalt) =   
-! TRADITIONAL KH INSTABILITY PROFILE
-!    &           t(i,j,k,1,itemp)
-!    &               35.- 0.5*drho*( 
-!    &               35.- 1.5*drho*( 
-!    &                   0.1*(z_r(1,1,k)-zr0)/depth+ !+strat lin
-!    &                   dtanh( (z_r(1,1,k)-zr0)/ hsalt0 ) 
-!    &                              )  / Scoef
-!
-     &            + 35 +0.05* drho* (
-     &              1. - (dtanh( (z_r(1,1,k)-zr0)/hsalt0 ) )**2.
-!    &                     )/Scoef      
-     &                     )
-!
-! ANOMALY CONCENTRATED AT MID DEPTH, PASSIVE TRACER
-!    &            + 0.05 *drho* (
-!    &              1. - (dtanh( (z_r(1,1,k)-zr0)/hsalt0 ) )**2.
-!    &                     )
-!
-                 t(i,j,k,2,isalt) = t(i,j,k,1,isalt)
-                 t(i,j,k,3,isalt) = t(i,j,k,1,isalt)
-              enddo
-           enddo
-        enddo
-
-# endif
-#endif
-
-#   ifdef HORN_PROFILE
-!
-!  Horn, D.A., J. Imberger, & G.N. Ivey, (2001). 
-!  The degeneration of large-scale interfacial gravity waves in lakes. 
-!  J. Fluid Mech., 434:181-207.
-!  --> initialy setup with variable salinity in the tank experiment of 
-!      Horn et al (2001); the conversion to temperature variations 
-!      through linear EOS gives unrealistic range
-!
-        rho1_exp = R0 - 1.  ! * 0.7286 /2.
-        rho2_exp = R0 + 1.  ! * 0.7286 /2.
-        h1_exp = 0.5 * h(1,1)
-        amp_exp = 0.0391
-        Lt=6.
-        do j=JR_RANGE
-           do i=IR_RANGE
-             do k=1,N
-                 d(k)=0.5*(rho1_exp+rho2_exp)               
-     &              + 0.5*(rho2_exp-rho1_exp)
-     &                   *tanh(exp(1.)*(-h1_exp 
-!    &                          -2.*amp_exp*(xr(i,j)-Lt/2.)/Lt 
-     &                          +abs(z_r(i,j,k)))/(0.015/2.))   ! 0.005=dz_q   
-                 t(i,j,k,1,itemp) = 13. - ( d(k) - R0 )  / Tcoef
-                 t(i,j,k,2,itemp) = t(i,j,k,1,itemp)
-              enddo
-           enddo
-        enddo
-!#   else
-!        depth=h(1,1)
-!        gam=0.9
-!        del=0.3
-!        dz=2*(z_r(1,1,2)-z_r(1,1,1));
-!        do j=JstrR,JendR
-!          do i=IstrR,IendR
-!            zint=depth*(del-1)+gam*del*depth*(2*xr(i,j)/xl - 1)
-!            do k=1,N
-!              t(i,j,k,1,itemp)=0.5*(5/Tcoef+10/Tcoef)
-!     &                        -0.5*(5/Tcoef-10/Tcoef)
-!     &                            *tanh((z_r(i,j,k)-zint)/dz);
-!              t(i,j,k,2,itemp)=t(i,j,k,1,itemp)
-!            enddo
-!          enddo
-!        enddo
-#   endif /* HORN_PROFILE */ 
-
-#  elif defined KH_INST_REF
-#   define TH_PROFILE
-#   undef HORN_PROFILE
-
-#ifdef TH_PROFILE
-#    undef KH_INST_INITVERSION
-
-!******************************
-! KH_INST: Initial Version
-!     (no initialization)
-!******************************
-#   ifdef KH_INST_INITVERSION
-
-        drho=1.2
-        do j=JstrR,JendR
-           do i=IstrR,IendR
-              do k=1,N
-                 t(i,j,k,1,itemp) = 13. - ( 
-     &            + drho * (
-     &             0.5 - dtanh((  z_r(i,j,k)+0.5*h(i,j)
-!    &                          +10.1  *sin(2.*3.14159265/286.*xr(i,j))
-     &                         )/ 10.      ) 
-     &                     )
-!    &                  +1.e-6*sin(2.*3.14159265/286.*xr(i,j))
-!    &                  *exp(-(  z_r(i,j,k)+0.5*h(i,j))**2 / 20.2**2)
-     &                                    )  / Tcoef
-                 t(i,j,k,2,itemp) = t(i,j,k,1,itemp)
-                 t(i,j,k,3,itemp) = t(i,j,k,1,itemp)
-              enddo
-           enddo
-        enddo
-
-!******************************
-! KH_INST: 2D Version
-!******************************
-#   elif defined KH_INST2D
-
-! PARAMETERS
-! TRADITIONAL KH INSTABILITY : VELOCITY AND DENSITY SHEARS AT SAME DEPTHS (zu0=zr0)
-!
-        drho=1.2
-!       zr0=zu0
-        zr0=-0.5*depth
-!       zr0=-0.2*depth
-        htemp0=10.
-        hsalt0=10.
-!       hsalt0=20.
-!
-        do j=JstrR,JendR
-           do i=IstrR,IendR
-              do k=1,N
-! TRADITIONAL KH INSTABILITY PROFILE
-                 t(i,j,k,1,itemp) = 
-     &             13.+ 1.0*drho * (
-!    &             13.+ 0.5*drho * (
-!    &             13.- 0.5*drho * (
-     &                0.1*(z_r(i,j,k)-zr0)/depth+ !+strat lin
-     &                   dtanh( (z_r(i,j,k)-zr0)/htemp0 ) 
-     &                                    )  / Tcoef
-!
-                 t(i,j,k,2,itemp) = t(i,j,k,1,itemp)
-                 t(i,j,k,3,itemp) = t(i,j,k,1,itemp)
-              enddo
-           enddo
-        enddo
-#    ifdef SALINITY
-
-        do j=JstrR,JendR
-           do i=IstrR,IendR
-              do k=1,N
-                 t(i,j,k,1,isalt) =   
-! TRADITIONAL KH INSTABILITY PROFILE
-!    &           t(i,j,k,1,itemp)
-!    &               35.- 0.5*drho*( 
-!    &               35.- 1.5*drho*( 
-!    &                   0.1*(z_r(i,j,k)-zr0)/depth+ !+strat lin
-!    &                   dtanh( (z_r(i,j,k)-zr0)/ hsalt0 ) 
-!    &                              )  / Scoef
-!
-     &            + 35 +0.05* drho* (
-     &              1. - (dtanh( (z_r(i,j,k)-zr0)/hsalt0 ) )**2.
-!    &                     )/Scoef      
-     &                     )
-!
-! ANOMALY CONCENTRATED AT MID DEPTH, PASSIVE TRACER
-!    &            + 0.05 *drho* (
-!    &              1. - (dtanh( (z_r(i,j,k)-zr0)/hsalt0 ) )**2.
-!    &                     )
-!
-                 t(i,j,k,2,isalt) = t(i,j,k,1,isalt)
-                 t(i,j,k,3,isalt) = t(i,j,k,1,isalt)
-              enddo
-           enddo
-        enddo
-#    endif
-
-!******************************
-! KH_INST: 3D Version
-!******************************
-#   else
-! PARAMETERS
-! TRADITIONAL KH INSTABILITY : VELOCITY AND DENSITY SHEARS AT SAME DEPTHS (zu0=zr0)
-!
-        drho=1.2
-!       zr0=zu0
-        zr0=-0.5*depth
-!       zr0=-0.2*depth
-        htemp0=10.
-        hsalt0=10.
-!       hsalt0=20.
-!
-        do j=JstrR,JendR
-           do i=IstrR,IendR
-              do k=1,N
-! TRADITIONAL KH INSTABILITY PROFILE
-                 t(i,j,k,1,itemp) = 
-     &             13.+ 1.0*drho * (
-!    &             13.+ 0.5*drho * (
-!    &             13.- 0.5*drho * (
-     &                0.1*(z_r(i,j,k)-zr0)/depth+ !+strat lin
-     &                   dtanh( (z_r(i,j,k)-zr0)/htemp0 ) 
-     &                                    )  / Tcoef
-!
-                 t(i,j,k,2,itemp) = t(i,j,k,1,itemp)
-                 t(i,j,k,3,itemp) = t(i,j,k,1,itemp)
-              enddo
-           enddo
-        enddo
-
-#   endif
-
+        htemp0 = 10.
 #   ifdef SALINITY
-
-        do j=JstrR,JendR
-           do i=IstrR,IendR
-              do k=1,N
-                 t(i,j,k,1,isalt) =   
-! TRADITIONAL KH INSTABILITY PROFILE
-!    &           t(i,j,k,1,itemp)
-!    &               35.- 0.5*drho*( 
-!    &               35.- 1.5*drho*( 
-!    &                   0.1*(z_r(i,j,k)-zr0)/depth+ !+strat lin
-!    &                   dtanh( (z_r(i,j,k)-zr0)/ hsalt0 ) 
-!    &                              )  / Scoef
-!
-     &            + 35 +0.05* drho* (
-     &              1. - (dtanh( (z_r(i,j,k)-zr0)/hsalt0 ) )**2.
-!    &                     )/Scoef      
-     &                     )
-!
-! ANOMALY CONCENTRATED AT MID DEPTH, PASSIVE TRACER
-!    &            + 0.05 *drho* (
-!    &              1. - (dtanh( (z_r(i,j,k)-zr0)/hsalt0 ) )**2.
-!    &                     )
-!
-                 t(i,j,k,2,isalt) = t(i,j,k,1,isalt)
-                 t(i,j,k,3,isalt) = t(i,j,k,1,isalt)
-              enddo
-           enddo
-        enddo
-
+        hsalt0 = 10.
 #   endif
-
-#   if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI2
-#    ifdef THREE_GHOST_POINTS_TS
-        call exchange_r3d_3pts_tile (Istr,Iend,Jstr,Jend,
-     &                          t(START_2D_ARRAY,1,1,itemp))
-        call exchange_r3d_3pts_tile (Istr,Iend,Jstr,Jend,
-     &                          t(START_2D_ARRAY,1,2,itemp))
-        call exchange_r3d_3pts_tile (Istr,Iend,Jstr,Jend,
-     &                          t(START_2D_ARRAY,1,3,itemp))
-#    else
-        call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
-     &                          t(START_2D_ARRAY,1,1,itemp))
-        call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
-     &                          t(START_2D_ARRAY,1,2,itemp))
-        call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
-     &                          t(START_2D_ARRAY,1,3,itemp))
-#    endif
-#    ifdef SALINITY
-#     ifdef THREE_GHOST_POINTS_TS
-        call exchange_r3d_3pts_tile (Istr,Iend,Jstr,Jend,
-     &                          t(START_2D_ARRAY,1,1,isalt))
-        call exchange_r3d_3pts_tile (Istr,Iend,Jstr,Jend,
-     &                          t(START_2D_ARRAY,1,2,isalt))
-        call exchange_r3d_3pts_tile (Istr,Iend,Jstr,Jend,
-     &                          t(START_2D_ARRAY,1,3,isalt))
-#     else
-        call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
-     &                          t(START_2D_ARRAY,1,1,isalt))
-        call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
-     &                          t(START_2D_ARRAY,1,2,isalt))
-        call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
-     &                          t(START_2D_ARRAY,1,3,isalt))
-#     endif
-#    endif
-#   endif
-
-#endif
-
-#   ifdef HORN_PROFILE
+        drho   = 1.2    ! Value to be replaced by script (originally 1.2)
 !
-!  Horn, D.A., J. Imberger, & G.N. Ivey, (2001). 
-!  The degeneration of large-scale interfacial gravity waves in lakes. 
-!  J. Fluid Mech., 434:181-207.
-!  --> initialy setup with variable salinity in the tank experiment of 
-!      Horn et al (2001); the conversion to temperature variations 
-!      through linear EOS gives unrealistic range
-!
-        rho1_exp = R0 - 1.  ! * 0.7286 /2.
-        rho2_exp = R0 + 1.  ! * 0.7286 /2.
-        h1_exp = 0.5 * h(1,1)
-        amp_exp = 0.0391
-        Lt=6.
         do j=JR_RANGE
-           do i=IR_RANGE
-             do k=1,N
-                 d(k)=0.5*(rho1_exp+rho2_exp)               
-     &              + 0.5*(rho2_exp-rho1_exp)
-     &                   *tanh(exp(1.)*(-h1_exp 
-!    &                          -2.*amp_exp*(xr(i,j)-Lt/2.)/Lt 
-     &                          +abs(z_r(i,j,k)))/(0.015/2.))   ! 0.005=dz_q   
-                 t(i,j,k,1,itemp) = 13. - ( d(k) - R0 )  / Tcoef
-                 t(i,j,k,2,itemp) = t(i,j,k,1,itemp)
-              enddo
-           enddo
-        enddo
-!#   else
-!        depth=h(1,1)
-!        gam=0.9
-!        del=0.3
-!        dz=2*(z_r(1,1,2)-z_r(1,1,1));
-!        do j=JstrR,JendR
-!          do i=IstrR,IendR
-!            zint=depth*(del-1)+gam*del*depth*(2*xr(i,j)/xl - 1)
-!            do k=1,N
-!              t(i,j,k,1,itemp)=0.5*(5/Tcoef+10/Tcoef)
-!     &                        -0.5*(5/Tcoef-10/Tcoef)
-!     &                            *tanh((z_r(i,j,k)-zint)/dz);
-!              t(i,j,k,2,itemp)=t(i,j,k,1,itemp)
-!            enddo
-!          enddo
-!        enddo
-#   endif /* HORN_PROFILE */ 
-#  elif defined ACOUSTIC 
+          do i=IR_RANGE
+              depth=h(i,j)
+              zr0=-0.5*depth
+              hup0=0.15*depth
 
-        do j=JstrR,JendR
-           do i=IstrR,IendR
               do k=1,N
-                 t(i,j,k,1,itemp) = 13./Tcoef
+                 t(i,j,k,1,itemp) = 13.+ 1.*drho * (
+     &                              0.1*(z_r(1,1,k)-zr0)/depth +
+     &                              dtanh((z_r(1,1,k)-zr0)/htemp0) 
+     &                                              )  / Tcoef
+!    &            +0.001*
+!!   &                       (tanh(abs(z_r(1,1,k)-zr0)/hup0))*
+!    &                       (1. -tanh((z_r(1,1,k)-zr0)/hup0)**2.)
+!    &                                      *sin(2.*2.*pi/xl*xr(i,j))
+
                  t(i,j,k,2,itemp) = t(i,j,k,1,itemp)
+#    ifdef SALINITY
+                 t(i,j,k,1,isalt) = 35. +0.05*drho* ( 1. -
+     &                             (dtanh((z_r(1,1,k)-zr0)/hsalt0))**2 )
+                 t(i,j,k,2,isalt) = t(i,j,k,1,isalt)
+#    endif
               enddo
            enddo
         enddo
 
 #  elif defined GRAV_ADJ
+
 #   ifdef GRAV_ADJ_SOLITON
 #    define HORN_PROFILE
 #    ifdef HORN_PROFILE
@@ -1044,7 +593,7 @@ C$    integer omp_get_thread_num
           enddo
         enddo
 #    endif /* HORN_PROFILE */ 
-#   else
+#   else /*  !GRAV_ADJ_SOLITON */
         do k=1,N
           do j=JstrR,JendR
             do i=IstrR,IendR
@@ -1064,14 +613,15 @@ C$    integer omp_get_thread_num
         enddo
 #   endif /* GRAV_ADJ_SOLITON */
 
-#  elif defined ACOUSTIC
+#  elif defined ACOUSTIC 
+
         do j=JstrR,JendR
-          do i=IstrR,IendR
-            do k=1,N
-               t(i,j,k,1,itemp)=5/Tcoef
-               t(i,j,k,2,itemp)=5/Tcoef
-            enddo
-          enddo
+           do i=IstrR,IendR
+              do k=1,N
+                 t(i,j,k,1,itemp) = 13./Tcoef
+                 t(i,j,k,2,itemp) = t(i,j,k,1,itemp)
+              enddo
+           enddo
         enddo
 
 #  elif defined INNERSHELF
@@ -1325,6 +875,26 @@ C$    integer omp_get_thread_num
               t(i,j,k,1,itpas)=0
             endif
             t(i,j,k,2,itpas)=t(i,j,k,1,itpas)
+#  elif defined KH_INST
+              zdye10 = -0.65*depth
+              t(i,j,k,1,itpas1) =
+     &            + 35 +0.05* drho* (
+     &              1. - (dtanh( (z_r(1,1,k)-zdye10)/hsalt0 ) )**2.
+!    &                     )/Scoef      
+     &                     )
+!
+                 t(i,j,k,2,itpas1) = t(i,j,k,1,itpas1)
+
+              zdye20 = -0.35*depth
+              t(i,j,k,1,itpas2) =
+!
+     &            + 35 +0.05* drho* (
+     &              1. - (dtanh( (z_r(1,1,k)-zdye20)/hsalt0 ) )**2.
+!    &                     )/Scoef      
+     &                     )
+!
+                 t(i,j,k,2,itpas2) = t(i,j,k,1,itpas2)
+
 #  else
             if (h(i,j).lt.300) then
               t(i,j,k,1,itpas)=1.
@@ -1627,11 +1197,19 @@ C$    integer omp_get_thread_num
      &                             u(START_2D_ARRAY,1,1))
       call exchange_v3d_3pts_tile (Istr,Iend,Jstr,Jend,
      &                             v(START_2D_ARRAY,1,1))
+#ifdef NBQ
+      call exchange_w3d_3pts_tile (Istr,Iend,Jstr,Jend,
+     &                             wz(START_2D_ARRAY,0,1))
+#endif
 #   else
       call exchange_u3d_tile (Istr,Iend,Jstr,Jend,
      &                        u(START_2D_ARRAY,1,1))
       call exchange_v3d_tile (Istr,Iend,Jstr,Jend,
      &                        v(START_2D_ARRAY,1,1))
+#ifdef NBQ
+      call exchange_w3d_tile (Istr,Iend,Jstr,Jend,
+     &                        wz(START_2D_ARRAY,0,1))
+#endif
 #   endif
 #  endif /* SOLVE3D */
 # endif /* ANA_INITIAL */
@@ -1745,9 +1323,15 @@ C$    integer omp_get_thread_num
       else
         cff_perturb = 0.02
         tndx=1
-        zeta(:,:,tndx)=0.
-        call set_depth_tile (Istr,Iend,Jstr,Jend)
       endif
+!
+! Set flat free surface zeta and associated vertical grid
+! --> zeta will be diagnozed from pressure after 
+!     from first call to PGF routine 
+!
+      knew=tndx  ! --> set_depth
+      zeta(:,:,tndx)=0.
+      call set_depth_tile (Istr,Iend,Jstr,Jend)
 !
 ! --- Build northern and southern density profiles ---
 !

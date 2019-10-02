@@ -225,6 +225,19 @@ CR      write(*,*) 'wrt_avg:  wrtT  ' MYID
          call fillvalue3d(workr,ncidavg,avgR,indxR,record,r3dvar,type) 
 CR      write(*,*) 'wrt_avg:  wrtRHO' MYID
       endif
+# if defined ANA_VMIX || defined BVF_MIXING \
+  || defined LMD_MIXING || defined LMD_SKPP || defined LMD_BKPP \
+  || defined GLS_MIX2017 || defined GLS_MIXING
+!
+!     Brunt vaisala frequency.
+!
+      if (wrtavg(indxbvf)) then
+         work=bvf_avg
+         call fillvalue3d_w(work,ncidavg,avgbvf,indxbvf,
+     &           record,w3dvar,type)
+CR      write(*,*) 'wrt_avg:  wrtbvf' MYID
+      endif
+# endif
 !     
 !     Write out S-coordinate omega vertical velocity (m/s).
 !     

@@ -54,8 +54,13 @@
 #  define vidMCor diaMCor
 #  define vidMPrsgrd diaMPrsgrd
 #  define vidMHmix diaMHmix
+#  define vidMHdiff diaMHdiff
 #  define vidMVmix diaMVmix
+#  define vidMVmix2 diaMVmix2
 #  define vidMrate diaMrate
+# if defined DIAGNOSTICS_BARO
+#  define vidMBaro diaMBaro
+# endif
 #  if defined MRL_WCI
 #   define vidMvf diaMvf
 #   define vidMbrk diaMbrk
@@ -82,8 +87,13 @@
 #  define vidMCor diaMCor_avg
 #  define vidMPrsgrd diaMPrsgrd_avg
 #  define vidMHmix diaMHmix_avg
+#  define vidMHdiff diaMHdiff_avg
 #  define vidMVmix diaMVmix_avg
+#  define vidMVmix2 diaMVmix2_avg
 #  define vidMrate diaMrate_avg
+# if defined DIAGNOSTICS_BARO
+#  define vidMBaro diaMBaro_avg
+# endif
 #  if defined MRL_WCI
 #   define vidMvf diaMvf_avg
 #   define vidMbrk diaMbrk_avg
@@ -282,11 +292,14 @@
 !
 ! indxMXadv
 !
+# ifndef TENDENCY
           if (itrc.eq.1) then
             r3dgrd=u3dgrd
           else
             r3dgrd=v3dgrd
           endif
+# endif
+
 !
           lvar=lenstr(vname(1,indxMXadv+itrc-1))
           ierr=nf_def_var (ncid, vname(1,indxMXadv+itrc-1)(1:lvar),
@@ -436,6 +449,31 @@
         call nf_add_attribute(ncid, vidMHmix(itrc), indxMHmix+itrc-1, 5, 
      &                        NF_FOUT, ierr)
 !
+! indxMHdiff
+!
+          lvar=lenstr(vname(1,indxMHdiff+itrc-1))
+          ierr=nf_def_var (ncid, vname(1,indxMHdiff+itrc-1)(1:lvar),
+     &                     NF_FOUT, 4, r3dgrd, vidMHdiff(itrc))
+# ifndef AVRH
+          lvar=lenstr(vname(2,indxMHdiff+itrc-1))
+          ierr=nf_put_att_text (ncid, vidMHdiff(itrc), 'long_name',
+     &                      lvar, vname(2,indxMHdiff+itrc-1)(1:lvar))
+# else
+          text='averaged '/ /vname(2,indxMHdiff+itrc-1)
+          lvar=lenstr(text)
+          ierr=nf_put_att_text (ncid, vidMHdiff(itrc), 'long_name',
+     &                          lvar, text(1:lvar))
+# endif
+          lvar=lenstr(vname(3,indxMHdiff+itrc-1))
+          ierr=nf_put_att_text (ncid, diaMHdiff(itrc), 'units', lvar,
+     &                          vname(3,indxMHdiff+itrc-1)(1:lvar))
+          lvar=lenstr(vname(4,indxMHdiff+itrc-1))
+          ierr=nf_put_att_text (ncid,vidMHdiff(itrc), 'field',
+     &                      lvar, vname(4,indxMHdiff+itrc-1)(1:lvar))
+
+        call nf_add_attribute(ncid, vidMHdiff(itrc), indxMHdiff+itrc-1, 5, 
+     &                        NF_FOUT, ierr)
+!
 !indxMVmix
 !
           lvar=lenstr(vname(1,indxMVmix+itrc-1))
@@ -460,6 +498,59 @@
 
         call nf_add_attribute(ncid, vidMVmix(itrc), indxMVmix+itrc-1, 5, 
      &                        NF_FOUT, ierr)
+!
+!indxMVmix2
+!
+          lvar=lenstr(vname(1,indxMVmix2+itrc-1))
+          ierr=nf_def_var (ncid, vname(1,indxMVmix2+itrc-1)(1:lvar),
+     &                     NF_FOUT, 4, r3dgrd, vidMVmix2(itrc))
+# ifndef AVRH
+          lvar=lenstr(vname(2,indxMVmix2+itrc-1))
+          ierr=nf_put_att_text (ncid, vidMVmix2(itrc), 'long_name',
+     &                    lvar, vname(2,indxMVmix2+itrc-1)(1:lvar))
+# else
+          text='averaged '/ /vname(2,indxMVmix2+itrc-1)
+          lvar=lenstr(text)
+          ierr=nf_put_att_text (ncid, vidMVmix2(itrc), 'long_name', 
+     &                          lvar, text(1:lvar))
+# endif
+          lvar=lenstr(vname(3,indxMVmix2+itrc-1))
+          ierr=nf_put_att_text (ncid, diaMVmix2(itrc), 'units', lvar,
+     &                          vname(3,indxMVmix2+itrc-1)(1:lvar))
+          lvar=lenstr(vname(4,indxMVmix2+itrc-1))
+          ierr=nf_put_att_text (ncid,vidMVmix2(itrc), 'field',
+     &                      lvar, vname(4,indxMVmix2+itrc-1)(1:lvar))
+
+        call nf_add_attribute(ncid, vidMVmix2(itrc), indxMVmix2+itrc-1, 5, 
+     &                        NF_FOUT, ierr)
+# if defined DIAGNOSTICS_BARO
+!
+! indxMBaro
+!
+          lvar=lenstr(vname(1,indxMBaro+itrc-1))
+          ierr=nf_def_var (ncid, vname(1,indxMBaro+itrc-1)(1:lvar),
+     &                     NF_FOUT, 4, r3dgrd, vidMBaro(itrc))
+# ifndef AVRH
+          lvar=lenstr(vname(2,indxMBaro+itrc-1))
+          ierr=nf_put_att_text (ncid, vidMBaro(itrc), 'long_name',
+     &                      lvar, vname(2,indxMBaro+itrc-1)(1:lvar))
+# else
+          text='averaged '/ /vname(2,indxMBaro+itrc-1)
+          lvar=lenstr(text)
+          ierr=nf_put_att_text (ncid, vidMBaro(itrc), 'long_name',
+     &                          lvar, text(1:lvar))
+# endif
+          lvar=lenstr(vname(3,indxMBaro+itrc-1))
+          ierr=nf_put_att_text (ncid, diaMBaro(itrc), 'units', lvar,
+     &                          vname(3,indxMBaro+itrc-1)(1:lvar))
+          lvar=lenstr(vname(4,indxMBaro+itrc-1))
+          ierr=nf_put_att_text (ncid,vidMBaro(itrc), 'field',
+     &                      lvar, vname(4,indxMBaro+itrc-1)(1:lvar))
+
+        call nf_add_attribute(ncid, vidMBaro(itrc), indxMBaro+itrc-1, 5,
+     &                        NF_FOUT, ierr)
+# endif
+!
 #ifdef MRL_WCI
 !
 ! indxMvf
@@ -695,7 +786,7 @@
 ! ----- ---------- -----
 !
         ierr=nf_enddef(ncid)
-        write(stdout,'(6x,4A,1x,A,i4)') 
+        MPI_master_only write(stdout,'(6x,4A,1x,A,i4)')
 #ifdef AVRH
      &        'DEF_DIAGM_AVG - Created ',
 #else      
@@ -749,7 +840,8 @@
             create_new_file=.true.
             goto 10
           else
-        write(stdout,'(/1x,4A,2x,A,I4/)') 'DEF_DIAGSM_HIS/AVG ERROR: ',
+        MPI_master_only write(stdout,'(/1x,4A,2x,A,I4/)')
+     &         'DEF_DIAGSM_HIS/AVG ERROR: ',
      &         'Cannot open file ''', ncname(1:lstr), '''.'
      &                   MYID
             goto 99                                       !--> ERROR
@@ -862,6 +954,17 @@
            goto 99                                       !--> ERROR
          endif
 !
+! indxMHdiff
+!
+         lvar=lenstr(vname(1,indxMHdiff+itrc-1))
+         ierr=nf_inq_varid (ncid, vname(1,indxMHdiff+itrc-1)(1:lvar),
+     &                      vidMHdiff(itrc))
+         if (ierr .ne. nf_noerr) then
+           write(stdout,1) vname(1,indxMHdiff+itrc-1)(1:lvar),
+     &                     ncname(1:lstr)
+           goto 99                                       !--> ERROR
+         endif
+!
 ! indxMVmix
 !
          lvar=lenstr(vname(1,indxMVmix+itrc-1))
@@ -872,6 +975,30 @@
      &                     ncname(1:lstr) 
            goto 99                                       !--> ERROR
          endif
+!
+! indxMVmix2
+!
+         lvar=lenstr(vname(1,indxMVmix2+itrc-1))
+         ierr=nf_inq_varid (ncid, vname(1,indxMVmix2+itrc-1)(1:lvar),
+     &                      vidMVmix2(itrc))
+         if (ierr .ne. nf_noerr) then
+           write(stdout,1) vname(1,indxMVmix2+itrc-1)(1:lvar),
+     &                     ncname(1:lstr) 
+           goto 99                                       !--> ERROR
+         endif
+# if defined DIAGNOSTICS_BARO
+!
+! indxMBaro
+!
+         lvar=lenstr(vname(1,indxMBaro+itrc-1))
+         ierr=nf_inq_varid (ncid, vname(1,indxMBaro+itrc-1)(1:lvar),
+     &                      vidMBaro(itrc))
+         if (ierr .ne. nf_noerr) then
+           write(stdout,1) vname(1,indxMBaro+itrc-1)(1:lvar),
+     &                     ncname(1:lstr)
+           goto 99                                       !--> ERROR
+         endif
+# endif
 #if defined MRL_WCI
 !
 ! indxMvf
@@ -991,7 +1118,8 @@
       else
         ierr=nf_open (ncname(1:lstr), nf_write, ncid)
         if (ierr .ne. nf_noerr) then
-          write(stdout,'(/1x,4A,2x,A,I4/)') 'DEF_DIAGM ERROR: ',
+          MPI_master_only write(stdout,'(/1x,4A,2x,A,I4/)')
+     &                'DEF_DIAGM ERROR: ',
      &                'Cannot open file ''', ncname(1:lstr), '''.'
      &                 MYID
           goto 99                                         !--> ERROR
@@ -1002,7 +1130,8 @@
 !
       ierr=nf_set_fill (ncid, nf_nofill, lvar)
       if (ierr .ne. nf_noerr) then
-        write(*,'(6x,2A,i4,1x,A,i4)') 'DEF_DIAGM ERROR: Cannot ', 
+        MPI_master_only write(*,'(6x,2A,i4,1x,A,i4)')
+     &    'DEF_DIAGM ERROR: Cannot ',
      &    'switch to ''nf_nofill'' more; netCDF error code =', ierr 
       endif
    1  format(/1x,'DEF_DIAGM ERROR: Cannot find variable ''',
@@ -1049,8 +1178,13 @@
 #undef vidMCor
 #undef vidMPrsgrd
 #undef vidMHmix
+#undef vidMHdiff
 #undef vidMVmix
+#undef vidMVmix2
 #undef vidMrate
+# if defined DIAGNOSTICS_BARO
+#undef vidMBaro
+# endif
 !
 # ifdef AVERAGES
 #  ifndef AVRH

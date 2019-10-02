@@ -37,7 +37,7 @@ C$    integer omp_get_thread_num
 !
       implicit none
       integer Istr,Iend,Jstr,Jend, i,j,k
-      real cff_r,cff1_r,cff_w,cff1_w, z_r0,z_w0, zetatmp
+      real    cff_r,cff1_r,cff_w,cff1_w, z_r0,z_w0, zetatmp
 # include "param.h"
 # include "grid.h"
 # ifdef AGRIF
@@ -68,10 +68,6 @@ C$    integer omp_get_thread_num
 # else
 #  define J_RANGE JstrR,JendR
 # endif
-!
-#ifdef NBQ_ZETAW
-      if (kbak2.eq.0) kbak2=knew
-#endif
 !
 !----------------------------------------------------------------------
 !  Initialization of free surface zeta arrays and wet/dry mask
@@ -106,10 +102,21 @@ C$    integer omp_get_thread_num
 #  else
             hinv(i,j)=1./h(i,j) 
 #  endif
-            Zt_avg1(i,j)=zeta(i,j,1)     
+            Zt_avg1(i,j)=zeta(i,j,knew)  ! knew=1 unless modified 
+                                         ! in ana_initial (JET)     
 # endif /* SOLVE3D */
           enddo
         enddo
+
+# ifdef NBQ_MASS
+        do k=1,N
+          do j=J_RANGE
+            do i=I_RANGE
+              rho_nbq(i,j,k)=0.
+            enddo
+          enddo
+        enddo
+# endif
 
 # if defined EW_PERIODIC || defined NS_PERIODIC || defined  MPI
         call exchange_r2d_tile (Istr,Iend,Jstr,Jend, hinv)
@@ -117,6 +124,9 @@ C$    integer omp_get_thread_num
         call exchange_r2d_tile (Istr,Iend,Jstr,Jend, h)
         call exchange_r2d_tile (Istr,Iend,Jstr,Jend, wetdry)
         call exchange_r2d_tile (Istr,Iend,Jstr,Jend, rmask_wet)
+#   ifdef AGRIF
+        call exchange_r2d_tile (Istr,Iend,Jstr,Jend, rmask_childs)
+#   endif
 #  endif
 #  if defined NBQ || defined WET_DRY 
         call exchange_r2d_tile (Istr,Iend,Jstr,Jend, 
@@ -162,13 +172,11 @@ C$    integer omp_get_thread_num
           cff1_r=Cs_r(k)
 #  endif
           do i=I_RANGE
-
-#   ifdef NBQ_ZETAW
+#  ifdef NBQ
             zetatmp=zeta(i,j,knew)
-#   else
+#  else
             zetatmp=Zt_avg1(i,j)
-#   endif
-
+#  endif
 #  if defined MASKING && !defined WET_DRY
             zetatmp=zetatmp*rmask(i,j)
 #  endif
@@ -190,13 +198,15 @@ C$    integer omp_get_thread_num
             z_r(i,j,k)=z_r0+zetatmp*(1.+z_r0*hinv(i,j))
 #  endif
 
-#  ifdef NBQ_ZETAW
-#   ifdef NBQ_PRECISE
+#  ifdef NBQ
+#   ifndef NBQ_GRID_SLOW
             if (iif.eq.1) Hz_bak(i,j,k)=Hz(i,j,k)
 #   else
             Hz_bak(i,j,k)=Hz(i,j,k)
 #   endif
+#   ifdef NBQ_HZ_PROGNOSTIC
             Hz_bak2(i,j,k)=Hz(i,j,k)
+#   endif
 #  else
             Hz_bak(i,j,k)=Hz(i,j,k)
 #  endif 
@@ -204,18 +214,14 @@ C$    integer omp_get_thread_num
 
 #  ifdef NBQ_MASS
             Hzr(i,j,k)=Hz(i,j,k)
-#   ifdef NBQ_ZETAW
-            Hz(i,j,k)=Hz(i,j,k)*(1.+rho(i,j,k)/rho0)
+            Hz(i,j,k)=Hz(i,j,k)*(1.+rho_grd(i,j,k))
      &                               +rho_nbq(i,j,k) 
-#   else
-            Hz(i,j,k)=Hz(i,j,k)*rho_nbq_avg1(i,j,k)
-#   endif
 #  endif
           enddo
         enddo
       enddo
 
-#  ifdef NBQ_ZETAW
+#  ifdef NBQ
       if (iic.eq.0 .or. (FIRST_TIME_STEP .and. iif.eq.1)) then
         do k=1,N,+1
           do j=J_RANGE
@@ -242,7 +248,7 @@ C$    integer omp_get_thread_num
 #   ifdef MOVING_BATHY
       call exchange_r2d_tile (Istr,Iend,Jstr,Jend, h)
 #   endif
-#   ifdef NBQ
+#   ifdef NBQ_MASS
       call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
      &                        Hzr(START_2D_ARRAY,1))
 #   endif

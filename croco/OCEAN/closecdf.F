@@ -45,6 +45,41 @@
       if (nciddiaM_avg.ne.-1) ierr=nf_close(nciddiaM_avg)
 # endif
 #endif
+
+#if defined DIAGNOSTICS_VRT
+      if (nciddiags_vrt.ne.-1) ierr=nf_close(nciddiags_vrt)
+# ifdef AVERAGES
+      if (nciddiags_vrt_avg.ne.-1) ierr=nf_close(nciddiags_vrt_avg)
+# endif
+#endif
+
+#if defined DIAGNOSTICS_EK
+      if (nciddiags_ek.ne.-1) ierr=nf_close(nciddiags_ek)
+# ifdef AVERAGES
+      if (nciddiags_ek_avg.ne.-1) ierr=nf_close(nciddiags_ek_avg)
+# endif
+#endif
+
+#if defined DIAGNOSTICS_PV
+      if (nciddiags_pv.ne.-1) ierr=nf_close(nciddiags_pv)
+# ifdef AVERAGES
+      if (nciddiags_pv_avg.ne.-1) ierr=nf_close(nciddiags_pv_avg)
+# endif
+#endif
+
+#if defined DIAGNOSTICS_EDDY
+      if (nciddiags_eddy.ne.-1) ierr=nf_close(nciddiags_eddy)
+# ifdef AVERAGES
+      if (nciddiags_eddy_avg.ne.-1) ierr=nf_close(nciddiags_eddy_avg)
+# endif
+#endif
+
+#if defined OUTPUTS_SURFACE
+      if (ncidsurf.ne.-1) ierr=nf_close(ncidsurf)
+# ifdef AVERAGES
+      if (ncidsurf_avg.ne.-1) ierr=nf_close(ncidsurf_avg)
+# endif
+#endif
 #if defined DIAGNOSTICS_BIO
       if (nciddiabio.ne.-1) ierr=nf_close(nciddiabio)
 # ifdef AVERAGES
@@ -82,6 +117,38 @@
      &                                                      nrecdiaM_avg
 # endif
 #endif /* DIAGNOSTICS_UV */
+#if defined DIAGNOSTICS_VRT
+     &  ,'number of records written into diags_vrt  file(s):',
+     &                                                     nrecdiags_vrt
+# ifdef AVERAGES
+     &  ,'number of records written into avg diags_vrt file(s):',
+     &                                                 nrecdiags_vrt_avg
+# endif
+#endif /* DIAGNOSTICS_VRT */
+#if defined DIAGNOSTICS_EK
+     &  ,'number of records written into diags_ek  file(s):',
+     &                                                     nrecdiags_ek
+# ifdef AVERAGES
+     &  ,'number of records written into avg diags_ek file(s):',
+     &                                                 nrecdiags_ek_avg
+# endif
+#endif /* DIAGNOSTICS_EK */
+#if defined DIAGNOSTICS_PV
+     &  ,'number of records written into diags_pv  file(s):',
+     &                                                     nrecdiags_pv
+# ifdef AVERAGES
+     &  ,'number of records written into avg diags_pv file(s):',
+     &                                                 nrecdiags_pv_avg
+# endif
+#endif /* DIAGNOSTICS_PV */
+#if defined OUTPUTS_SURFACE
+     &  ,'number of records written into surf  file(s):',
+     &                                                     nrecsurf
+# ifdef AVERAGES
+     &  ,'number of records written into avg surf file(s):',
+     &                                                 nrecsurf_avg
+# endif
+#endif /* OUTPUTS_SURFACE */
 
       if (may_day_flag.eq.0) then
         MPI_master_only write(stdout,'(/1x,A/)')

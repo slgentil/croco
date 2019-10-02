@@ -118,11 +118,17 @@
       do itrc=1,2
         if (wrtdiaM_avg(itrc)) then
 !
+
+# if defined TENDENCY
+          ivar=r3dvar
+# else
           if (itrc.eq.1) then
             ivar=u3dvar
           else
             ivar=v3dvar
           endif
+# endif
+
 !
 ! indxMXadv
 !
@@ -164,14 +170,37 @@
            workr=MHmix_avg(:,:,:,itrc)
            call fillvalue3d(workr,nciddiaM_avg,diaMHmix_avg(itrc),
      &                      indxMHmix+itrc-1,
-     &                      record,ivar,type)  
+     &                      record,ivar,type)
+!
+! indxMHdiff
+!
+           workr=MHdiff_avg(:,:,:,itrc)
+           call fillvalue3d(workr,nciddiaM_avg,diaMHdiff_avg(itrc),
+     &                      indxMHdiff+itrc-1,
+     &                      record,ivar,type)
 !
 ! indxMVmix
 !
            workr=MVmix_avg(:,:,:,itrc)
            call fillvalue3d(workr,nciddiaM_avg,diaMVmix_avg(itrc),
      &                      indxMVmix+itrc-1,
-     &                      record,ivar,type)  
+     &                      record,ivar,type)
+!
+! indxMVmix2
+!
+           workr=MVmix2_avg(:,:,:,itrc)
+           call fillvalue3d(workr,nciddiaM_avg,diaMVmix2_avg(itrc),
+     &                      indxMVmix2+itrc-1,
+     &                      record,ivar,type)
+# if defined DIAGNOSTICS_BARO
+!
+! indxMBaro
+!
+           workr=MBaro_avg(:,:,:,itrc)
+           call fillvalue3d(workr,nciddiaM_avg,diaMBaro_avg(itrc),
+     &                      indxMBaro+itrc-1,
+     &                      record,ivar,type)
+# endif
 #ifdef MRL_WCI
 !
 ! indxMvf
@@ -257,6 +286,9 @@
       write(*,*) 'MPrsgrd_avg(i,j,k,itrc) ',MPrsgrd_avg(i,j,k,itrc)
       write(*,*) 'MHmix_avg(i,j,k,itrc)   ',MHmix_avg(i,j,k,itrc)
       write(*,*) 'MVmix_avg(i,j,k,itrc)   ',MVmix_avg(i,j,k,itrc)
+# if defined DIAGNOSTICS_BARO
+      write(*,*) 'MBaro_avg(i,j,k,itrc) ',MBaro_avg(i,j,k,itrc)
+# endif
 # ifdef MRL_WCI
       write(*,*) 'Mvf_avg(i,j,k,itrc)     ',Mvf_avg(i,j,k,itrc)
       write(*,*) 'Mbrk_avg(i,j,k,itrc)    ',Mbrk_avg(i,j,k,itrc)

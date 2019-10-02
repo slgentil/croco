@@ -80,7 +80,7 @@
      &   lmd_nu0c=0.1,    ! convective adjustment for viscosity
                           !              and diffusivity [m^2/s].
                           !
-     &   Ricr=0.3,        ! Critical bulk Richardson number (0.3).
+     &   Ricr=0.45,       ! Critical bulk Richardson number (0.3).
                           !
      &   Ri_inv=1./Ricr,  !
                           !
@@ -328,6 +328,21 @@
 #  ifdef SALINITY
               Ks(i,j,k)=Ks0
 #  endif
+
+
+# if defined MLCONVEC
+!
+!  Add convective adjustment in the ML for unresolved convective cells
+!
+            if (bvf(i,j,k).lt.0.) then
+                  Kv(i,j,k)=Kv(i,j,k)+lmd_nu0c
+                  Kt(i,j,k)=Kt(i,j,k)+lmd_nu0c
+#  ifdef SALINITY
+                  Ks(i,j,k)=Ks(i,j,k)+lmd_nu0c
+#  endif
+            endif
+# endif
+
 
 # ifdef LMD_CONVEC
 !

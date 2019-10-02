@@ -84,7 +84,7 @@ for t in range(0,nbchain+1):
         shutil.copy(startdir+'/iodef.xml',tdir)
         shutil.copy(startdir+'/domain_def.xml',tdir)
         shutil.copy(startdir+'/field_def.xml',tdir)    
-        # shutil.copy(startdir+'/floats.in',tdir)
+        shutil.copy(startdir+'/floats.in',tdir)
         shutil.copy(startdir+'/xios_server.exe',tdir)
 
 #==============================================================================
@@ -122,6 +122,8 @@ for t in range(1,nbchain+1):
            for index, line in enumerate(lines):
                if 'NRREC' in line:
                   lines[index+1]='         1\n' 
+               if 'nrpfflt' in line:
+                  lines[index+1]=lines[index+1].rstrip()[:-2]+'1\n'
                   break  
     f.close()   
     f = open('croco.in','w')
@@ -152,7 +154,8 @@ for t in range(1,nbchain+1):
     fo.write('\n')     
     fo.write('date\n') 
     if t!=1 or restart==1:
-       fo.write('cp ../t'+str(t-1)+'/jetn_rst*.nc .\n')    
+       fo.write('cp ../t'+str(t-1)+'/jetn_rst*.nc .\n')  
+       fo.write('cp ../t'+str(t-1)+'/float.rst.* .\n')   
     fo.write('time $MPI_LAUNCH -n '+str(nbproc_roms)+' croco : -n '+str(nbproc_xios)+ ' xios_server.exe >& output.mpi\n')  
 
     fo.close()

@@ -70,7 +70,7 @@ diagspec:       navgspec nwrtspec spec_nlev /filename /levels
                 2 4 6 8 16
 
 itide:  flag_itide   omega_itide   nmode_itide   Az_itide  y_itide    start_time_itide 
-            T      1.45444104333e-4     2         2.0e-2   400.0e+3      2000
+            T      1.45444104333e-4     2         2.0e-2   400.0e+3      4000
 
 itidep: flag_ptb   dcos_ptb   dsin_ptb   nmode_ptb    scale_ptb
             0       -1.0e-6     0.0e-6       2           1.0e0
@@ -89,10 +89,10 @@ damp_sp: sp_flag_south sp_L_south sp_tau_in_south sp_tau_out_south sp_flag_north
               F   350.0e+3    1000.0e+0   2.0e+0    F   350.0e+3    1000.0e+0   2.0e+0
 
 floats: ldefflt  nflt  nrpfflt /fposnam /fname 
-           T     144     0    
+           T     2     0    
              floats.in
              floats.nc 
 
-float_fields:  position   temperature  salinity  rho  mean-float-velocity
-                  T           T            F      F       T
+float_fields:  position   temperature  salinity  rho  mean-float-velocity  instant_velocity  acceleration   pressure
+                  T           T            F      F       F                T                 T        T     
 

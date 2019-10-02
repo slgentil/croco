@@ -102,9 +102,15 @@
       real MVadv(GLOBAL_2D_ARRAY,N,2)
       real MCor(GLOBAL_2D_ARRAY,N,2)
       real MPrsgrd(GLOBAL_2D_ARRAY,N,2)
-      real MHmix(GLOBAL_2D_ARRAY,N,2)
+      real MHmix(GLOBAL_2D_ARRAY,N,2,2)
+      real MHdiff(GLOBAL_2D_ARRAY,N,2)
       real MVmix(GLOBAL_2D_ARRAY,N,2)
+      real MVmix2(GLOBAL_2D_ARRAY,N,2)
       real Mrate(GLOBAL_2D_ARRAY,N,2)
+      real Mbody(GLOBAL_2D_ARRAY,N,2)
+# if defined DIAGNOSTICS_BARO
+      real MBaro(GLOBAL_2D_ARRAY,N,2)
+# endif
 # ifdef MRL_WCI
       real Mvf(GLOBAL_2D_ARRAY,N,2)
       real Mbrk(GLOBAL_2D_ARRAY,N,2)
@@ -123,8 +129,13 @@
       real MCor_avg(GLOBAL_2D_ARRAY,N,2)
       real MPrsgrd_avg(GLOBAL_2D_ARRAY,N,2)
       real MHmix_avg(GLOBAL_2D_ARRAY,N,2)
+      real MHdiff_avg(GLOBAL_2D_ARRAY,N,2)
       real MVmix_avg(GLOBAL_2D_ARRAY,N,2)
+      real MVmix2_avg(GLOBAL_2D_ARRAY,N,2)
       real Mrate_avg(GLOBAL_2D_ARRAY,N,2)
+# if defined DIAGNOSTICS_BARO
+      real MBaro_avg(GLOBAL_2D_ARRAY,N,2)
+# endif
 #  ifdef MRL_WCI
       real Mvf_avg(GLOBAL_2D_ARRAY,N,2)
       real Mbrk_avg(GLOBAL_2D_ARRAY,N,2)
@@ -138,12 +149,18 @@
 # endif	
       common /diag_MXadv/MXadv   
      &       /diag_MYadv/MYadv
+     &       /diag_MHdiff/MHdiff
      &       /diag_MVadv/MVadv  
      &       /diag_MCor/MCor
      &       /diag_MPrsgrd/MPrsgrd
      &       /diag_MHmix/MHmix
      &       /diag_MVmix/MVmix
+     &       /diag_MVmix2/MVmix2
      &       /diag_Mrate/Mrate
+     &       /diag_Mbody/Mbody
+# if defined DIAGNOSTICS_BARO
+     &       /diag_MBaro/MBaro
+# endif
 # ifdef MRL_WCI       
      &       /diag_Mvf/Mvf
      &       /diag_Mbrk/Mbrk
@@ -162,8 +179,13 @@
      &       /diag_MCor_avg/MCor_avg
      &       /diag_MPrsgrd_avg/MPrsgrd_avg
      &       /diag_MHmix_avg/MHmix_avg
+     &       /diag_MHdiff_avg/MHdiff_avg
      &       /diag_MVmix_avg/MVmix_avg
+     &       /diag_MVmix2_avg/MVmix2_avg
      &       /diag_Mrate_avg/Mrate_avg
+# if defined DIAGNOSTICS_BARO
+     &       /diag_MBaro_avg/MBaro_avg
+# endif
 #  ifdef MRL_WCI       
      &       /diag_Mvf_avg/Mvf_avg
      &       /diag_Mbrk_avg/Mbrk_avg

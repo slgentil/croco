@@ -52,49 +52,46 @@
 **********************************************************************
 */
 
-! aponte flt ( from param.h
-        integer Mfloats
-        parameter (Mfloats=1000) ! Maximum number of floats
-! aponte flt )
+! from param.h
+        integer Mfloats           ! Maximum number of floats
+        parameter (Mfloats=10000) ! ======= ====== == ======
 
       integer NFT,               NFV,               NDIAGS,
-! aponte flt (
 #ifdef MPI
      &        inode,
 #endif
-! aponte flt )
      &        igrd,              itstr,
      &        ixgrd,             iygrd,             izgrd,
      &        iflon,             iflat,             ifdpt,
      &        ixrhs,             iyrhs,             izrhs,
      &        iftem,             ifsal,             ifden, 
-     &        ifvel
-      parameter (NFT=3,          NFV=6  ,           NDIAGS=10,
-! aponte flt (
+     &        ifvel,             ifu,               ifv,
+     &        ifdudt,            ifdvdt,            ifpres
+      parameter (NFT=3,          NFV=6  ,           NDIAGS=15,
 #ifdef MPI
      &        inode=-2,
 #endif
-! aponte flt )
      &        igrd=-1,           itstr=0,  
      &        ixgrd=1,           iygrd=2,           izgrd=3, ! for track 
                                                              ! & trackaux
      &        ixrhs=4,           iyrhs=5,           izrhs=6, ! for track
      &        iflon=4,           iflat=5,           ifdpt=6, ! for trackaux
      &        iftem=7,           ifsal=8,           ifden=9, 
-     &        ifvel=10                                       ) 
+     &        ifvel=10,          ifu=11,            ifv=12,
+     &        ifdudt=13,         ifdvdt=14,         ifpres=15   ) 
 
       logical bounded(Mfloats), diagfloats
       common /lfloats/ bounded
 
       integer nfloats, fltgrd(Mfloats), nrecvel(Mfloats) 
       common /floatsn/ nfloats, diagfloats, nrecvel
-! aponte flt (
+
 #ifdef MPI
       real Tinfo(inode:izgrd,Mfloats)
 #else
       real Tinfo(igrd:izgrd,Mfloats)
 #endif
-! aponte flt )
+
       common /floats_info/ Tinfo
 
       real flospval, deltap2c, deltac2p
@@ -110,16 +107,16 @@
       parameter (maxgrids=10)
       integer floattindex(0:maxgrids)
 # endif
-      real track(1:NFV,0:NFT,Mfloats),trackaux(1:NDIAGS,Mfloats)
+      real track(1:NFV,0:NFT,Mfloats),trackaux(0:NDIAGS,Mfloats)
       common /floats_track/ track,trackaux,fltgrd
 
-! aponte flt (
+
       integer trackinfo(1:3,Mfloats) ! status, MPI node, Agrif grid
 ! status=-1 float is dead
 ! status=0  float is inactive but may be launched
 ! status=1  float is active but will be launched
       common / track_info / trackinfo
-! aponte flt )
+
 
 # ifdef AGRIF
      & ,floattindex

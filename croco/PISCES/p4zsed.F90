@@ -53,10 +53,6 @@ MODULE p4zsed
      diazolight = 50      ,  &  !: Diazotrophs sensitivity to light (W/m2)
      nitrfix    = 1.E-7         !:
 
-   !! * Module variables
-!   INTEGER ::                   &
-!     ryyss,                     &  !: number of seconds per year
-!     rmtss                         !: number of seconds per month
 
    REAL(wp), PUBLIC   ::  year2daydta                 
    INTEGER ::                   &
@@ -113,23 +109,23 @@ CONTAINS
             znh4dep(ji,jj) = 0.
          END DO
       END DO
-      ! Iron and Si deposition at the surface
+
+      ! Iron and Si deposition at the surface : dust in kg/m2/s 
+      ! 3.e-10 : estimated extraterrestrial iron deposition per year
       ! -------------------------------------
       IF( ln_dust ) THEN
          DO jj = JRANGE
             DO ji = IRANGE
-               irondep(ji,jj,1) = ( dustsolub * mfrac * dust(ji,jj) &
-                  &               / ( 55.85 * rmtss ) + 3.e-10 / ryyss )   &
-                  &               * rfact2 / fse3t(ji,jj,KSURF)
+               zdep = rfact2 / fse3t(ji,jj,KSURF)
+               irondep(ji,jj,1) = dustsolub  &
+                  &               * mfrac * dust(ji,jj) / 55.85 * zdep &
+                  &               + 3.e-10 / ryyss  * zdep
                   !
                sidep  (ji,jj)   = 8.8 * 0.075  &
-                  &              * mfrac * dust(ji,jj) / 28.1 / rmtss    &
-                  &              * rfact2 / fse3t(ji,jj,KSURF) 
+                  &              * mfrac * dust(ji,jj) / 28.1 * zdep 
                   !
                po4dep (ji,jj)   = 0.1 * 0.021  &
-                  &              * mfrac * dust(ji,jj) / 31. / rmtss    &
-                  &              / po4r                                 &
-                  &              * rfact2 / fse3t(ji,jj,KSURF) 
+                  &              * mfrac * dust(ji,jj) / 31. / po4r * zdep 
                   !
                tra(ji,jj,1,jpsil) = tra(ji,jj,1,jpsil) + sidep (ji,jj)
                tra(ji,jj,1,jppo4) = tra(ji,jj,1,jppo4) + po4dep(ji,jj)
@@ -145,8 +141,8 @@ CONTAINS
           DO jk = KRANGEL
              DO jj = JRANGE
                 DO ji = IRANGE
-                   irondep(ji,jj,jk) = dust(ji,jj) * mfrac * zwdust * rfact2 &
-                   &                  * EXP( -fsdept(ji,jj,K) / 540. )
+                   zdep = rfact2 * EXP( -fsdept(ji,jj,K) / 540. )
+                   irondep(ji,jj,jk)   = dust(ji,jj) * mfrac * zwdust * zdep
                    tra(ji,jj,jk,jpfer) = tra(ji,jj,jk,jpfer) + irondep(ji,jj,jk)
                 END DO
              END DO
@@ -169,11 +165,12 @@ CONTAINS
          END DO
       ENDIF
 
+      ! N-deposition file in kgN/m2/s 
       IF( ln_ndepo ) THEN
          DO jj = JRANGE
             DO ji = IRANGE
-               ! conversion from KgN/m2/month to molC/L/s
-               zfact = rfact2 / rno3 / ( 14. * rmtss ) / fse3t(ji,jj,KSURF)
+               ! conversion from KgN/m2/s to molC/L/s
+               zfact = rfact2 / rno3 / 14. / fse3t(ji,jj,KSURF)
                zno3dep(ji,jj) =  zfact * no3dep(ji,jj) 
                znh4dep(ji,jj) =  zfact * nh4dep(ji,jj) 
                !
@@ -831,7 +828,7 @@ CONTAINS
 !         DO jm = 1, jpmois
 !            DO jj = JRANGE
 !               DO ji = IRANGE
-!                  sumdepsi = sumdepsi + zdustmo(ji,jj,jm) / (12.*rmtss) * 8.8        &
+!                  sumdepsi = sumdepsi + zdustmo(ji,jj,jm) / 12. * 8.8        &
 !                     &     * 0.075/28.1 * e1t(ji,jj) * e2t(ji,jj) * tmask(ji,jj,KSURF) * tmask_i(ji,jj)
 !              END DO
 !            END DO
@@ -850,10 +847,6 @@ CONTAINS
 !         CALL iom_get  ( numriv, jpdom_data, 'riverdic', river   (:,:), jpan )
 !         CALL iom_get  ( numriv, jpdom_data, 'riverdoc', riverdoc(:,:), jpan )
 !         CALL iom_close( numriv )
-
-        ! Number of seconds per year and per month
-!      ryyss = nyear_len(1) * rday
-!      rmtss = ryyss / raamo
 
          DO jj = JRANGE
             DO ji = IRANGE

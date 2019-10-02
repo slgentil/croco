@@ -15,7 +15,7 @@
                                          ! Read initial conditions for 
       subroutine get_initial_floats_mpi  ! the floats variables from 
                                          ! ascii initialization file.
-      implicit none
+C       implicit none
 # include "param.h"
 # include "scalars.h"
 # include "floats.h"
@@ -29,7 +29,8 @@
       real buff1(1:NFV,0:NFT)
       real buff2(1:NDIAGS)
       real buff3(inode:izgrd)
-      real sumofall
+      real(kind=8) :: nr_sumofall 
+
 
 
 
@@ -82,11 +83,10 @@
       ! close output file
       close(12)
       
-      nfloats = sumofall(real(nfltmax),ocean_grid_comm)
-      if ( mynode .eq. 0 )     
-     &    write(stdout,'(A44,I4)') 'Number of float trajectories to compute:',
-     &    nfloats
-
+      nfloats = sumofall(real(nfltmax),MPI_COMM_WORLD)
+      if ( mynode .eq. 0 )
+     &    write(stdout,'(A44,I4)') 
+     &      'ii Number of float trajectories to compute:',nfloats
    
 
       ! ascii output format

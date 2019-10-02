@@ -377,12 +377,19 @@ C$OMP BARRIER
 #   ifdef MASKING
      &                  *umask(Istr,j)
 #   endif
-#if defined WET_DRY
+#if defined WET_DRY 
           cff1=ABS(ABS(umask_wet(Istr,j))-1.)
+#   if defined M2_FRC_BRY
+          cff2=0.5+SIGN(0.5,ubarbry_west(j))*umask_wet(Istr,j)
+          cff3=0.5*umask_wet(Istr,j)*cff1
+     &                                           +cff2*(1.-cff1)
+          ubarbry_west(j)=ubarbry_west(j)*cff3
+#   else
           cff2=0.5+SIGN(0.5,ubclm(Istr,j))*umask_wet(Istr,j)
           cff3=0.5*umask_wet(Istr,j)*cff1
      &                                           +cff2*(1.-cff1)
           ubclm(Istr,j)=ubclm(Istr,j)*cff3
+#   endif
 #endif
          enddo   
 
@@ -410,12 +417,19 @@ C$OMP BARRIER
 #   ifdef MASKING
      &                      *umask(Iend+1,j)
 #   endif
-#if defined WET_DRY
+#if defined WET_DRY 
           cff1=ABS(ABS(umask_wet(Iend+1,j))-1.)
+#   ifdef M2_FRC_BRY
+          cff2=0.5+SIGN(0.5,ubarbry_east(j))*umask_wet(Iend+1,j)
+          cff3=0.5*umask_wet(Iend+1,j)*cff1
+     &                                           +cff2*(1.-cff1)
+          ubarbry_east(j)=ubarbry_east(j)*cff3
+#   else
           cff2=0.5+SIGN(0.5,ubclm(Iend+1,j))*umask_wet(Iend+1,j)
           cff3=0.5*umask_wet(Iend+1,j)*cff1
      &                                           +cff2*(1.-cff1)
           ubclm(Iend+1,j)=ubclm(Iend+1,j)*cff3
+#   endif
 #endif
           enddo       
       endif
@@ -439,12 +453,19 @@ C$OMP BARRIER
 #   ifdef MASKING
      &                  *umask(i,Jstr-1)
 #   endif
-#if defined WET_DRY
+#if defined WET_DRY 
           cff1=ABS(ABS(umask_wet(i,Jstr-1))-1.)
+#   ifdef M2_FRC_BRY
+          cff2=0.5+SIGN(0.5,ubarbry_south(i))*umask_wet(i,Jstr-1)
+          cff3=0.5*umask_wet(i,Jstr-1)*cff1
+     &                                           +cff2*(1.-cff1)
+          ubarbry_south(i)=ubarbry_south(i)*cff3
+#   else
           cff2=0.5+SIGN(0.5,ubclm(i,Jstr-1))*umask_wet(i,Jstr-1)
           cff3=0.5*umask_wet(i,Jstr-1)*cff1
      &                                           +cff2*(1.-cff1)
           ubclm(i,Jstr-1)=ubclm(i,Jstr-1)*cff3
+#   endif
 #endif 
         enddo
       endif
@@ -468,12 +489,19 @@ C$OMP BARRIER
 #   ifdef MASKING
      &                *umask(i,Jend+1)
 #   endif
-#if defined WET_DRY
+#if defined WET_DRY 
           cff1=ABS(ABS(umask_wet(i,Jend+1))-1.)
+#   ifdef M2_FRC_BRY
+          cff2=0.5+SIGN(0.5,ubarbry_north(i))*umask_wet(i,Jend+1)
+          cff3=0.5*umask_wet(i,Jend+1)*cff1
+     &                                           +cff2*(1.-cff1)
+          ubarbry_north(i)=ubarbry_north(i)*cff3
+#   else
           cff2=0.5+SIGN(0.5,ubclm(i,Jend+1))*umask_wet(i,Jend+1)
           cff3=0.5*umask_wet(i,Jend+1)*cff1
      &                                           +cff2*(1.-cff1)
           ubclm(i,Jend+1)=ubclm(i,Jend+1)*cff3
+#   endif
 #endif
          enddo
 
@@ -1000,12 +1028,19 @@ C$OMP BARRIER
 #   ifdef MASKING
      &                  *vmask(i,Jstr)
 #   endif 
-#if defined WET_DRY
+#if defined WET_DRY 
           cff1=ABS(ABS(vmask_wet(i,Jstr))-1.)
+#   ifdef M2_FRC_BRY
+          cff2=0.5+SIGN(0.5,vbarbry_south(i))*vmask_wet(i,Jstr)
+          cff3=0.5*vmask_wet(i,Jstr)*cff1
+     &                                           +cff2*(1.-cff1)
+           vbarbry_south(i)= vbarbry_south(i)*cff3
+#   else
           cff2=0.5+SIGN(0.5,vbclm(i,Jstr))*vmask_wet(i,Jstr)
           cff3=0.5*vmask_wet(i,Jstr)*cff1
      &                                           +cff2*(1.-cff1)
           vbclm(i,Jstr)=vbclm(i,Jstr)*cff3
+#   endif
 #endif
         enddo
       endif
@@ -1032,12 +1067,19 @@ C$OMP BARRIER
 #   ifdef MASKING
      &                  *vmask(i,Jend+1)
 #   endif 
-#if defined WET_DRY
+#if defined WET_DRY 
           cff1=ABS(ABS(vmask_wet(i,Jend+1))-1.)
+#   ifdef M2_FRC_BRY
+          cff2=0.5+SIGN(0.5,vbarbry_north(i))*vmask_wet(i,Jend+1)
+          cff3=0.5*vmask_wet(i,Jend+1)*cff1
+     &                                           +cff2*(1.-cff1)
+          vbarbry_north(i)=vbarbry_north(i)*cff3
+#   else
           cff2=0.5+SIGN(0.5,vbclm(i,Jend+1))*vmask_wet(i,Jend+1)
           cff3=0.5*vmask_wet(i,Jend+1)*cff1
      &                                           +cff2*(1.-cff1)
           vbclm(i,Jend+1)=vbclm(i,Jend+1)*cff3
+#   endif
 #endif
          enddo
       endif
@@ -1061,12 +1103,19 @@ C$OMP BARRIER
 #   ifdef MASKING
      &                 *vmask(Iend+1,j)
 #   endif
-#if defined WET_DRY
+#if defined WET_DRY 
           cff1=ABS(ABS(vmask_wet(Iend+1,j))-1.)
+#   ifdef M2_FRC_BRY
+          cff2=0.5+SIGN(0.5,vbarbry_east(j))*vmask_wet(Iend+1,j)
+          cff3=0.5*vmask_wet(Iend+1,j)*cff1
+     &                                           +cff2*(1.-cff1)
+          vbarbry_east(j)=vbarbry_east(j)*cff3
+#   else
           cff2=0.5+SIGN(0.5,vbclm(Iend+1,j))*vmask_wet(Iend+1,j)
           cff3=0.5*vmask_wet(Iend+1,j)*cff1
      &                                           +cff2*(1.-cff1)
           vbclm(Iend+1,j)=vbclm(Iend+1,j)*cff3
+#   endif
 #endif
          enddo
       endif       
@@ -1090,12 +1139,19 @@ C$OMP BARRIER
 #   ifdef MASKING
      &                  *vmask(Istr-1,j)
 #   endif
-#if defined WET_DRY
+#if defined WET_DRY 
           cff1=ABS(ABS(vmask_wet(Istr-1,j))-1.)
+#   ifdef M2_FRC_BRY
+          cff2=0.5+SIGN(0.5,vbarbry_west(j))*vmask_wet(Istr-1,j)
+          cff3=0.5*vmask_wet(Istr-1,j)*cff1
+     &                                           +cff2*(1.-cff1)
+          vbarbry_west(j)=vbarbry_west(j)*cff3
+#   else
           cff2=0.5+SIGN(0.5,vbclm(Istr-1,j))*vmask_wet(Istr-1,j)
           cff3=0.5*vmask_wet(Istr-1,j)*cff1
      &                                           +cff2*(1.-cff1)
           vbclm(Istr-1,j)=vbclm(Istr-1,j)*cff3
+#   endif
 #endif
          enddo
       endif

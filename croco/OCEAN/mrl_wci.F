@@ -309,7 +309,7 @@
 #  ifdef WAVE_OFFLINE_FRICTION
           frc(i,j)=wramp2*wepd(i,j)*kw(i,j)
      &                             *inv_f(i,j)      ! 2DH friction term
-#  elif WAVE_FRICTION
+#  elif defined WAVE_FRICTION
           abot=wh(i,j)/max(2.D0*sinh(min(kD(i,j),khmax)),eps)
           urms=fr(i,j)*abot
           fw=1.39*(Zob/max(abot,eps))**0.52         ! Soulsby (1995)

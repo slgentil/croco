@@ -217,8 +217,13 @@
 !--------------------------------------------------------------------
 !
 # if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI
+#  ifdef THREE_GHOST_POINTS_UV
+      call exchange_w3d_3pts_tile (Istr,Iend,Jstr,Jend,
+     &                        wz(START_2D_ARRAY,0,nnew))
+#  else
       call exchange_w3d_tile (Istr,Iend,Jstr,Jend,
      &                        wz(START_2D_ARRAY,0,nnew))
+#  endif
 # endif
       return
       end

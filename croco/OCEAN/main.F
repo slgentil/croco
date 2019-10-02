@@ -27,10 +27,6 @@
 #ifdef XIOS
           USE xios          ! XIOS module
 #endif
-#ifdef NBQ
-!          USE module_nh     ! NBQ modules
-!          USE module_nbq
-#endif
 #ifdef PISCES
           USE pisces_ini     ! PISCES modules
           USE trcini_pisces 
@@ -54,15 +50,12 @@
 # include "nc_sta.h"
 #endif
 #ifdef AGRIF
-       Type(Agrif_pgrid),pointer  :: parcours     
+      Type(Agrif_pgrid),pointer  :: parcours     
 #endif 
 #ifdef MPI
       include 'mpif.h'
-!      real*8 start_time2, start_time1, exe_time
-#elif defined NBQ
-       integer MPI_STATUS_SIZE
+!     real*8 start_time2, start_time1, exe_time
 #endif 
-
       integer :: iifroot, iicroot
 #ifdef WKB_WWAVE
       integer winterp
@@ -322,17 +315,6 @@ CR      write(*,*)  ' -5' MYID
 #endif
 !
 !----------------------------------------------------------------------
-!  Set initial Non-boussinesq variables
-!----------------------------------------------------------------------
-!
-#ifdef NBQ
-C$OMP PARALLEL DO PRIVATE(tile)
-      do tile=0,NSUB_X*NSUB_E-1
-        call initial_nbq(tile,1)
-      enddo
-#endif
-!
-!----------------------------------------------------------------------
 !  Initialize diagnostic fields: mass flux, rho, omega
 !----------------------------------------------------------------------
 !
@@ -351,27 +333,6 @@ C$OMP PARALLEL DO PRIVATE(tile)
         call rho_eos (tile)
       enddo
 CR      write(*,*)  ' -3' MYID
-#endif
-!
-!----------------------------------------------------------------------
-!  Set initial Non-boussinesq density field: rhobar_nbq
-!----------------------------------------------------------------------
-!
-#ifdef NBQ
-C$OMP PARALLEL DO PRIVATE(tile)
-      do tile=0,NSUB_X*NSUB_E-1
-        call initial_nbq(tile,2)
-      enddo
-
-C$OMP PARALLEL DO PRIVATE(tile)
-      do tile=0,NSUB_X*NSUB_E-1
-        call set_depth (tile)
-      enddo
-      
-C$OMP PARALLEL DO PRIVATE(tile)
-      do tile=0,NSUB_X*NSUB_E-1
-        call set_HUV (tile)
-      enddo
 #endif
 !
 !----------------------------------------------------------------------
@@ -673,13 +634,31 @@ C$OMP END MASTER
 
 !
 !----------------------------------------------------------------------
-!  Set initial Non-boussinesq variables PART3: momentum fields
+!  Set initial non-Boussinesq parameters and variables
 !----------------------------------------------------------------------
 !
 #ifdef NBQ
+# ifdef NBQ_MASS
+!
+! Re-evaluate Hz and Huon,Hvom using 
+! previously computed density rho
+!
 C$OMP PARALLEL DO PRIVATE(tile)
       do tile=0,NSUB_X*NSUB_E-1
-        call initial_nbq(tile,3)
+        call set_depth (tile)
+      enddo
+
+C$OMP PARALLEL DO PRIVATE(tile)
+      do tile=0,NSUB_X*NSUB_E-1
+        call set_HUV (tile)
+      enddo
+# endif
+!
+! Set initial NBQ param. & var.
+!
+C$OMP PARALLEL DO PRIVATE(tile)
+      do tile=0,NSUB_X*NSUB_E-1
+        call initial_nbq(tile)
       enddo     
 #endif
 !

@@ -160,7 +160,7 @@
      defined W_FRC_BRY     ||                          \
      defined TCLIMATOLOGY  || defined M2CLIMATOLOGY || \
      defined M3CLIMATOLOGY || defined ZCLIMATOLOGY  || \
-     defined WCLIMATOLOGY
+     defined WCLIMATOLOGY  || defined NBQCLIMATOLOGY
        real  tauT_in, tauT_out, tauM_in, tauM_out
 #endif
       integer numthreads,     ntstart,   ntimes,  ninfo
@@ -185,6 +185,36 @@
 # ifdef AVERAGES
       integer ntsdiaM_avg, nwrtdiaM_avg
 # endif
+#endif
+# ifdef DIAGNOSTICS_VRT
+      integer nwrtdiags_vrt
+#ifdef AVERAGES
+      integer ntsdiags_vrt_avg, nwrtdiags_vrt_avg
+#endif
+#endif
+# ifdef DIAGNOSTICS_EK
+      integer nwrtdiags_ek
+#ifdef AVERAGES
+      integer ntsdiags_ek_avg, nwrtdiags_ek_avg
+#endif
+#endif
+# ifdef DIAGNOSTICS_PV
+      integer nwrtdiags_pv
+#ifdef AVERAGES
+      integer ntsdiags_pv_avg, nwrtdiags_pv_avg
+#endif
+#endif
+# ifdef DIAGNOSTICS_EDDY
+      integer nwrtdiags_eddy
+#ifdef AVERAGES
+      integer ntsdiags_eddy_avg, nwrtdiags_eddy_avg
+#endif
+#endif
+#ifdef OUTPUTS_SURFACE
+      integer nwrtsurf
+#ifdef AVERAGES
+      integer ntssurf_avg, nwrtsurf_avg
+#endif
 #endif
 #ifdef DIAGNOSTICS_BIO
       integer nwrtdiabio
@@ -219,6 +249,36 @@
       logical ldefdiaM
 # ifdef AVERAGES
       logical ldefdiaM_avg
+# endif
+#endif
+#if defined DIAGNOSTICS_VRT
+      logical ldefdiags_vrt
+# ifdef AVERAGES
+      logical ldefdiags_vrt_avg
+# endif
+#endif
+#if defined DIAGNOSTICS_EK
+      logical ldefdiags_ek
+# ifdef AVERAGES
+      logical ldefdiags_ek_avg
+# endif
+#endif
+#if defined DIAGNOSTICS_PV
+      logical ldefdiags_pv
+# ifdef AVERAGES
+      logical ldefdiags_pv_avg
+# endif
+#endif
+#if defined DIAGNOSTICS_EDDY
+      logical ldefdiags_eddy
+# ifdef AVERAGES
+      logical ldefdiags_eddy_avg
+# endif
+#endif
+#ifdef OUTPUTS_SURFACE
+      logical ldefsurf
+# ifdef AVERAGES
+      logical ldefsurf_avg
 # endif
 #endif
 #ifdef DIAGNOSTICS_BIO
@@ -298,6 +358,46 @@
      &                      , nwrtdiaM_avg
      &                      , ntsdiaM_avg
 # endif
+#endif
+# ifdef DIAGNOSTICS_VRT
+     &                      , ldefdiags_vrt, nwrtdiags_vrt
+#ifdef AVERAGES
+     &                      , ldefdiags_vrt_avg
+     &                      , nwrtdiags_vrt_avg
+     &                      , ntsdiags_vrt_avg
+#endif
+#endif
+# ifdef DIAGNOSTICS_EK
+     &                      , ldefdiags_ek, nwrtdiags_ek
+#ifdef AVERAGES
+     &                      , ldefdiags_ek_avg
+     &                      , nwrtdiags_ek_avg
+     &                      , ntsdiags_ek_avg
+#endif
+#endif
+# ifdef DIAGNOSTICS_PV
+     &                      , ldefdiags_pv, nwrtdiags_pv
+#ifdef AVERAGES
+     &                      , ldefdiags_pv_avg
+     &                      , nwrtdiags_pv_avg
+     &                      , ntsdiags_pv_avg
+#endif
+#endif
+# ifdef DIAGNOSTICS_EDDY
+     &                      , ldefdiags_eddy, nwrtdiags_eddy
+#ifdef AVERAGES
+     &                      , ldefdiags_eddy_avg
+     &                      , nwrtdiags_eddy_avg
+     &                      , ntsdiags_eddy_avg
+#endif
+#endif
+#ifdef OUTPUTS_SURFACE
+     &                      , ldefsurf, nwrtsurf
+#ifdef AVERAGES
+     &                      , ldefsurf_avg
+     &                      , nwrtsurf_avg
+     &                      , ntssurf_avg
+#endif
 #endif
 #ifdef DIAGNOSTICS_BIO
      &                      , ldefdiabio, nwrtdiabio
@@ -501,14 +601,15 @@
       parameter (pi=3.14159265358979323846, deg2rad=pi/180.,
      &                                      rad2deg=180./pi)
 !
-! Earth radius [m]; Aceleration of gravity [m/s^2], duration
-! of the day in seconds and its inverse; Julian offset day.
+! Earth radius [m]; Earth rotation [rad/s]; Acceleration of gravity [m/s^2];
+! duration of the day in seconds and its inverse; Julian offset day.
 
-      real Eradius, g, day2sec,sec2day, jul_off,
+      real Eradius, Erotation, g, day2sec,sec2day, jul_off,
      &     year2day,day2year
-      parameter (Eradius=6371315.0,  day2sec=86400.,
-     &           sec2day=1./86400., jul_off=2440000.,
-     &           year2day=365.25, day2year=1./365.25)
+      parameter (Eradius=6371315.0,  Erotation=7.292115090e-5,
+     &           day2sec=86400., sec2day=1./86400.,
+     &           year2day=365.25, day2year=1./365.25,
+     &           jul_off=2440000.)
 !
 ! Acceleration of gravity (nondimensional for Soliton problem)
 !

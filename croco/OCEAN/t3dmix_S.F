@@ -84,6 +84,9 @@
 #ifdef DIAGNOSTICS_TS
 # include "diagnostics.h"
 #endif
+# ifdef DIAGNOSTICS_PV
+#  include "diags_pv.h"
+# endif
 !
 #ifdef AGRIF
 #include "zoom.h"
@@ -229,7 +232,7 @@
           enddo
         enddo
 
-# ifdef DIAGNOSTICS_TS
+#  if defined DIAGNOSTICS_TS || defined DIAGNOSTICS_PV
 !
 ! Tracer diagnostics
 !
@@ -422,7 +425,7 @@
           enddo
         enddo
 
-# ifdef DIAGNOSTICS_TS
+#  if defined DIAGNOSTICS_TS || defined DIAGNOSTICS_PV
 !
 ! Tracer diagnostics
 !

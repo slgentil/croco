@@ -195,6 +195,36 @@
       wrtdiaM_avg(3)=.false.
 #endif
 #endif
+#ifdef DIAGNOSTICS_VRT
+      wrtdiags_vrt(3)=.false.
+#ifdef AVERAGES
+      wrtdiags_vrt_avg(3)=.false.
+#endif
+#endif
+#ifdef DIAGNOSTICS_EK
+      wrtdiags_ek(3)=.false.
+#ifdef AVERAGES
+      wrtdiags_ek_avg(3)=.false.
+#endif
+#endif
+#ifdef DIAGNOSTICS_PV
+      wrtdiags_pv(NT+1)=.false.
+#ifdef AVERAGES
+      wrtdiags_pv_avg(NT+1)=.false.
+#endif
+#endif
+#ifdef DIAGNOSTICS_EDDY
+      wrtdiags_eddy(3)=.false.
+#ifdef AVERAGES
+      wrtdiags_eddy_avg(3)=.false.
+#endif
+#endif
+#ifdef OUTPUTS_SURFACE
+      wrtsurf(3)=.false.
+#ifdef AVERAGES
+      wrtsurf_avg(3)=.false.
+#endif
+#endif
 #ifdef DIAGNOSTICS_BIO
       wrtdiabioFlux(NumFluxTerms+1)=.false.
       wrtdiabioVSink(NumVSinkTerms+1)=.false.
@@ -297,12 +327,8 @@
      &   csound_nbq,'csound_nbq  Sound wave celerity.',
      &   visc2_nbq, 'visc2_nbq   Second viscosity coefficient for',
      &                                      'compressible fluids.'
-# ifndef NBQ_ZETAW
-        dtnbq=dtfast/float(ndtnbq)     ! set nbq time step.
-# else
         dtnbq=dtfast
         ndtnbq=1
-# endif
 #endif
 
 #ifdef SOLVE3D
@@ -390,6 +416,9 @@
                                    defined SOLVE3D) \
           || (!defined ANA_SMFLUX && !defined BULK_FLUX && \
                                    !defined OA_COUPLING) \
+          || (defined BULK_FLUX  && \
+                                      (!defined BULK_SMFLUX || \
+                                       !defined BULK_EP)) \
         )
 !
 !
@@ -578,6 +607,7 @@ c        close(testunit)
       elseif (keyword(1:kwlen).eq.'diagnostics') then
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) ldefdia, nwrtdia, nrpfdia
+        if (nwrtdia.eq.0) nwrtdia = nwrt
         read(input,'(A)',err=95) fname
         lstr=lenstr(fname)
 # if defined MPI && defined PARALLEL_FILES
@@ -594,6 +624,7 @@ c        close(testunit)
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) ldefdia_avg, ntsdia_avg, nwrtdia_avg,
      &                                                nrpfdia_avg
+        if (nwrtdia_avg.eq.0) nwrtdia_avg = navg
         read(input,'(A)',err=95) fname
         lstr=lenstr(fname)
 # if defined MPI && defined PARALLEL_FILES
@@ -614,6 +645,7 @@ c        close(testunit)
       elseif (keyword(1:kwlen).eq.'diagnosticsM') then
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) ldefdiaM, nwrtdiaM, nrpfdiaM
+        if (nwrtdiaM.eq.0) nwrtdiaM = nwrt
         read(input,'(A)',err=95) fname
         lstr=lenstr(fname)
 # if defined MPI && defined PARALLEL_FILES
@@ -630,6 +662,7 @@ c        close(testunit)
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) ldefdiaM_avg, ntsdiaM_avg, nwrtdiaM_avg,
      &                                                  nrpfdiaM_avg
+        if (nwrtdiaM_avg.eq.0) nwrtdiaM_avg = navg
         read(input,'(A)',err=95) fname
         lstr=lenstr(fname)
 # if defined MPI && defined PARALLEL_FILES
@@ -644,6 +677,220 @@ c        close(testunit)
 
 # endif
 #endif /*DIAGNOSTICS_UV */
+
+
+#if defined DIAGNOSTICS_VRT
+!
+! Diagnostics vrt file name.
+!
+      elseif (keyword(1:kwlen).eq.'diags_vrt') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) ldefdiags_vrt, nwrtdiags_vrt, nrpfdiags_vrt
+        if (nwrtdiags_vrt.eq.0) nwrtdiags_vrt = nwrt
+        read(input,'(A)',err=95) fname
+        lstr=lenstr(fname)
+# if defined MPI && defined PARALLEL_FILES
+        call insert_node (fname, lstr, mynode, NNODES, ierr)
+# endif
+        diags_vrtname=fname(1:lstr)
+        MPI_master_only write(stdout,
+     &    '(5x,A,2x,A/,32x,A,1x,L1,2x,A,I4,2x,A,I3)')
+     &    'Vorticity Diag File:', diags_vrtname(1:lstr),  'Create new:',
+     &    ldefdiags_vrt, 'nwrt =', nwrtdiags_vrt,
+     &     'rec/file =', nrpfdiags_vrt
+!
+# ifdef AVERAGES
+      elseif (keyword(1:kwlen).eq.'diags_vrt_avg') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) ldefdiags_vrt_avg, ntsdiags_vrt_avg, 
+     &                               nwrtdiags_vrt_avg, nrpfdiags_vrt_avg
+        if (nwrtdiags_vrt_avg.eq.0) nwrtdiags_vrt_avg = navg
+        read(input,'(A)',err=95) fname
+        lstr=lenstr(fname)
+# if defined MPI && defined PARALLEL_FILES
+        call insert_node (fname, lstr, mynode, NNODES, ierr)
+# endif
+        diags_vrtname_avg=fname(1:lstr)
+        MPI_master_only write(stdout,
+     &    '(5x,A,2x,A/,32x,A,1x,L1,2x,A,I4,2x,A,I3,/32x,A,I10)')
+     &    'Vorticity AVG Diag File:',diags_vrtname_avg(1:lstr),
+     &    'Create new:', ldefdiags_vrt_avg,'nwrt =',nwrtdiags_vrt_avg,
+     &    'rec/file =',nrpfdiags_vrt_avg,
+     &    'Starting timestep = ',ntsdiags_vrt_avg
+
+# endif
+#endif /*DIAGNOSTICS_VRT */
+
+
+#if defined DIAGNOSTICS_EK
+!
+! Diagnostics ek file name.
+!
+      elseif (keyword(1:kwlen).eq.'diags_ek') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) ldefdiags_ek, nwrtdiags_ek, nrpfdiags_ek
+        if (nwrtdiags_ek.eq.0) nwrtdiags_ek = nwrt
+        read(input,'(A)',err=95) fname
+        lstr=lenstr(fname)
+# if defined MPI && defined PARALLEL_FILES
+        call insert_node (fname, lstr, mynode, NNODES, ierr)
+# endif
+        diags_ekname=fname(1:lstr)
+        MPI_master_only write(stdout,
+     &    '(5x,A,2x,A/,32x,A,1x,L1,2x,A,I4,2x,A,I3)')
+     &    'Kinetic Energy Diag File:', diags_ekname(1:lstr),
+     &    'Create new:', ldefdiags_ek, 'nwrt =', nwrtdiags_ek,
+     &    'rec/file =', nrpfdiags_ek
+!
+# ifdef AVERAGES
+      elseif (keyword(1:kwlen).eq.'diags_ek_avg') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) ldefdiags_ek_avg, ntsdiags_ek_avg,
+     &                      nwrtdiags_ek_avg,  nrpfdiags_ek_avg
+        if (nwrtdiags_ek_avg.eq.0) nwrtdiags_ek_avg = navg
+        read(input,'(A)',err=95) fname
+        lstr=lenstr(fname)
+# if defined MPI && defined PARALLEL_FILES
+        call insert_node (fname, lstr, mynode, NNODES, ierr)
+# endif
+        diags_ekname_avg=fname(1:lstr)
+        MPI_master_only write(stdout,
+     &    '(5x,A,2x,A/,32x,A,1x,L1,2x,A,I4,2x,A,I3,/32x,A,I10)')
+     &    'Kinetic Energy AVG Diag File:',diags_ekname_avg(1:lstr),
+     &    'Create new:', ldefdiags_ek_avg,'nwrt =',nwrtdiags_ek_avg,
+     &    'rec/file =',nrpfdiags_ek_avg,
+     &    'Starting timestep = ',ntsdiags_ek_avg
+
+# endif
+#endif /*DIAGNOSTICS_EK */
+
+#if defined DIAGNOSTICS_PV
+!
+! Diagnostics pv file name.
+!
+      elseif (keyword(1:kwlen).eq.'diags_pv') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) ldefdiags_pv, nwrtdiags_pv, nrpfdiags_pv
+        if (nwrtdiags_pv.eq.0) nwrtdiags_pv = nwrt
+        read(input,'(A)',err=95) fname
+        lstr=lenstr(fname)
+# if defined MPI && defined PARALLEL_FILES
+        call insert_node (fname, lstr, mynode, NNODES, ierr)
+# endif
+        diags_pvname=fname(1:lstr)
+        MPI_master_only write(stdout,
+     &    '(5x,A,2x,A/,32x,A,1x,L1,2x,A,I4,2x,A,I3)')
+     &    'PV Diag File:', diags_pvname(1:lstr),
+     &    'Create new:', ldefdiags_pv, 'nwrt =', nwrtdiags_pv,
+     &    'rec/file =', nrpfdiags_pv
+!
+# ifdef AVERAGES
+      elseif (keyword(1:kwlen).eq.'diags_pv_avg') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) ldefdiags_pv_avg, ntsdiags_pv_avg,
+     &                      nwrtdiags_pv_avg,  nrpfdiags_pv_avg
+        if (nwrtdiags_pv_avg.eq.0) nwrtdiags_pv_avg = navg
+        read(input,'(A)',err=95) fname
+        lstr=lenstr(fname)
+# if defined MPI && defined PARALLEL_FILES
+        call insert_node (fname, lstr, mynode, NNODES, ierr)
+# endif
+        diags_pvname_avg=fname(1:lstr)
+        MPI_master_only write(stdout,
+     &    '(5x,A,2x,A/,32x,A,1x,L1,2x,A,I4,2x,A,I3,/32x,A,I10)')
+     &    'PV AVG Diag File:',diags_pvname_avg(1:lstr),
+     &    'Create new:', ldefdiags_pv_avg,'nwrt =',nwrtdiags_pv_avg,
+     &    'rec/file =',nrpfdiags_pv_avg,
+     &    'Starting timestep = ',ntsdiags_pv_avg
+
+# endif
+#endif /*DIAGNOSTICS_PV */
+
+#if defined DIAGNOSTICS_EDDY
+!
+! Diagnostics eddy file name.
+!
+      elseif (keyword(1:kwlen).eq.'diags_eddy') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) ldefdiags_eddy, nwrtdiags_eddy, nrpfdiags_eddy
+        if (nwrtdiags_eddy.eq.0) nwrtdiags_eddy = nwrt
+        read(input,'(A)',err=95) fname
+        lstr=lenstr(fname)
+# if defined MPI && defined PARALLEL_FILES
+        call insert_node (fname, lstr, mynode, NNODES, ierr)
+# endif
+        diags_eddyname=fname(1:lstr)
+        MPI_master_only write(stdout,
+     &    '(5x,A,2x,A/,32x,A,1x,L1,2x,A,I4,2x,A,I3)')
+     &    'eddy Diag File:', diags_eddyname(1:lstr),
+     &    'Create new:', ldefdiags_eddy, 'nwrt =', nwrtdiags_eddy,
+     &    'rec/file =', nrpfdiags_eddy
+!
+# ifdef AVERAGES
+      elseif (keyword(1:kwlen).eq.'diags_eddy_avg') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) ldefdiags_eddy_avg, ntsdiags_eddy_avg,
+     &                      nwrtdiags_eddy_avg,  nrpfdiags_eddy_avg
+        if (nwrtdiags_eddy_avg.eq.0) nwrtdiags_eddy_avg = navg
+        read(input,'(A)',err=95) fname
+        lstr=lenstr(fname)
+# if defined MPI && defined PARALLEL_FILES
+        call insert_node (fname, lstr, mynode, NNODES, ierr)
+# endif
+        diags_eddyname_avg=fname(1:lstr)
+        MPI_master_only write(stdout,
+     &    '(5x,A,2x,A/,32x,A,1x,L1,2x,A,I4,2x,A,I3,/32x,A,I10)')
+     &    'eddy AVG Diag File:',diags_eddyname_avg(1:lstr),
+     &    'Create new:', ldefdiags_eddy_avg,'nwrt =',nwrtdiags_eddy_avg,
+     &    'rec/file =',nrpfdiags_eddy_avg,
+     &    'Starting timestep = ',ntsdiags_eddy_avg
+
+# endif
+#endif /*DIAGNOSTICS_EDDY */
+
+#ifdef OUTPUTS_SURFACE
+!
+! surface outputs file name.
+!
+      elseif (keyword(1:kwlen).eq.'surf') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) ldefsurf, nwrtsurf, nrpfsurf
+        if (nwrtsurf.eq.0) nwrtsurf = nwrt
+        read(input,'(A)',err=95) fname
+        lstr=lenstr(fname)
+# if defined MPI && defined PARALLEL_FILES
+        call insert_node (fname, lstr, mynode, NNODES, ierr)
+# endif
+        surfname=fname(1:lstr)
+        MPI_master_only write(stdout,
+     &    '(5x,A,2x,A/,32x,A,1x,L1,2x,A,I4,2x,A,I3)')
+     &    'Surface outputs File:', surfname(1:lstr),
+     &    'Create new:', ldefsurf, 'nwrt =', nwrtsurf,
+     &    'rec/file =', nrpfsurf
+!
+# ifdef AVERAGES
+      elseif (keyword(1:kwlen).eq.'surf_avg') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) ldefsurf_avg, ntssurf_avg,
+     &                      nwrtsurf_avg,  nrpfsurf_avg
+        if (nwrtsurf_avg.eq.0) nwrtsurf_avg = navg
+        read(input,'(A)',err=95) fname
+        lstr=lenstr(fname)
+# if defined MPI && defined PARALLEL_FILES
+        call insert_node (fname, lstr, mynode, NNODES, ierr)
+# endif
+        surfname_avg=fname(1:lstr)
+        MPI_master_only write(stdout,
+     &    '(5x,A,2x,A/,32x,A,1x,L1,2x,A,I4,2x,A,I3,/32x,A,I10)')
+     &    'Surface outputs AVG File:',surfname_avg(1:lstr),
+     &    'Create new:', ldefsurf_avg,'nwrt =',nwrtsurf_avg,
+     &    'rec/file =',nrpfsurf_avg,
+     &    'Starting timestep = ',ntssurf_avg
+
+# endif
+#endif /*OUTPUTS_SURFACE */
+
+
 #ifdef DIAGNOSTICS_BIO
 !
 ! Diagnostics Biology file name.
@@ -1061,6 +1308,13 @@ c        close(testunit)
 # else 
      &                                          ,  dumboolean
 # endif
+# if defined ANA_VMIX || defined BVF_MIXING \
+  || defined LMD_MIXING || defined LMD_SKPP || defined LMD_BKPP \
+  || defined GLS_MIX2017 || defined GLS_MIXING
+     &                                          ,  wrtavg(indxbvf)
+# else
+     &                                          ,  dumboolean
+# endif
 # ifdef VIS_COEF_3D
      &                                          ,  wrtavg(indxVisc)
 # else 
@@ -1126,6 +1380,11 @@ c        close(testunit)
 #  ifdef SALINITY
      &                                        .or. wrtavg(indxAks)
 #  endif
+# if defined ANA_VMIX || defined BVF_MIXING \
+  || defined LMD_MIXING || defined LMD_SKPP || defined LMD_BKPP \
+  || defined GLS_MIX2017 || defined GLS_MIXING
+     &                                        .or. wrtavg(indxbvf)
+# endif
 # ifdef VIS_COEF_3D
      &                                        .or. wrtavg(indxVisc)
 # endif
@@ -1181,6 +1440,12 @@ c        close(testunit)
 #  ifdef SALINITY
      &  , wrtavg(indxAks),  'write Aks  ',
      &                         'Vertical diffusivity for salinity.'
+#  endif
+# if defined ANA_VMIX || defined BVF_MIXING \
+  || defined LMD_MIXING || defined LMD_SKPP || defined LMD_BKPP \
+  || defined GLS_MIX2017 || defined GLS_MIXING
+     &  , wrtavg(indxbvf),  'write bvf  ',
+     &                         'Brunt Vaisala Frequency.'
 #  endif
 #  ifdef VIS_COEF_3D
      &  , wrtavg(indxVisc),'write visc3d', 'Horizontal viscosity'
@@ -1250,8 +1515,7 @@ c        close(testunit)
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) wrtavg(indxTke),  wrtavg(indxGls)
      &                    ,  wrtavg(indxLsc)       
-        if ( wrtavg(indxAkk) .or. wrtavg(indxAkp) .or. wrtavg(indxTke)
-     &                       .or. wrtavg(indxGls) .or. wrtavg(indxLsc)
+        if (wrtavg(indxTke) .or. wrtavg(indxGls) .or. wrtavg(indxLsc)
      &     ) wrtavg(indxTime)=.true.
 
         MPI_master_only write(stdout,'(/1x,A,5(/6x,l1,2x,A,1x,A))')
@@ -1371,7 +1635,7 @@ c        close(testunit)
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) (wrtdiaM_avg(itrc),itrc=1,2)  
         do itrc=1,2
-          if (wrtdiaM(itrc)) wrtdiaM_avg(3)=.true.
+          if (wrtdiaM_avg(itrc)) wrtdiaM_avg(3)=.true.
           MPI_master_only write(stdout, '(6x,L1,2x,A,2x,A,I2)')
      &        wrtdiaM_avg(itrc), 
      &        'write averaged momentum  equation terms ',
@@ -1380,6 +1644,162 @@ c        close(testunit)
 # endif /* AVERAGES  */
 
 #endif /*DIAGNOSTICS_UV */
+
+#if defined DIAGNOSTICS_VRT
+!
+! Switches for fields to be saved into vorticity diagnostics file.
+!
+!!          wrtdiags_vrt=.true.
+      elseif (keyword(1:kwlen).eq.'diags_vrt_history_fields') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95)  (wrtdiags_vrt(itrc), itrc=1,1)
+         do itrc=1,1
+           if (wrtdiags_vrt(itrc)) wrtdiags_vrt(3)=.true.
+           MPI_master_only write(stdout, '(6x,L1,2x,A,2x,A,I2)')
+     &         wrtdiags_vrt(itrc),
+     &         'write vorticity equation terms ',
+     &         ' Momentum of index', itrc
+        enddo
+
+# ifdef AVERAGES
+!!         wrtdiags_vrt_avg=.true.
+      elseif (keyword(1:kwlen).eq.'diags_vrt_average_fields') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) (wrtdiags_vrt_avg(itrc),itrc=1,1)
+        do itrc=1,1
+          if (wrtdiags_vrt_avg(itrc)) wrtdiags_vrt_avg(3)=.true.
+          MPI_master_only write(stdout, '(6x,L1,2x,A,2x,A,I2)')
+     &        wrtdiags_vrt_avg(itrc),
+     &        'write averaged vorticity  equation terms ',
+     &        ' Momentum of index', itrc
+       enddo
+# endif /* AVERAGES  */
+
+#endif /*DIAGNOSTICS_VRT */
+
+#if defined DIAGNOSTICS_EK
+!
+! Switches for fields to be saved into kinetic energy diagnostics file.
+!
+!!          wrtdiags_ek=.true.
+      elseif (keyword(1:kwlen).eq.'diags_ek_history_fields') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95)  (wrtdiags_ek(itrc), itrc=1,1)
+         do itrc=1,1
+           if (wrtdiags_ek(itrc)) wrtdiags_ek(3)=.true.
+           MPI_master_only write(stdout, '(6x,L1,2x,A,2x,A,I2)')
+     &         wrtdiags_ek(itrc),
+     &         'write energy equation terms ',
+     &         ' Momentum of index', itrc
+        enddo
+
+# ifdef AVERAGES
+!!         wrtdiags_ek_avg=.true.
+      elseif (keyword(1:kwlen).eq.'diags_ek_average_fields') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) (wrtdiags_ek_avg(itrc),itrc=1,1)
+        do itrc=1,1
+          if (wrtdiags_ek_avg(itrc)) wrtdiags_ek_avg(3)=.true.
+          MPI_master_only write(stdout, '(6x,L1,2x,A,2x,A,I2)')
+     &        wrtdiags_ek_avg(itrc),
+     &        'write averaged energy equation terms ',
+     &        ' Momentum of index', itrc
+       enddo
+# endif /* AVERAGES  */
+#endif /*DIAGNOSTICS_EK */
+
+
+#if defined DIAGNOSTICS_PV
+!
+! Switches for fields to be saved into potential vorticity diagnostics file.
+!
+!!          wrtdiags_pv=.true.
+      elseif (keyword(1:kwlen).eq.'diags_pv_history_fields') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95)  (wrtdiags_pv(itrc), itrc=1,NT)
+         do itrc=1,NT
+           if (wrtdiags_pv(itrc)) wrtdiags_pv(3)=.true.
+           MPI_master_only write(stdout, '(6x,L1,2x,A,2x,A,I2)')
+     &         wrtdiags_pv(itrc),
+     &         'write potential vorticity terms '
+        enddo
+
+# ifdef AVERAGES
+!!         wrtdiags_pv_avg=.true.
+      elseif (keyword(1:kwlen).eq.'diags_pv_average_fields') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) (wrtdiags_pv_avg(itrc),itrc=1,NT)
+        do itrc=1,NT
+          if (wrtdiags_pv_avg(itrc)) wrtdiags_pv_avg(3)=.true.
+          MPI_master_only write(stdout, '(6x,L1,2x,A,2x,A,I2)')
+     &        wrtdiags_pv_avg(itrc),
+     &         'write potential vorticity terms '
+       enddo
+# endif /* AVERAGES  */
+#endif /*DIAGNOSTICS_PV */
+
+
+#if defined DIAGNOSTICS_EDDY
+!
+! Switches for fields to be saved into eddy diagnostics file.
+!
+!!          wrtdiags_eddy=.true.
+      elseif (keyword(1:kwlen).eq.'diags_eddy_history_fields') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95)  wrtdiags_eddy(1)
+         do itrc=1,1
+           if (wrtdiags_eddy(itrc)) wrtdiags_eddy(3)=.true.
+           MPI_master_only write(stdout, '(6x,L1,2x,A,2x,A,I2)')
+     &         wrtdiags_eddy(itrc),
+     &         'write potential vorticity terms '
+        enddo
+
+# ifdef AVERAGES
+!!         wrtdiags_eddy_avg=.true.
+      elseif (keyword(1:kwlen).eq.'diags_eddy_average_fields') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) wrtdiags_eddy_avg(1)
+        do itrc=1,1
+          if (wrtdiags_eddy_avg(itrc)) wrtdiags_eddy_avg(3)=.true.
+          MPI_master_only write(stdout, '(6x,L1,2x,A,2x,A,I2)')
+     &        wrtdiags_eddy_avg(itrc),
+     &         'write potential vorticity terms '
+       enddo
+# endif /* AVERAGES  */
+#endif /*DIAGNOSTICS_EDDY */
+
+
+#if defined OUTPUTS_SURFACE
+!
+! Switches for fields to be saved into surface outputs file.
+!
+!!          wrtsurf=.true.
+      elseif (keyword(1:kwlen).eq.'surf_history_fields') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95)  (wrtsurf(itrc), itrc=1,1)
+         do itrc=1,1
+           if (wrtsurf(itrc)) wrtsurf(3)=.true.
+           MPI_master_only write(stdout, '(6x,L1,2x,A,2x,A,I2)')
+     &         wrtsurf(itrc),
+     &         'write surface outputs ',
+     &         ' Momentum of index', itrc
+        enddo
+
+# ifdef AVERAGES
+!!         wrtsurf_avg=.true.
+      elseif (keyword(1:kwlen).eq.'surf_average_fields') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) (wrtsurf_avg(itrc),itrc=1,1)
+        do itrc=1,1
+          if (wrtsurf_avg(itrc)) wrtsurf_avg(3)=.true.
+          MPI_master_only write(stdout, '(6x,L1,2x,A,2x,A,I2)')
+     &        wrtsurf_avg(itrc),
+     &        'write averaged surface outputs ',
+     &        ' Momentum of index', itrc
+       enddo
+# endif /* AVERAGES  */
+
+#endif /*OUTPUTS_SURFACE*/
 
 #ifdef DIAGNOSTICS_BIO
 !
@@ -1575,7 +1995,8 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
         enddo
 
 # endif
-# if !defined LMD_MIXING && !defined BVF_MIXING && !defined GLS_MIX2017 && !defined GLS_MIXING
+# if !defined LMD_MIXING && !defined BVF_MIXING && \
+     !defined GLS_MIX2017 && !defined GLS_MIXING
 !
 ! Background vertical viscosity and mixing coefficients for tracers.
 !

@@ -19,11 +19,11 @@
 # include "private_scratch.h"
 # include "compute_tile_bounds.h"
       trd=omp_get_thread_num()
-      call hvisc_coef_tile (Istr,Iend,Jstr,Jend,A2d(1,1,trd))
+      call hvisc_coef_tile (Istr,Iend,Jstr,Jend, A3d(1,1,trd))
       return
       end
 !
-      subroutine hvisc_coef_tile (Istr,Iend,Jstr,Jend, grd_scale)
+      subroutine hvisc_coef_tile (Istr,Iend,Jstr,Jend, defrate)
 !
 !==================================================================
 !
@@ -34,20 +34,25 @@
 !==================================================================
 !
       implicit none
-      integer Istr,Iend,Jstr,Jend, i,j,k,itrc,
-     &        imin,imax,jmin,jmax
-      real grd_scale(PRIVATE_2D_SCRATCH_ARRAY)
-      real cff, surf, defrate, horcon, cff_peclet
-      parameter (horcon=0.1)
 # include "param.h"
 # include "grid.h"
 # include "mixing.h"
 # include "ocean3d.h"
 # include "ocean2d.h"
 # include "scalars.h"
-# ifdef SWASH
-      real dZdt,dZdt0,Bbr,Dbr
+      integer Istr,Iend,Jstr,Jend, i,j,k,itrc,
+     &        imin,imax,jmin,jmax, kp
+      real horcon, cff,cff0,cff1,cff2,cff3,cff4,cff5
+# ifdef UV_VIS_SMAGO_3D
+      real Ric, Pr
+      parameter (horcon=0.05, Ric=0.25, Pr=0.3)
+# else
+      parameter (horcon=0.1)
 # endif
+# ifdef SWASH
+      real dZdt,dZdt0,Bbr
+# endif
+      real defrate(PRIVATE_2D_SCRATCH_ARRAY,1:N)
 !
 # include "compute_auxiliary_bounds.h"
 !
@@ -82,65 +87,169 @@
       jmax=jend+1
 # endif
 !
-# if defined UV_VIS2 && defined UV_VIS_SMAGO
-!
+# if defined UV_VIS2 && defined GLS_MIX2017_3D
+!---------------------------------------------------------------
+!  GLS horizontal viscosity at RHO points
+! 
+      do j=jmin,jmax
+        do i=imin,imax
+          cff0=om_r(i,j)*on_r(i,j)
+          cff1=0.01*cff0/dt
+          do k=1,N
+            cff2=0.5*(Akv(i,j,k)+Akv(i,j,k-1))
+            visc3d_r(i,j,k)=min(cff1,cff2)
+          enddo
+        enddo
+      enddo
+
+# elif defined UV_VIS2 && defined UV_VIS_SMAGO
 !---------------------------------------------------------------
 ! Smagorinsky viscosity at RHO points
 !
-!  The POM formulation is used:
-!    A = C*DX*DY*DEFRATE
-!        with DEFRATE=sqrt[du/dx^2 +dvdy^2 + 0.5(dvdx+dudy)^2]
-!        the deformation rate
+!    A = Cs L^2 D
 !
+!  with deformation rate D:
+!
+!    D = sqrt[ 2 DijDij ]  -- Dij = 0.5*(dui/dxj + duj/dxi) --
+!      = sqrt[ 2 dudx^2 + 2 dvdy^2 + (dvdx+dudy)^2         --> 2D
+!            + 2 dwdz^2 + (dudz+dwdx)^2 + (dvdz+dwdy)^2 ]  --> 3D
+!
+!  L Length-scale: horizontal Lh = sqrt(dx*dy) --> visc3d
+!                  vertical   Lv = Hz          --> Akv
+!
+!  For LES problems, Lilly's buoyancy correction is applied based
+!  on the ratio of gradient and critical Ri (mixing goes to 0 for 
+!  Rig > Ric)
 !---------------------------------------------------------------
 !
-! Smagorinsky viscosity at RHO points
+!  Horizontal deformation rate (squared & halved) at RHO point:
+!
+!     dudx^2 + dvdy^2 + 0.5(dvdx+dudy)^2
 !
       do k=1,N
         do j=jmin,jmax
           do i=imin,imax
-            defrate=sqrt( ((u(i+1,j,k,nrhs)-u(i,j,k,nrhs))*pm(i,j))**2
+            defrate(i,j,k)= 
+     &                    ((u(i+1,j,k,nrhs)-u(i,j,k,nrhs))*pm(i,j))**2
      &                   +((v(i,j+1,k,nrhs)-v(i,j,k,nrhs))*pn(i,j))**2
-     &               +0.5*(0.25*pn(i,j)*(
-     &                     u(i,j+1,k,nrhs)+u(i+1,j+1,k,nrhs)
-     &                    -u(i,j-1,k,nrhs)-u(i+1,j-1,k,nrhs))
-     &                   + 0.25*pm(i,j)*(
-     &                     v(i+1,j,k,nrhs)+v(i+1,j+1,k,nrhs)
-     &                    -v(i-1,j,k,nrhs)-v(i-1,j+1,k,nrhs)) )**2)
-            surf=om_r(i,j)*on_r(i,j)
-            visc3d_r(i,j,k)=horcon*surf*defrate
+     &               +0.125*( pn(i,j)*
+     &                        (u(i,j+1,k,nrhs)+u(i+1,j+1,k,nrhs)
+     &                        -u(i,j-1,k,nrhs)-u(i+1,j-1,k,nrhs))
+     &                       +pm(i,j)*
+     &                        (v(i+1,j,k,nrhs)+v(i+1,j+1,k,nrhs)
+     &                        -v(i-1,j,k,nrhs)-v(i-1,j+1,k,nrhs)) )**2
           enddo
         enddo
       enddo
 !
-! Add Wave breaking dissipation in wave-resolved cases
+#  ifdef UV_VIS_SMAGO_3D
 !
-#  ifdef SWASH
+!  Add vertical deformation rate
+!
+!     dwdz^2 + 0.5*(dudz+dwdx)^2 + 0.5*(dvdz+dwdy)^2
+!
+      do k=2,N-1
         do j=jmin,jmax
           do i=imin,imax
-          dZdt=abs(zeta(i,j,knew)-zeta(i,j,kstp))/dtfast
+            defrate(i,j,k)=defrate(i,j,k)
 #   ifdef NBQ
-          cff=zeta(i,j,knew)
-          Dbr=10.*om_r(i,j)*on_r(i,j)
-#   else
-          cff=z_w(i,j,N)-z_w(i,j,0)
-          Dbr=10.*om_r(i,j)*on_r(i,j)
+     &           +((wz(i,j,k,nrhs)-wz(i,j,k-1,nrhs))/Hzr(i,j,k))**2
 #   endif
-          dZdt0=0.01*sqrt(g*cff)
-          Bbr=max(0.,min(1.,dZdt/dZdt0-1.))
+     &               +0.125*( (u(i,j,k+1,nrhs)+u(i+1,j,k+1,nrhs)
+     &                        -u(i,j,k-1,nrhs)-u(i+1,j,k-1,nrhs))
+     &                               /(z_r(i,j,k+1)-z_r(i,j,k-1))
+#   ifdef NBQ
+     &                        +pm(i,j)*
+     &                        (wz(i+1,j,k,nrhs)+wz(i+1,j,k+1,nrhs)
+     &                        -wz(i-1,j,k,nrhs)-wz(i-1,j,k+1,nrhs)) 
+#   endif
+     &                      )**2
+     &               +0.125*( (v(i,j,k+1,nrhs)+v(i,j+1,k+1,nrhs)
+     &                        -v(i,j,k-1,nrhs)-v(i,j+1,k-1,nrhs))
+     &                               /(z_r(i,j,k+1)-z_r(i,j,k-1))
+#   ifdef NBQ
+     &                        +pn(i,j)*
+     &                        (wz(i,j+1,k,nrhs)+wz(i,j+1,k+1,nrhs)
+     &                        -wz(i,j-1,k,nrhs)-wz(i,j-1,k+1,nrhs)) 
+#   endif
+     &                      )**2
+          enddo
+        enddo
+      enddo
+      do j=jmin,jmax
+        do i=imin,imax
+          defrate(i,j,N)=max(1.5*defrate(i,j,N-1)-0.5*defrate(i,j,N-2),
+     &                       0.0)
+        enddo
+      enddo
+#  endif
+!
+!  Compute lateral Smagorinsky viscosity at RHO points
+!
+!      Lh = sqrt(dx*dy) --> visc3d
+!
+      do j=jmin,jmax
+        do i=imin,imax
+          cff=horcon*om_r(i,j)*on_r(i,j)
           do k=1,N
-            visc3d_r(i,j,k)=max(0.1/horcon*visc3d_r(i,j,k),
-     &                                    Dbr*Bbr*cff*dZdt)
-!     &                               *1000*max(pm(i,j)*pm(i,j)*
-!     &                              (z_r(i+1,j,k)-z_r(i-1,j,k)-
-!     &                               z_w(i+1,j,0)+z_w(i-1,j,0))**2,
-!     &                                         pn(i,j)*pn(i,j)*
-!     &                               (z_r(i,j+1,k)-z_r(i,j-1,k)-
-!     &                               z_w(i,j+1,0)+z_w(i,j-1,0))**2))
+            cff1=2.*defrate(i,j,k)               ! D²
+#  ifdef UV_VIS_SMAGO_3D
+!      Buoyancy correction (Lilly, 1962)
+            cff2=sqrt(max(0.,1.-(bvf(i,j,k)/max(cff1,1.e-12))/Ric))
+            visc3d_r(i,j,k)=cff*sqrt(cff1)*cff2
+#  else
+            visc3d_r(i,j,k)=cff*sqrt(cff1)       ! Cs*dxdy*D²
+#  endif
+          enddo
+        enddo
+      enddo
+
+#  ifdef UV_VIS_SMAGO_3D
+!
+!  Compute vertical Smagorinsky viscosity at W points
+!
+!      Lv = Hz          --> Akv
+!
+#  ifdef SWASH0
+      do j=jmin,jmax
+        do i=imin,imax
+          cff=z_w(i,j,N)-z_w(i,j,0)
+          dZdt=abs(zeta(i,j,knew)-zeta(i,j,kstp))/dtfast
+          dZdt0=0.01*sqrt(g*cff)
+          Bbr=max(0,INT(min(1.,dZdt/dZdt0-5.)))
+          cff0=om_r(i,j)*on_r(i,j)
+          cff1=0.01*cff0
+          cff2=0.01*cff0/dt
+          do k=1,N
+            cff3=cff1*sqrt(2.*defrate(i,j,k))
+            cff3=cff3*(1.+10.*Bbr*cff*dZdt)
+            visc3d_r(i,j,k)=min(cff2,cff3)
           enddo
         enddo
       enddo
 #  endif
+      do k=1,N
+        kp=min(k+1,N)
+        do j=jmin,jmax
+          do i=imin,imax
+            Akv(i,j,k)=0.5*(visc3d_r(i,j,k)+visc3d_r(i,j,kp)) ! Cs*dz²*D²
+     &                                       *pm(i,j)*pn(i,j)
+     &                                   *Hz(i,j,k)*Hz(i,j,k)
+#   if !defined LMD_MIXING && !defined BVF_MIXING && \
+       !defined GLS_MIX2017 && !defined GLS_MIXING
+     &                                              + Akv_bak
+#   endif
+!
+!      Apply SGS Prandtl number for tracers
+!
+            Akt(i,j,k,itemp)=Pr*Akv(i,j,k)
+#   ifdef SALINITY                               
+            Akt(i,j,k,isalt)=Akt(i,j,k,itemp)
+#   endif
+          enddo
+        enddo
+      enddo
+#  endif /* UV_VIS_SMAGO_3D */
 !
 !------------------------------------------------------------
 ! Boundary conditions
@@ -230,8 +339,112 @@
       enddo
 !
 #  if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI
-      call exchange_p3d_tile (Istr,Iend,Jstr,Jend,visc3d_p)
+      call exchange_p3d_tile(Istr,Iend,Jstr,Jend,visc3d_p)
 #  endif
+
+#  ifdef UV_VIS_SMAGO_3D
+!------------------------------------------------------
+!  Lateral boundary conditions for vertical diffusivity
+!  in case of 3D Smagorinsky SGS model
+!------------------------------------------------------
+!
+#  define k0 1 
+#  ifndef EW_PERIODIC
+      if (WESTERN_EDGE) then
+        do j=jstr,jend
+          do k=k0,N
+            Akv(istr-1,j,k)=Akv(istr,j,k)
+            Akt(istr-1,j,k,itemp)=Akt(istr,j,k,itemp)
+#   ifdef SALINITY
+            Akt(istr-1,j,k,isalt)=Akt(istr,j,k,isalt)
+#   endif
+          enddo
+        enddo
+      endif
+      if (EASTERN_EDGE) then
+        do j=jstr,jend
+          do k=k0,N
+            Akv(iend+1,j,k)=Akv(iend,j,k)
+            Akt(iend+1,j,k,itemp)=Akt(iend,j,k,itemp)
+#   ifdef SALINITY
+            Akt(iend+1,j,k,isalt)=Akt(iend,j,k,isalt)
+#   endif
+          enddo
+        enddo
+      endif
+#  endif
+#  ifndef NS_PERIODIC
+      if (SOUTHERN_EDGE) then
+        do i=istr,iend
+          do k=k0,N
+            Akv(i,jstr-1,k)=Akv(i,jstr,k)
+            Akt(i,jstr-1,k,itemp)=Akt(i,jstr,k,itemp)
+#   ifdef SALINITY
+            Akt(i,jstr-1,k,isalt)=Akt(i,jstr,k,isalt)
+#   endif
+          enddo
+        enddo
+      endif
+      if (NORTHERN_EDGE) then
+        do i=istr,iend
+          do k=k0,N
+            Akv(i,jend+1,k)=Akv(i,jend,k)
+            Akt(i,jend+1,k,itemp)=Akt(i,jend,k,itemp)
+#   ifdef SALINITY
+            Akt(i,jend+1,k,isalt)=Akt(i,jend,k,isalt)
+#   endif
+          enddo
+        enddo
+      endif
+#   ifndef EW_PERIODIC
+      if (WESTERN_EDGE .and. SOUTHERN_EDGE) then
+        do k=k0,N
+          Akv(istr-1,jstr-1,k)=Akv(istr,jstr,k)
+          Akt(istr-1,jstr-1,k,itemp)=Akt(istr,jstr,k,itemp)
+#    ifdef SALINITY
+          Akt(istr-1,jstr-1,k,isalt)=Akt(istr,jstr,k,isalt)
+#    endif
+        enddo
+      endif
+      if (WESTERN_EDGE .and. NORTHERN_EDGE) then
+        do k=k0,N
+          Akv(istr-1,jend+1,k)=Akv(istr,jend,k)
+          Akt(istr-1,jend+1,k,itemp)=Akt(istr,jend,k,itemp)
+#    ifdef SALINITY
+          Akt(istr-1,jend+1,k,isalt)=Akt(istr,jend,k,isalt)
+#    endif
+        enddo
+      endif
+      if (EASTERN_EDGE .and. SOUTHERN_EDGE) then
+        do k=k0,N
+          Akv(iend+1,jstr-1,k)=Akv(iend,jstr,k)
+          Akt(iend+1,jstr-1,k,itemp)=Akt(iend,jstr,k,itemp)
+#    ifdef SALINITY
+          Akt(iend+1,jstr-1,k,isalt)=Akt(iend,jstr,k,isalt)
+#    endif
+        enddo
+      endif
+      if (EASTERN_EDGE .and. NORTHERN_EDGE) then
+        do k=k0,N
+          Akv(iend+1,jend+1,k)=Akv(iend,jend,k)
+          Akt(iend+1,jend+1,k,itemp)=Akt(iend,jend,k,itemp)
+#    ifdef SALINITY
+          Akt(iend+1,jend+1,k,isalt)=Akt(iend,jend,k,isalt)
+#    endif
+        enddo
+      endif
+#   endif
+#  endif
+!#  if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI
+!      call exchange_w3d_tile (istr,iend,jstr,jend, Akv)
+!      call exchange_w3d_tile (istr,iend,jstr,jend,
+!     &                        Akt(START_2D_ARRAY,0,itemp))
+!#   ifdef SALINITY
+!      call exchange_w3d_tile (istr,iend,jstr,jend,
+!     &                        Akt(START_2D_ARRAY,0,isalt))
+!#   endif
+!#  endif
+# endif /* UV_VIS_SMAGO_3D */
 
 # endif /* UV_VIS_SMAGO  */
 #else
@@ -273,10 +486,16 @@
       integer Istr,Iend,Jstr,Jend, i,j,k,itrc
       real grd_scale(PRIVATE_2D_SCRATCH_ARRAY)
       real cff, surf, defrate, horcon
-# ifdef TS_HADV_C6
-      parameter (horcon=1./20.)
+# if defined TS_DIF_SMAGO && (defined UV_VIS_SMAGO_3D ||\
+                              defined GLS_MIX2017_3D)
+      real Pr
+      parameter (horcon=0.003, Pr=0.3)  ! --> LES SGS model
 # else
-      parameter (horcon=1./12.)
+#  ifdef TS_HADV_C6
+      parameter (horcon=1./20.)  ! --> RSUP5
+#  else
+      parameter (horcon=1./12.)  ! --> RSUP3
+#  endif
 # endif
 # include "param.h"
 # include "grid.h"
@@ -286,7 +505,18 @@
 !
 # include "compute_auxiliary_bounds.h"
 !
-# ifdef TS_DIF_SMAGO
+# if defined GLS_MIX2017_3D
+!---------------------------------------------------------------
+!  GLS horizontal viscosity at RHO points
+! 
+      do k=1,N
+        do j=JstrV-1,Jend
+          do i=IstrU-1,Iend
+            diff3d_r(i,j,k)=Pr*visc3d_r(i,j,k)
+        enddo
+      enddo
+
+# elif defined TS_DIF_SMAGO
 !---------------------------------------------------------------
 !  Smagorinsky diffusion coefficient
 !
@@ -300,6 +530,7 @@
       do k=1,N
         do j=JstrV-1,Jend
           do i=IstrU-1,Iend
+#  ifndef UV_VIS_SMAGO
             defrate=sqrt( ((u(i+1,j,k,nrhs)-u(i,j,k,nrhs))*pm(i,j))**2
      &                   +((v(i,j+1,k,nrhs)-v(i,j,k,nrhs))*pn(i,j))**2
      &               +0.5*(0.25*pn(i,j)*(
@@ -310,12 +541,19 @@
      &                    -v(i-1,j,k,nrhs)-v(i-1,j+1,k,nrhs)) )**2)
             surf=om_r(i,j)*on_r(i,j)
             diff3d_r(i,j,k)=horcon*surf*defrate
+#  elif defined UV_VIS_SMAGO_3D
+            diff3d_r(i,j,k)=Pr*visc3d_r(i,j,k)
+#  else
+            diff3d_r(i,j,k)=visc3d_r(i,j,k)
+#  endif
           enddo
         enddo
       enddo
+# endif /* GLS || SMAGO */
 !
 ! Boundary conditions
 !
+# if defined TS_VIS_SMAGO || defined GLS_MIX2017_3D
 #  ifndef EW_PERIODIC
       if (WESTERN_EDGE) then
         do k=1,N
@@ -347,8 +585,8 @@
           enddo
         enddo
       endif
-# endif /* !NS_PERIODIC */
-# endif /* TS_DIF_SMAGO */
+#  endif /* !NS_PERIODIC */
+# endif
 
 # if defined TS_HADV_RSUP3 || defined TS_HADV_RSUP5
 
@@ -374,7 +612,7 @@
 # endif /* TS_HADV_RSUP3 */
 
 # if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI
-#  ifdef TS_DIF_SMAGO
+#  if defined TS_VIS_SMAGO || defined GLS_MIX2017_3D
       call exchange_r3d_tile (Istr,Iend,Jstr,Jend,diff3d_r)
 #  endif
 #  if defined TS_HADV_RSUP3 || defined TS_HADV_RSUP5

@@ -76,10 +76,8 @@
 # define PRIV_3D_BIOARRAY Istrp:Iendp,Jstrp:Jendp,1:jpk
 # define PRIV_2D_BIOARRAY Istrp:Iendp,Jstrp:Jendp
 
-#if !defined AGRIF
 #  define jpi   Lm
 #  define jpj   Mm
-#endif
 
 /* PISCES additional diagnostics */
 

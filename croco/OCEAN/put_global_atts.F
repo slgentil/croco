@@ -9,6 +9,9 @@
 ! CROCO website : http://www.croco-ocean.org
 !======================================================================
 !
+
+# define NCJOIN_UCLA
+
 #include "cppdefs.h"
 
       subroutine put_global_atts (ncid, ierr)
@@ -37,6 +40,10 @@
 #include "netcdf.inc"
 #if defined MPI && defined PARALLEL_FILES
       integer*4 ibuff(4)
+# ifdef NCJOIN_UCLA
+      integer chunk_size_X,margin_X,chunk_size_E,margin_E
+      integer Istrmpi,Iendmpi,Jstrmpi,Jendmpi, i_X,j_E
+# endif
 !
 ! Put global attribute 'partition' which identifies subdomain
 ! within the processor grid individually for each file.
@@ -47,6 +54,43 @@
       ibuff(4)=NP_ETA
       ierr=nf_put_att_int (ncid, nf_global, 'partition',
      &                                  nf_int, 4, ibuff)
+
+
+# ifdef NCJOIN_UCLA
+!
+! Put global attribute 'partition_ucla' which identifies subdomain
+! within the processor grid individually for each file.
+!
+      chunk_size_X=(LLm+NP_XI-1)/NP_XI        
+      margin_X=(NP_XI*chunk_size_X-LLm)/2    
+      chunk_size_E=(MMm+NP_ETA-1)/NP_ETA     
+      margin_E=(NP_ETA*chunk_size_E-MMm)/2
+      
+      j_E=mynode/NP_XI 
+      i_X=mynode-j_E*NP_XI
+
+      istrmpi=1+i_X*chunk_size_X-margin_X
+      istrmpi=max(istrmpi,1)
+
+      jstrmpi=1+j_E*chunk_size_E-margin_E
+      jstrmpi=max(jstrmpi,1)
+ 
+!      if (.not.XiPeriodic) then
+               if (ii.gt.0) istrmpi=istrmpi+1
+!      endif
+!      if (.not.EtaPeriodic) then
+               if (jj.gt.0) jstrmpi=jstrmpi+1
+!      endif
+
+      ibuff(1)=mynode
+      ibuff(2)=NP_XI*NP_ETA
+      ibuff(3)=istrmpi
+      ibuff(4)=jstrmpi
+      ierr=nf_put_att_int (ncid, nf_global, 
+     &                 'partition_ucla',nf_int, 4, ibuff)
+
+# endif
+
 #endif
 
 !

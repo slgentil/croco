@@ -394,9 +394,7 @@ C$OMP BARRIER
 # elif defined BVF_MIXING
         call bvf_mix (tile)
 # endif
-
         call omega (tile)
-
 # ifdef VIS_COEF_3D
         call hvisc_coef (tile)
 # endif
@@ -407,7 +405,11 @@ C$OMP BARRIER
         call prsgrd (tile)
         call rhs3d (tile)
 # ifdef NBQ
+#  if defined AGRIF && defined NBQ_CHILD_ONLY
+        if (.Not.Agrif_Root()) call rhs3d_w_nh (tile)
+#  else
         call rhs3d_w_nh (tile)
+#  endif
 # endif
         call pre_step3d (tile)
 # ifdef GLS_MIXING
@@ -431,16 +433,51 @@ C$OMP BARRIER
 # ifdef SST_SKIN
         call sstskin (tile)
 # endif
+
+!---------------------------
+# if defined DIAGNOSTICS_VRT
+        call set_diags_vrt (tile)
+# endif
+# if defined DIAGNOSTICS_EK
+        call set_diags_ek (tile)
+# endif
+# if defined DIAGNOSTICS_PV
+        call set_diags_pv (tile)
+# endif
+
 # ifdef AVERAGES
         call set_avg (tile)
 #  if defined DIAGNOSTICS_TS
-        call set_diags_avg (tile)
+        if (ldefdia_avg
+     &      .and. (wrtdia3D_avg(NT+1) .or. wrtdia2D_avg(NT+1)))
+     &      call set_diags_avg (tile)
 #  endif
 #  if defined DIAGNOSTICS_UV
-        call set_diagsM_avg (tile)
+        if (ldefdiaM_avg .and. wrtdiaM_avg(3))
+     &      call set_diagsM_avg (tile)
+#  endif
+#  if defined DIAGNOSTICS_VRT
+        if (ldefdiags_vrt_avg .and. wrtdiags_vrt_avg(indxTime))
+     &      call set_diags_vrt_avg (tile)
+#  endif
+#  if defined DIAGNOSTICS_EK
+        if (ldefdiags_ek_avg .and. wrtdiags_ek_avg(indxTime))
+     &      call set_diags_ek_avg (tile)
+#  endif
+#  if defined DIAGNOSTICS_PV
+        if (ldefdiags_pv_avg .and. wrtdiags_pv_avg(indxTime))
+     &      call set_diags_pv_avg (tile)
+#  endif
+#  if defined DIAGNOSTICS_EDDY
+        if (ldefdiags_eddy_avg .and. wrtdiags_eddy_avg(indxTime))
+     &      call set_diags_eddy_avg (tile)
 #  endif
 #  ifdef DIAGNOSTICS_BIO
         call set_bio_diags_avg (tile)
+#  endif
+#  if defined OUTPUTS_SURFACE
+        if (ldefsurf_avg .and. wrtsurf_avg(indxTime))
+     &      call set_surf_avg (tile)
 #  endif
 # endif
       enddo
@@ -586,7 +623,7 @@ C$OMP BARRIER
 #  endif
 # endif
 # if defined WKB_WWAVE && !defined ANA_BRY_WKB
-          call set_bry_wkb (tile)
+            call set_bry_wkb (tile)
 # endif
           enddo
 # ifdef AGRIF
@@ -609,7 +646,6 @@ C$OMP BARRIER
           call set_avg (tile)
 # endif
 # if defined UV_VIS2 && defined UV_VIS_SMAGO
-
         call hvisc_coef (tile)
 # endif
         enddo
@@ -631,10 +667,14 @@ C$OMP BARRIER
         if (mod(knew,2).eq.0) then
           do tile=my_first,my_last
 #ifdef NBQ
-# ifdef NBQ_ZETAW
-            call     step3d_fast_zetaw  (tile)
+# if defined AGRIF && defined NBQ_CHILD_ONLY
+            if (Agrif_Root()) then
+              call   step2d (tile)
+            else
+              call   step3d_fast (tile)
+            endif
 # else
-            call     step3d_fast_zeta2d (tile)
+            call   step3d_fast (tile)
 # endif
 #else
             call     step2d (tile)
@@ -643,10 +683,14 @@ C$OMP BARRIER
         else
           do tile=my_first,my_last
 #ifdef NBQ
-# ifdef NBQ_ZETAW
-            call     step3d_fast_zetaw  (tile)
+# if defined AGRIF && defined NBQ_CHILD_ONLY
+            if (Agrif_Root()) then
+              call   step2d (tile)
+            else
+              call   step3d_fast (tile)
+            endif
 # else
-            call     step3d_fast_zeta2d (tile)
+            call   step3d_fast (tile)
 # endif
 #else
             call     step2d (tile)
@@ -664,10 +708,8 @@ C$OMP BARRIER
 C$OMP BARRIER
 C$OMP MASTER
        call check_tab2d(zeta(:,:,knew),'zeta step2d','r')
-# ifndef NBQ_ZETAW
        call check_tab2d(ubar(:,:,knew),'ubar step2d','u')
        call check_tab2d(vbar(:,:,knew),'vbar step2d','v')
-# endif
 C$OMP END MASTER       
 #endif
 
@@ -730,7 +772,13 @@ C$OMP BARRIER
 C$OMP BARRIER
 
 #ifdef SOLVE3D
-# if ! defined NBQ_ZETAW
+# if defined NBQ && defined AGRIF && defined NBQ_CHILD_ONLY
+      if (Agrif_Root()) then
+        do tile=my_first,my_last
+          call set_depth (tile)
+        enddo
+      endif
+# elif !defined NBQ
       do tile=my_first,my_last
         call set_depth (tile)
       enddo
@@ -757,11 +805,19 @@ C$OMP BARRIER
         call prsgrd (tile)
         call rhs3d (tile)
 # ifdef NBQ
+#  if defined AGRIF && defined NBQ_CHILD_ONLY
+        if (.Not.Agrif_Root()) call rhs3d_w_nh (tile)
+#  else
         call rhs3d_w_nh (tile)
+#  endif
 # endif
         call step3d_uv1 (tile)
 # ifdef NBQ
+#  if defined AGRIF && defined NBQ_CHILD_ONLY
+        if (.Not.Agrif_Root()) call step3d_w (tile)
+#  else
         call step3d_w (tile)
+#  endif
 # endif
       enddo
 C$OMP BARRIER
@@ -805,9 +861,6 @@ C$OMP END MASTER
 #include "param.h"
 #include "scalars.h"
 #include "ncscrum.h"
-#ifdef NBQ
-# include "nbq.h"
-#endif
 #ifdef FLOATS
 # include "floats.h"
 #endif
@@ -890,10 +943,10 @@ C$OMP BARRIER
 
 #endif /* SOLVE3D */
 
-! aponte flt (
 #ifdef FLOATS
+      do tile=my_first,my_last
 #ifdef MPI
-      call step_floats_mpi (1,nfloats) 
+      call step_floats_mpi(tile,1,nfloats) 
 #else
       chunk_size_flt=32
       do while (flt_str.lt.nfloats) 
@@ -905,8 +958,8 @@ C$OMP END CRITICAL
         call step_floats (Lstr,Lend)
       enddo
 #endif /* MPI */
+      enddo
 #endif /*FLOATS*/
-! aponte flt )
 
 #ifdef STATIONS
       chunk_size_sta=32

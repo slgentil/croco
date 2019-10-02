@@ -1499,8 +1499,7 @@
 
       work2d=zeta(:,:,fast_indx_out)
       call xios_send_field("zeta",work2d)
-  !   call xios_send_field("ubar",ubar(:,:,fast_indx_out))
-      call xios_send_field("ubar",DU_avg2(:,:))
+      call xios_send_field("ubar",ubar(:,:,fast_indx_out))
       call xios_send_field("vbar",vbar(:,:,fast_indx_out))
 
 # ifdef MOVING_BATHY

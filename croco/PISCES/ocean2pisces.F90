@@ -1,6 +1,5 @@
 #include "cppdefs.h"
 
-
 #ifdef PISCES
 MODULE ocean2pisces
 
@@ -236,62 +235,74 @@ CONTAINS
 
    SUBROUTINE mppsum_int(ktab)
       INTEGER, INTENT(inout) :: ktab
+#ifdef MPI
       INTEGER :: ierror, localcomm     
       INTEGER :: iwork     
 
       localcomm=MPI_COMM_WORLD
       CALL mpi_allreduce( ktab, iwork, 1, mpi_integer, mpi_sum, localcomm, ierror)
       ktab = iwork
+#endif
    END SUBROUTINE mppsum_int
 
    SUBROUTINE mppsum_real(ptab)
       REAL, INTENT(inout) :: ptab
+#ifdef MPI
       INTEGER :: ierror, localcomm     
       REAL    :: zwork     
 
       localcomm=MPI_COMM_WORLD
       CALL mpi_allreduce( ptab, zwork, 1, mpi_double_precision, mpi_sum, localcomm, ierror )
       ptab = zwork
+#endif
    END SUBROUTINE mppsum_real
 
    SUBROUTINE mppmax_int(ktab)
       INTEGER, INTENT(inout) :: ktab
+#ifdef MPI
       INTEGER :: ierror, localcomm     
       INTEGER :: iwork     
 
       localcomm=MPI_COMM_WORLD
       CALL mpi_allreduce( ktab, iwork, 1, mpi_integer, mpi_max, localcomm, ierror)
       ktab = iwork
+#endif
    END SUBROUTINE mppmax_int
 
    SUBROUTINE mppmax_real(ptab)
       REAL, INTENT(inout) :: ptab
+#ifdef MPI
       INTEGER :: ierror, localcomm     
       REAL    :: zwork     
 
       localcomm=MPI_COMM_WORLD
       CALL mpi_allreduce( ptab, zwork, 1, mpi_double_precision, mpi_max, localcomm, ierror )
       ptab = zwork
+#endif
    END SUBROUTINE mppmax_real
 
     SUBROUTINE mppmin_int(ktab)
       INTEGER, INTENT(inout) :: ktab
+#ifdef MPI
       INTEGER :: ierror, localcomm     
       INTEGER :: iwork     
 
       localcomm=MPI_COMM_WORLD
       CALL mpi_allreduce( ktab, iwork, 1, mpi_integer, mpi_min, localcomm, ierror)
       ktab = iwork
+#endif
    END SUBROUTINE mppmin_int
 
    SUBROUTINE mppmin_real(ptab)
       REAL, INTENT(inout) :: ptab
+#ifdef MPI
       INTEGER :: ierror, localcomm     
       REAL    :: zwork     
 
       localcomm=MPI_COMM_WORLD
       CALL mpi_allreduce( ptab, zwork, 1, mpi_double_precision, mpi_min, localcomm, ierror )
       ptab = zwork
+#endif
    END SUBROUTINE mppmin_real
 
 

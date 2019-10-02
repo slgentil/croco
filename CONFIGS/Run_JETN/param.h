@@ -38,15 +38,13 @@
       parameter (LLm0=40,   MMm0=32,   N=32)   ! 100 km resolution
 #elif defined KH_INST 
 # ifndef KH_INSTY
-#  if defined KH_INST2D
-      parameter (LLm0=256,  MMm0=1,    N=256)
-#  elif defined KH_INST3D
-      parameter (LLm0=256,  MMm0=32,   N=256)
+#  ifdef KH_INST3D
+      parameter (LLm0=256,  MMm0=32,  N=256)
 #  else
       parameter (LLm0=256,  MMm0=1,   N=256)
 #  endif
 # else
-      parameter (LLm0=1,  MMm0=256,    N=256)
+      parameter (LLm0=1,    MMm0=256, N=256)
 # endif
 #elif defined ACOUSTIC 
       parameter (LLm0=64,   MMm0=1,    N=64)  
@@ -70,7 +68,7 @@
 !     parameter (LLm0=800,  MMm0=4,    N=40)   ! 1.5 km resolution
       parameter (LLm0=1600, MMm0=4,    N=40)   ! .75 km resolution
 #elif defined S2DV 
-       parameter (LLm0=562, MMm0=3,    N=40)	! true 2DV
+       parameter (LLm0=562, MMm0=3,    N=40)   ! true 2DV
 #elif defined MILES 
        parameter (LLm0=408, MMm0=523,  N=20)
 #elif defined IGW
@@ -118,8 +116,8 @@
 #elif defined FLUME
       parameter (LLm0=59,   MMm0=1,    N=20)   ! .5 m Flume
 #elif defined SWASH
-      parameter (LLm0=109,  MMm0=1,    N=10)   !  1 m  Swash
-!     parameter (LLm0=439,  MMm0=1,    N=10)   ! 25 cm Swash (GLOBEX)
+!     parameter (LLm0=100,  MMm0=1,    N=10)   !  1 m  Swash
+      parameter (LLm0=800,  MMm0=1,    N=10)   ! 12 cm Swash (GLOBEX)
 #elif defined RIP
 # ifdef BISCA
       parameter (LLm0= 86,  MMm0=92,   N=20)   ! 10 m Bisca Rip
@@ -144,6 +142,8 @@
 # else
       parameter (LLm0=4000, MMm0=1,    N=30)   !  1 mm resolution
 # endif
+#elif defined CALDEIRA
+      parameter (LLm0=100,   MMm0=100,   N=50)
 #elif defined REGIONAL
 #  if   defined USWC0
       parameter (LLm0=62,   MMm0=126,  N=40)   ! US_West grid15 L0
@@ -364,6 +364,7 @@
       parameter (NP_XI=4, NP_ETA=10,  NNODES=NP_XI*NP_ETA)
 # else 
 ! 48 procs
+!     parameter (NP_XI=2, NP_ETA=12,  NNODES=NP_XI*NP_ETA)  ! dunree  
       parameter (NP_XI=4, NP_ETA=12,  NNODES=NP_XI*NP_ETA)  ! datarmor     
 !     parameter (NP_XI=4, NP_ETA=24,  NNODES=NP_XI*NP_ETA)  ! fermi
 # endif    
@@ -470,7 +471,7 @@
 # if defined THACKER || defined FLUME
       parameter (D_wetdry=0.01)
 # elif defined SWASH
-      parameter (D_wetdry=0.05)
+      parameter (D_wetdry=0.001)
 # else
       parameter (D_wetdry=0.10)
 # endif
@@ -480,10 +481,10 @@
       integer Msrc               ! Number of point sources
       parameter (Msrc=10)        ! ====== == ===== =======
 #endif
-#ifdef FLOATS
-       integer Mfloats           ! Maximum number of floats
-       parameter (Mfloats=32000) ! ======= ====== == ======
-#endif
+!#ifdef FLOATS
+!       integer Mfloats           ! Maximum number of floats
+!       parameter (Mfloats=32000) ! ======= ====== == ======
+!#endif
 #ifdef STATIONS
        integer NS                ! Number of output stations
        parameter (NS=5)          ! ====== == ====== ========
@@ -615,10 +616,10 @@
 # else
       parameter (ntrc_sed=0)
 # endif /* SEDIMENT */
-
+!
 ! Total number of tracers
 !
-      parameter (NT=itemp+ntrc_salt+ntrc_pas+ntrc_bio+ntrc_sed) 
+      parameter (NT=itemp+ntrc_salt+ntrc_pas+ntrc_bio+ntrc_sed)
 
 # if defined BBL && defined AGRIF
       integer Agrif_lev_sedim
@@ -643,6 +644,9 @@
 !
 #if defined SOLVE3D && !defined F90CODE
       integer   ntrc_diats, ntrc_diauv, ntrc_diabio
+      integer   ntrc_diavrt, ntrc_diaek, ntrc_diapv
+      integer   ntrc_diaeddy, ntrc_surf
+
 # ifdef BIOLOGY
      &          , itrc_bio
 # endif
@@ -1009,11 +1013,39 @@
       parameter (ntrc_diats=0)
 # endif
 # ifdef DIAGNOSTICS_UV
-      parameter (ntrc_diauv=16)
+      parameter (ntrc_diauv=22)
 # else
       parameter (ntrc_diauv=0)
 # endif
-
+# ifdef DIAGNOSTICS_VRT
+      parameter (ntrc_diavrt=14)
+# else
+      parameter (ntrc_diavrt=0)
+# endif
+# ifdef DIAGNOSTICS_EK
+# ifdef DIAGNOSTICS_EK_MLD
+      parameter (ntrc_diaek=26)
+# else
+      parameter (ntrc_diaek=14)
+# endif
+# else
+      parameter (ntrc_diaek=0)
+# endif
+# ifdef DIAGNOSTICS_PV
+      parameter (ntrc_diapv=12)
+# else
+      parameter (ntrc_diapv=0)
+# endif
+# ifdef DIAGNOSTICS_EDDY
+      parameter (ntrc_diaeddy=10)
+# else
+      parameter (ntrc_diaeddy=0)
+# endif
+# ifdef OUTPUTS_SURFACE
+      parameter (ntrc_surf=5)
+# else
+      parameter (ntrc_surf=0)
+# endif
 #endif /*SOLVE3D */
 
 

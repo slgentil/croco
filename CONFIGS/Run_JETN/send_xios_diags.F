@@ -1178,7 +1178,7 @@
 ! aponte vmodes )
 
       !
-      CHARACTER(len=19) :: cldate
+      CHARACTER(len=50) :: cldate
       CHARACTER(len=10) :: clname
       CHARACTER(len=10) :: cdname
       INTEGER iday,imonth,iyear
@@ -1229,10 +1229,12 @@
       imonth=1       
       iyear=1
 # endif
-      WRITE(cldate,"(i4.4,'-',i2.2,'-',i2.2,' 00:00:00')") 
-     & iyear,imonth,iday
+      print*,'time=',time
+      WRITE(cldate,"(i4.4,'-',i2.2,'-',i2.2,' 00:00:00 +',i0,'s')") 
+     & iyear,imonth,iday,int(time)
+      print*,'cldate=',cldate
       CALL xios_set_context_attr(TRIM(clname), 
-     &        start_date=cldate )
+     &        start_date=trim(cldate) )
 
       ! horizontal grid definition
       CALL set_scalar
@@ -1297,7 +1299,7 @@
       if (dt < 1) then
         dtime%second =  1
       else
-	dtime%second = dt
+	      dtime%second = dt
       endif
       CALL xios_set_timestep(dtime)
 
@@ -1477,8 +1479,9 @@
 #  endif
 
 
-!       ilc=iic   ! number of time step since start
+!      ilc=iic   ! number of time step since start
        ilc=1+iic-ntstart   ! number of time step since restart
+       if (mynode==0) print*,'ilc=',ilc
        ! To be conform with clasic (no xios) croco file first 
        ! time step must be writen
        if (ilc == 0) ilc=1

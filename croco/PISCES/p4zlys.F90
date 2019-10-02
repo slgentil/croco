@@ -88,7 +88,7 @@ CONTAINS
 
                   ! SET DUMMY VARIABLE FOR TOTAL BORATE
                   zbot  = borat(ji,jj,jk)
-                  zfact = rhop (ji,jj,K) / 1000. + rtrn
+                  zfact = rhop(ji,jj,K) / 1000. + rtrn
 
                   ! SET DUMMY VARIABLE FOR [H+]
                   zph   = hi(ji,jj,jk) * tmask(ji,jj,K) / zfact + ( 1.-tmask(ji,jj,K) ) * 1.e-9

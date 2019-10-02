@@ -66,6 +66,7 @@
 #ifdef NBQ
          <field id="w_nbq" long_name="vertical velocity" unit="meter second-1" grid_ref="w_3D"/>
          <field id="rho_nbq" long_name="NBQ-density anomaly" unit="kg meter-3" grid_ref="rho_3D"/>
+         <field id="vortuw_nbq" long_name="UW vorticity " unit="??????" grid_ref="u_3D"/>
 #endif
 
 #ifdef LMD_SKPP

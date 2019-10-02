@@ -10,7 +10,6 @@
 !======================================================================
 !
 #include "cppdefs.h"
-! aponte flt(
 #if defined FLOATS && defined MPI
                                ! Writes requested model
       subroutine wrt_floats_mpi    ! fields at requested levels 
@@ -37,7 +36,7 @@
      &   , start(2), count(2), ibuff(2), nf_fwrite
       logical flt_innode
       integer node_float
-      logical newf
+      logical newf, file_exists
       character*65 vinfo
       real Tout(Mfloats)
 ! ascii file
@@ -50,55 +49,41 @@
 ! Save indices of released and non released floats 
 !
 
-!     MPI_master_only  write(*,*) 'in wrt_floats_mpi.F'
-
 ! !!! Should only output for tiles that contain floats !!!
+
+      if ( ANY( trackinfo(2,1:nfloats)==mynode ) ) then
+      	where(trackinfo(2,1:nfloats)== mynode) 
+     &        Tout(1:nfloats)=trackinfo(1,1:nfloats)
+      	if (any(Tout(1:nfloats) == 1)) then
 
      ! ascii output file
       write (filename, "(A6,I0.4)") "float.", mynode
-!      if ( first_time .eq. 0 ) then
-!      if ( time .eq. time_start ) then
-!      if ( FIRST_TIME_STEP ) then
-!      write(*,*) iic, ntstart, nflt
-!      if ( iic .eq. 0 .or. iic .eq. (ntstart+nflt) ) then
-! iic has not been initialized yet at this stage ... and is thus 0
-      if ( iic .eq. 0 ) then
-       open(unit=12, file= trim(filename), action="write", status="new")
-      else
+      
+! If file does not exist, create it else append to it 
+      inquire(file=filename, exist=file_exists)
+      if ( file_exists) then 
 ! posision="append" is not 77 and may not work with some compilers
-       open(unit=12, file= trim(filename), action="write", status="old",
+        open(unit=12, file= trim(filename), action="write", status="old",
      &              position="append")
+      else
+        open(unit=12, file= trim(filename), action="write")
       endif
 
-!      nfltrelmax=0
-!      nfltunrelmax=0
       do iflt=1,nfloats
-!        if (fltgrd(iflt).ne.-1) then
-!        if (fltgrd(iflt).ne.-1) then
-!          nfltrelmax=nfltrelmax+1
-!          indxrel(nfltrelmax)=iflt
-!        else 
-!          nfltunrelmax=nfltunrelmax+1
-!          indxunrel(nfltunrelmax)=iflt
-!        endif
 
-       ! check whether float is within mpi tile
-!       node_float= mod(int((track(ixgrd,nf,iflt)-0.5)/dble(Lm)),NP_XI)
-!       node_float= node_float
-!     &                 + int((track(iygrd,nf,iflt)-0.5)/dble(Mm))*NP_XI
-!       flt_innode = ( node_float .eq. mynode )       
-
-!       if ( node_float .eq. mynode ) then
-       if ( trackinfo(1,iflt) .eq. 1 
+         ! check whether float is within mpi tile
+         if ( trackinfo(1,iflt) .eq. 1 
      &      .and. trackinfo(2,iflt) .eq. mynode ) then
 
-!        write(*,*) iflt, trackaux(ixgrd,iflt), trackaux(iygrd,iflt)
-        write(12,2)
+            write(12,2)
      &         iflt, tdays 
      &         , trackaux(ixgrd,iflt), trackaux(iygrd,iflt)
      &         , trackaux(izgrd,iflt), trackaux(ifdpt,iflt)
-     &         , trackaux(iftem,iflt)
-       endif
+     &         , trackaux(iftem,iflt), trackaux(ifu,iflt) 
+     &         , trackaux(ifv,iflt), trackaux(ifdudt,iflt) 
+     &         , trackaux(ifdvdt,iflt), trackaux(ifpres,iflt) 
+
+         endif
 
       enddo
 
@@ -106,9 +91,11 @@
       close(12)
 
       ! ascii output format
-!   2    format(I4,(1x,e16.8),1x,e16.8,1x,e16.8,1x,e16.8,e16.8) 
-   2    format(I4,6(1x,e16.8)) 
+   2  format(I4,6(1x,e16.8)) 
 
+      	endif
+      endif
+      
       return
       end
 
@@ -118,5 +105,4 @@
       return
       end
 #endif /* FLOATS */
-! aponte flt )
 

@@ -82,6 +82,44 @@
      &    .or. (mod(ilc-1,nwrtdiaM_avg).eq.0 .and. wrtdiaM_avg(3))
 # endif
 #endif
+#if defined DIAGNOSTICS_VRT
+     &    .or. (mod(iic-ntstart,nwrtdiags_vrt).eq.0
+     &    .and. wrtdiags_vrt(indxTime))
+# ifdef AVERAGES
+     &    .or. (mod(iic-ntsdiags_vrt_avg,nwrtdiags_vrt_avg).eq.0
+     &    .and. wrtdiags_vrt_avg(indxTime))
+# endif
+# endif
+#if defined DIAGNOSTICS_EK
+     &    .or. (mod(iic-ntstart,nwrtdiags_ek).eq.0
+     &    .and. wrtdiags_ek(indxTime))
+# ifdef AVERAGES
+     &    .or. (mod(iic-ntsdiags_ek_avg,nwrtdiags_ek_avg).eq.0
+     &    .and. wrtdiags_ek_avg(indxTime))
+# endif
+# endif
+#if defined DIAGNOSTICS_PV
+     &    .or. (mod(iic-ntstart,nwrtdiags_pv).eq.0
+     &    .and. wrtdiags_pv(indxTime))
+# ifdef AVERAGES
+     &    .or. (mod(iic-ntsdiags_pv_avg,nwrtdiags_pv_avg).eq.0
+     &    .and. wrtdiags_pv_avg(indxTime))
+# endif
+# endif
+#if defined DIAGNOSTICS_EDDY
+# ifdef AVERAGES
+     &    .or. (mod(iic-ntsdiags_eddy_avg,nwrtdiags_eddy_avg).eq.0
+     &    .and. wrtdiags_eddy_avg(indxTime))
+# endif
+# endif
+#if defined OUTPUTS_SURFACE
+     &    .or. (mod(iic-ntstart,nwrtsurf).eq.0
+     &    .and. wrtsurf(indxTime))
+# ifdef AVERAGES
+     &    .or. (mod(iic-ntssurf_avg,nwrtsurf_avg).eq.0
+     &    .and. wrtsurf_avg(indxTime))
+# endif
+# endif
 #ifdef DIAGNOSTICS_BIO
      &    .or. (mod(ilc-1,nwrtdiabio).eq.0 .and. 
      &    (      wrtdiabioFlux(NumFluxTerms+1)
@@ -132,6 +170,44 @@
         if (mod(ilc-1,nwrtdiaM_avg).eq.0) nrecdiaM_avg=nrecdiaM_avg+1
 # endif
 #endif
+#if defined DIAGNOSTICS_VRT
+        if (mod(iic-ntstart,nwrtdiags_vrt) .eq.0)
+     &                                  nrecdiags_vrt=nrecdiags_vrt+1
+# ifdef AVERAGES
+        if (mod(iic-ntsdiags_vrt_avg,nwrtdiags_vrt_avg) .eq.0) 
+     &                          nrecdiags_vrt_avg=nrecdiags_vrt_avg+1
+# endif
+#endif
+#if defined DIAGNOSTICS_EK
+        if (mod(iic-ntstart,nwrtdiags_ek) .eq.0)
+     &                                    nrecdiags_ek=nrecdiags_ek+1
+# ifdef AVERAGES
+        if (mod(iic-ntsdiags_ek_avg,nwrtdiags_ek_avg) .eq.0) 
+     &                            nrecdiags_ek_avg=nrecdiags_ek_avg+1
+# endif
+#endif
+#if defined DIAGNOSTICS_PV
+        if (mod(iic-ntstart,nwrtdiags_pv) .eq.0)
+     &                                    nrecdiags_pv=nrecdiags_pv+1
+# ifdef AVERAGES
+        if (mod(iic-ntsdiags_pv_avg,nwrtdiags_pv_avg) .eq.0)
+     &                            nrecdiags_pv_avg=nrecdiags_pv_avg+1
+# endif
+#endif
+#if defined DIAGNOSTICS_EDDY
+# ifdef AVERAGES
+        if (mod(iic-ntsdiags_eddy_avg,nwrtdiags_eddy_avg) .eq.0)
+     &                     nrecdiags_eddy_avg=nrecdiags_eddy_avg+1
+# endif
+#endif
+# ifdef OUTPUTS_SURFACE
+        if (mod(iic-ntstart,nwrtsurf) .eq.0)
+     &                                    nrecsurf=nrecsurf+1
+# ifdef AVERAGES
+        if (mod(iic-ntssurf_avg,nwrtsurf_avg) .eq.0) 
+     &                            nrecsurf_avg=nrecsurf_avg+1
+# endif
+#endif
 #ifdef DIAGNOSTICS_BIO
         if (mod(ilc-1,nwrtdiabio).eq.0) nrecdiabio=nrecdiabio+1
 # ifdef AVERAGES
@@ -174,7 +250,9 @@
 #  endif
 #endif
 #if defined DIAGNOSTICS_TS
-        if (mod(ilc-1,nwrtdia).eq.0 .and. (wrtdia3D(NT+1) .or.
+        if (mod(ilc-1,nwrtdia).eq.0
+     &      .and. ldefdia
+     &      .and. (wrtdia3D(NT+1) .or.
      &      wrtdia2D(NT+1)))                              
      &                                                 call wrt_diags
 # ifdef AVERAGES
@@ -185,13 +263,82 @@
 #endif
 
 #if defined DIAGNOSTICS_UV
-        if (mod(ilc-1,nwrtdiaM).eq.0 .and. wrtdiaM(3)) 
-     &                                              call wrt_diagsM
+        if (mod(ilc-1,nwrtdiaM).eq.0
+     &      .and. ldefdiaM
+     &      .and. wrtdiaM(3))
+     &                                                call wrt_diagsM
 # ifdef AVERAGES
         if (ldefdiaM_avg .and. mod(ilc-1,nwrtdiaM_avg).eq.0
-     &                 .and. wrtdiaM_avg(3))        call wrt_diagsM_avg
+     &                 .and. wrtdiaM_avg(3))       call wrt_diagsM_avg
 # endif
 #endif
+
+#if defined DIAGNOSTICS_VRT
+        if (mod(iic-ntstart,nwrtdiags_vrt).eq.0
+     &      .and. ldefdiags_vrt 
+     &      .and. wrtdiags_vrt(indxTime)) 
+     &                  call wrt_diags_vrt
+# ifdef AVERAGES
+        if (mod(iic-ntsdiags_vrt_avg,nwrtdiags_vrt_avg) .eq.0
+     &      .and. iic.gt.ntstart+1
+     &      .and. ldefdiags_vrt_avg 
+     &      .and. wrtdiags_vrt_avg(indxTime))
+     &      call wrt_diags_vrt_avg
+# endif
+#endif
+
+#if defined DIAGNOSTICS_EK
+        if (mod(iic-ntstart,nwrtdiags_ek).eq.0
+     &      .and. ldefdiags_ek 
+     &      .and. wrtdiags_ek(indxTime)) 
+     &                  call wrt_diags_ek
+# ifdef AVERAGES
+        if (mod(iic-ntsdiags_ek_avg,nwrtdiags_ek_avg) .eq.0
+     &      .and. iic.gt.ntstart+1
+     &      .and. ldefdiags_ek_avg 
+     &      .and. wrtdiags_ek_avg(indxTime))
+     &      call wrt_diags_ek_avg
+# endif
+#endif
+
+#if defined DIAGNOSTICS_PV
+        if (mod(iic-ntstart,nwrtdiags_pv).eq.0
+     &      .and. ldefdiags_pv 
+     &      .and. wrtdiags_pv(indxTime)) 
+     &                  call wrt_diags_pv
+# ifdef AVERAGES
+        if (mod(iic-ntsdiags_pv_avg,nwrtdiags_pv_avg) .eq.0
+     &      .and. iic.gt.ntstart+1
+     &      .and. ldefdiags_pv_avg 
+     &      .and. wrtdiags_pv_avg(indxTime))
+     &      call wrt_diags_pv_avg
+# endif
+#endif
+
+#if defined DIAGNOSTICS_EDDY
+# ifdef AVERAGES
+        if (mod(iic-ntsdiags_eddy_avg,nwrtdiags_eddy_avg) .eq.0
+     &      .and. iic.gt.ntstart+1
+     &      .and. ldefdiags_eddy_avg
+     &      .and. wrtdiags_eddy_avg(indxTime))
+     &      call wrt_diags_eddy_avg
+# endif
+#endif
+
+#if defined OUTPUTS_SURFACE
+        if (mod(iic-ntstart,nwrtsurf).eq.0
+     &      .and. ldefsurf 
+     &      .and. wrtsurf(indxTime)) 
+     &                  call wrt_surf
+# ifdef AVERAGES
+        if (mod(iic-ntssurf_avg,nwrtsurf_avg) .eq.0
+     &      .and. iic.gt.ntstart+1
+     &      .and. ldefsurf_avg 
+     &      .and. wrtsurf_avg(indxTime))
+     &      call wrt_surf_avg
+# endif
+#endif
+
 #if defined DIAGNOSTICS_BIO && ! defined XIOS
         if (mod(ilc-1,nwrtdiabio).eq.0 .and. 
      &       (      wrtdiabioFlux(NumFluxTerms+1)

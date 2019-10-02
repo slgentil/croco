@@ -276,6 +276,7 @@
          <field id="rot" long_name="rotational" unit="1/s" grid_ref="rho_3D" />
 
          <field id="Tdebug" long_name="temperature" unit="degC" grid_ref="rho_3D" />
+#endif
      </field_group>
 #endif
         

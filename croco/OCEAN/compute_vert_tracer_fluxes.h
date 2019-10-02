@@ -45,6 +45,7 @@
 #  endif
             CF(i,0)=dt*pm(i,j)*pn(i,j)
           enddo
+
 # elif defined TS_VADV_AKIMA
 !
 !----------------------------------------------------------
@@ -88,6 +89,7 @@
             FC(i,N)=0.
             CF(i,0)=dt*pm(i,j)*pn(i,j)
           enddo
+
 # elif defined TS_VADV_WENO5
 !
 !----------------------------------------------------------
@@ -111,32 +113,30 @@
           do i=Istr,Iend
             FC(i,2)=We(i,j,2)*
 #  ifdef PREDICTOR
-     &               flux4(
+     &              flux4(
 #  else
-     &               flux3_weno(
+     &              flux3_weno(
 #  endif
-     &           t(i,j,1,nadv,itrc), t(i,j,2,nadv,itrc), 
-     &           t(i,j,3,nadv,itrc), t(i,j,4,nadv,itrc), We(i,j,2))
+     &             t(i,j,1,nadv,itrc), t(i,j,2,nadv,itrc), 
+     &             t(i,j,3,nadv,itrc), t(i,j,4,nadv,itrc), We(i,j,2))
+
             FC(i,N-2)=We(i,j,N-2)*
 #  ifdef PREDICTOR
-     &               flux4(
+     &              flux4(
 #  else
-     &               flux3_weno(
+     &              flux3_weno(
 #  endif
-     &           t(i,j,N-3,nadv,itrc), t(i,j,N-2,nadv,itrc), 
-     &           t(i,j,N-1,nadv,itrc), t(i,j,N  ,nadv,itrc), We(i,j,N-2))
+     &             t(i,j,N-3,nadv,itrc), t(i,j,N-2,nadv,itrc), 
+     &             t(i,j,N-1,nadv,itrc), t(i,j,N  ,nadv,itrc), We(i,j,N-2))
 
-            FC(i,  1)=We(i,j,  1)*flux1( t(i,j,1  ,nadv,itrc),
-     &                                   t(i,j,2  ,nadv,itrc),
-     &                                   We(i,j,  1),1.)
-            FC(i,N-1)=We(i,j,N-1)*flux1( t(i,j,N-1,nadv,itrc),
-     &                                   t(i,j,N,  nadv,itrc),
-     &                                   We(i,j,N-1),1.)
-
-!            FC(i,  1)=0.5*We(i,j,  1)*( t(i,j,1  ,nadv,itrc)
-!     &                               +  t(i,j,2  ,nadv,itrc))
-!            FC(i,N-1)=0.5*We(i,j,N-1)*( t(i,j,N-1,nadv,itrc)
-!     &                               +  t(i,j,N,  nadv,itrc))
+            FC(i,  1)=We(i,j,  1)*(        0.5*t(i,j,  1,nadv,itrc)
+     &                       +0.58333333333333*t(i,j,  2,nadv,itrc)
+     &                       -0.08333333333333*t(i,j,  3,nadv,itrc)
+     &                                                            )
+            FC(i,N-1)=We(i,j,N-1)*(        0.5*t(i,j,N  ,nadv,itrc)
+     &                       +0.58333333333333*t(i,j,N-1,nadv,itrc)
+     &                       -0.08333333333333*t(i,j,N-2,nadv,itrc)
+     &                                                            )
 
 #  ifdef MOVING_BATHY
             FC(i,0)=We(i,j,0)*t(i,j,1,nadv,itrc)
@@ -146,6 +146,7 @@
             FC(i,N )=0.
             CF(i,0)=dt*pm(i,j)*pn(i,j)
           enddo
+
 # elif defined TS_VADV_C2
 !
 !----------------------------------------------------------
@@ -168,6 +169,7 @@
            FC(i,N )=0.
            CF(i,0 )=dt*pm(i,j)*pn(i,j)
          enddo
+
 # else
 !
 !----------------------------------------------------------
@@ -178,26 +180,26 @@
           do k=2,N-2
             do i=Istr,Iend
               FC(i,k)=We(i,j,k)*(
-     &                     0.58333333333333*( t(i,j,k  ,nadv,itrc)
-     &                                       +t(i,j,k+1,nadv,itrc))
-     &                    -0.08333333333333*( t(i,j,k-1,nadv,itrc)
-     &                                       +t(i,j,k+2,nadv,itrc))
+     &                      0.58333333333333*( t(i,j,k  ,nadv,itrc)
+     &                                        +t(i,j,k+1,nadv,itrc))
+     &                     -0.08333333333333*( t(i,j,k-1,nadv,itrc)
+     &                                        +t(i,j,k+2,nadv,itrc))
      &                                                            )
             enddo
           enddo
           do i=Istr,Iend
 #  ifdef MOVING_BATHY
             FC(i,0)=We(i,j,0)*2.
-     &              (0.58333333333333*t(i,j,1,nstp,itrc)-
-     &               0.08333333333333*t(i,j,2,nstp,itrc))
+     &                       (0.58333333333333*t(i,j,1,nstp,itrc)-
+     &                        0.08333333333333*t(i,j,2,nstp,itrc))
 #  else
             FC(i, 0)=0.0
 #  endif
-            FC(i,  1)=We(i,j,  1)*(     0.5*t(i,j,  1,nadv,itrc)
+            FC(i,  1)=We(i,j,  1)*(        0.5*t(i,j,  1,nadv,itrc)
      &                       +0.58333333333333*t(i,j,  2,nadv,itrc)
      &                       -0.08333333333333*t(i,j,  3,nadv,itrc)
      &                                                            )
-            FC(i,N-1)=We(i,j,N-1)*(     0.5*t(i,j,N  ,nadv,itrc)
+            FC(i,N-1)=We(i,j,N-1)*(        0.5*t(i,j,N  ,nadv,itrc)
      &                       +0.58333333333333*t(i,j,N-1,nadv,itrc)
      &                       -0.08333333333333*t(i,j,N-2,nadv,itrc)
      &                                                            )

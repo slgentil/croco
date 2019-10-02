@@ -10,7 +10,7 @@
 !======================================================================
 !
 #include "cppdefs.h"
-#define SWTRIADS  /* spatial scheme TRIADS or SWTRIADS */
+#define TRIADS  /* spatial scheme TRIADS or SWTRIADS */
 !
 #ifndef CHILD_SPG
       subroutine t3dmix (tile)
@@ -168,6 +168,9 @@
 #ifdef DIAGNOSTICS_TS
 # include "diagnostics.h"
 #endif
+# ifdef DIAGNOSTICS_PV
+#  include "diags_pv.h"
+# endif
 #ifdef AGRIF
 # include "zoom.h"
 #endif
@@ -858,7 +861,7 @@
             enddo
           enddo
 
-#ifdef DIAGNOSTICS_TS
+#  if defined DIAGNOSTICS_TS || defined DIAGNOSTICS_PV
 !
 ! Tracer diagnostics
 !
@@ -896,7 +899,7 @@
 # undef diff3u 
 # undef diff3v 
 
-#ifdef DIAGNOSTICS_TS
+#  if defined DIAGNOSTICS_TS || defined DIAGNOSTICS_PV
 !
 ! Tracer diagnostics
 !

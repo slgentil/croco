@@ -86,7 +86,23 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
 !                            WESTERN BC
 !====================================================================
       if (WESTERN_EDGE) then
-#  if defined OBC_COM_WEST && defined OBC_COM_TORLANSKI
+#  if defined OBC_COM_WEST && (defined OBC_COM_TSPECIFIED || \
+                               defined OBC_COM_TSPECIFIED_WEST)
+!                                            Western edge Specified BC
+!                                            ======= ==== ========= ==
+        do k=1,N
+          do j=Jstr,Jend
+#   ifdef T_FRC_BRY
+              t(Istr-1,j,k,indx,itrc)=tbry_west(j,k,itrc)
+#   else
+              t(Istr-1,j,k,indx,itrc)=tclm(Istr-1,j,k,itrc)
+#   endif
+#   ifdef MASKING
+     &                                       *rmask(Istr-1,j)
+#   endif
+         enddo
+        enddo
+#  elif defined OBC_COM_WEST && defined OBC_COM_TORLANSKI
 !                                           Western edge radiation BC
 !                                           ======= ==== ========= ==
         do k=1,N
@@ -114,28 +130,19 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
               tau=tau_out
 #   endif
             endif
- 
             if (dft*(grad(Istr,j)+grad(Istr,j+1)) .gt. 0.) then
               dfy=grad(Istr,j)
             else
               dfy=grad(Istr,j+1)
             endif
- 
-#   ifdef OBC_COM_RAD_NORMAL
-            dfy=0.
-#   endif
             cff=max(dfx*dfx+dfy*dfy, eps)
             cx=dft*dfx
-#   ifdef OBC_COM_RAD_NPO
-            cy=0.
-#   else
             cy=min(cff,max(dft*dfy,-cff))
-#   endif
-            t(Istr-1,j,k,indx,itrc)=( cff*t(Istr-1,j,k,nstp,itrc)
+            t(Istr-1,j,k,indx,itrc)=(  cff*t(Istr-1,j,k,nstp,itrc)
      &                                   +cx*t(Istr,j,k,indx,itrc)
      &                                -max(cy,0.)*grad(Istr-1,j  )
      &                                -min(cy,0.)*grad(Istr-1,j+1)
-     &                                                 )/(cff+cx)
+     &                                                  )/(cff+cx)
 #   if defined T_FRC_BRY || defined TCLIMATOLOGY
             t(Istr-1,j,k,indx,itrc)=(1.-tau)*t(Istr-1,j,k,indx,itrc)
 #    ifdef T_FRC_BRY
@@ -170,21 +177,7 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
 #   endif
          enddo
         enddo
-#  elif defined OBC_COM_WEST && defined OBC_COM_TSPECIFIED
-!                                            Western edge Specified BC
-!                                            ======= ==== ========= ==
-        do k=1,N
-          do j=Jstr,Jend
-#   ifdef T_FRC_BRY
-              t(Istr-1,j,k,indx,itrc)=tbry_west(j,k,itrc)
-#   else
-              t(Istr-1,j,k,indx,itrc)=tclm(Istr-1,j,k,itrc)
-#   endif
-#   ifdef MASKING
-     &                                       *rmask(Istr-1,j)
-#   endif
-         enddo
-        enddo
+!
 #  else
         do k=1,N
           do j=Jstr,Jend
@@ -203,7 +196,23 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
 !                            EASTERN BC
 !====================================================================
       if (EASTERN_EDGE) then
-#  if defined OBC_COM_EAST && defined OBC_COM_TORLANSKI
+#  if defined OBC_COM_EAST && (defined OBC_COM_TSPECIFIED || \
+                               defined OBC_COM_TSPECIFIED_EAST)
+!                                            Eastern edge Specified BC
+!                                            ======= ==== ========= ==
+        do k=1,N
+          do j=Jstr,Jend
+#   ifdef T_FRC_BRY
+            t(Iend+1,j,k,indx,itrc)=tbry_east(j,k,itrc)
+#   else
+            t(Iend+1,j,k,indx,itrc)=tclm(Iend+1,j,k,itrc)
+#   endif
+#   ifdef MASKING
+     &                                   *rmask(Iend+1,j)
+#   endif
+          enddo
+        enddo
+#  elif defined OBC_COM_EAST && defined OBC_COM_TORLANSKI
 !                                           Eastern edge radiation BC
 !                                           ======= ==== ========= ==
         do k=1,N
@@ -222,7 +231,6 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
           do j=Jstr,Jend
             dft=t(Iend,j,k,nstp,itrc)-t(Iend  ,j,k,indx,itrc)
             dfx=t(Iend,j,k,indx,itrc)-t(Iend-1,j,k,indx,itrc)
- 
             if (dfx*dft .lt. 0.) then
               dft=0.                  ! <-- cancel, if inflow 
 #   if defined T_FRC_BRY || defined TCLIMATOLOGY
@@ -231,29 +239,19 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
               tau=tau_out
 #   endif
             endif
- 
             if (dft*(grad(Iend,j)+grad(Iend,j+1)) .gt. 0.) then
               dfy=grad(Iend,j)
             else
               dfy=grad(Iend,j+1)
             endif
- 
-#   ifdef OBC_COM_RAD_NORMAL
-            dfy=0.
-#   endif
             cff=max(dfx*dfx+dfy*dfy, eps)
             cx=dft*dfx
-#   ifdef OBC_COM_RAD_NPO
-            cy=0.
-#   else
             cy=min(cff,max(dft*dfy,-cff))
-#   endif
- 
-            t(Iend+1,j,k,indx,itrc)=( cff*t(Iend+1,j,k,nstp,itrc)
+            t(Iend+1,j,k,indx,itrc)=(  cff*t(Iend+1,j,k,nstp,itrc)
      &                                   +cx*t(Iend,j,k,indx,itrc)
      &                                -max(cy,0.)*grad(Iend+1,j  )
      &                                -min(cy,0.)*grad(Iend+1,j+1)
-     &                                                 )/(cff+cx)
+     &                                                  )/(cff+cx)
 #   if defined T_FRC_BRY || defined TCLIMATOLOGY
             t(Iend+1,j,k,indx,itrc)=(1.-tau)*t(Iend+1,j,k,indx,itrc)
 #    ifdef T_FRC_BRY
@@ -288,21 +286,7 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
 #   endif
           enddo
         enddo
-#  elif defined OBC_COM_EAST && defined OBC_COM_TSPECIFIED
-!                                            Eastern edge Specified BC
-!                                            ======= ==== ========= ==
-        do k=1,N
-          do j=Jstr,Jend
-#   ifdef T_FRC_BRY
-            t(Iend+1,j,k,indx,itrc)=tbry_east(j,k,itrc) 
-#   else
-            t(Iend+1,j,k,indx,itrc)=tclm(Iend+1,j,k,itrc)
-#   endif
-#   ifdef MASKING
-     &                                   *rmask(Iend+1,j)
-#   endif
-          enddo
-        enddo
+!
 #  else 
 !                                            Eastern edge gradient BC
 !                                            ======= ==== ======== ==
@@ -324,7 +308,23 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
 !                            SOUTHERN BC
 !====================================================================
       if (SOUTHERN_EDGE) then
-#  if defined OBC_COM_SOUTH && defined OBC_COM_TORLANSKI
+#  if defined OBC_COM_SOUTH && (defined OBC_COM_TSPECIFIED || \
+                                defined OBC_COM_TSPECIFIED_SOUTH)
+!                                           Southern edge Specified BC
+!                                           ======== ==== ========= ==
+        do k=1,N
+          do i=Istr,Iend
+#   ifdef T_FRC_BRY
+            t(i,Jstr-1,k,indx,itrc)=tbry_south(i,k,itrc)
+#   else
+            t(i,Jstr-1,k,indx,itrc)=tclm(i,Jstr-1,k,itrc)
+#   endif
+#   ifdef MASKING
+     &                                   *rmask(i,Jstr-1)
+#   endif
+          enddo
+        enddo
+#  elif defined OBC_COM_SOUTH && defined OBC_COM_TORLANSKI
 !                                          Southern edge radiation BC
 !                                          ======== ==== ========= ==
         do k=1,N
@@ -343,7 +343,6 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
           do i=Istr,Iend
             dft=t(i,Jstr,k,nstp,itrc)-t(i,Jstr  ,k,indx,itrc)
             dfx=t(i,Jstr,k,indx,itrc)-t(i,Jstr+1,k,indx,itrc)
- 
             if (dfx*dft .lt. 0.) then
               dft=0.                   ! <-- cancel, if inflow 
 #   if defined T_FRC_BRY || defined TCLIMATOLOGY
@@ -352,29 +351,19 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
               tau=tau_out
 #   endif
             endif
- 
             if (dft*(grad(i,Jstr)+grad(i+1,Jstr)) .gt. 0.) then
               dfy=grad(i,Jstr)
             else
               dfy=grad(i+1,Jstr)
             endif
- 
-#   ifdef OBC_COM_RAD_NORMAL
-            dfy=0.
-#   endif
             cff=max(dfx*dfx+dfy*dfy, eps)
             cx=dft*dfx
-#   ifdef OBC_COM_RAD_NPO
-            cy=0.
-#   else
             cy=min(cff,max(dft*dfy,-cff))
-#   endif
- 
-            t(i,Jstr-1,k,indx,itrc)=( cff*t(i,Jstr-1,k,nstp,itrc)
+            t(i,Jstr-1,k,indx,itrc)=(  cff*t(i,Jstr-1,k,nstp,itrc)
      &                                   +cx*t(i,Jstr,k,indx,itrc)
      &                                -max(cy,0.)*grad(i  ,Jstr-1)
      &                                -min(cy,0.)*grad(i+1,Jstr-1)
-     &                                                 )/(cff+cx)
+     &                                                  )/(cff+cx)
 #   if defined T_FRC_BRY || defined TCLIMATOLOGY
             t(i,Jstr-1,k,indx,itrc)=(1.-tau)*t(i,Jstr-1,k,indx,itrc)
 #    ifdef T_FRC_BRY
@@ -409,21 +398,7 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
 #   endif
           enddo
         enddo
-#  elif defined OBC_COM_SOUTH && defined OBC_COM_TSPECIFIED
-!                                           Southern edge Specified BC
-!                                           ======== ==== ========= ==
-        do k=1,N
-          do i=Istr,Iend
-#   ifdef T_FRC_BRY
-            t(i,Jstr-1,k,indx,itrc)=tbry_south(i,k,itrc)
-#   else
-            t(i,Jstr-1,k,indx,itrc)=tclm(i,Jstr-1,k,itrc)
-#   endif
-#   ifdef MASKING
-     &                                   *rmask(i,Jstr-1)
-#   endif
-          enddo
-        enddo
+!
 #  else
 !                                           Southern edge gradient BC
 !                                           ======== ==== ======== ==
@@ -442,7 +417,24 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
 !                            NORTHERN BC
 !====================================================================
       if (NORTHERN_EDGE) then
-#  if defined OBC_COM_NORTH && defined OBC_COM_TORLANSKI
+#  if defined OBC_COM_NORTH && (defined OBC_COM_TSPECIFIED || \
+                                defined OBC_COM_TSPECIFIED_NORTH)
+!                                           Northern edge Specified BC
+!                                           ======== ==== ========= ==
+        do k=1,N
+          do i=Istr,Iend
+#   ifdef T_FRC_BRY
+            t(i,Jend+1,k,indx,itrc)=tbry_north(i,k,itrc)
+#   else
+            t(i,Jend+1,k,indx,itrc)=tclm(i,Jend+1,k,itrc)
+#   endif
+#   ifdef MASKING
+     &                                   *rmask(i,Jend+1)
+#   endif
+          enddo
+        enddo
+
+#  elif defined OBC_COM_NORTH && defined OBC_COM_TORLANSKI
 !                                          Northern edge radiation BC
 !                                          ======== ==== ========= ==
         do k=1,N
@@ -461,7 +453,6 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
           do i=Istr,Iend
             dft=t(i,Jend,k,nstp,itrc)-t(i,Jend  ,k,indx,itrc)
             dfx=t(i,Jend,k,indx,itrc)-t(i,Jend-1,k,indx,itrc)
- 
             if (dfx*dft .lt. 0.) then
               dft=0.                          ! <-- cancel, if inflow 
 #   if defined T_FRC_BRY || defined TCLIMATOLOGY
@@ -470,23 +461,14 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
               tau=tau_out
 #   endif
             endif
- 
             if (dft*(grad(i,Jend)+grad(i+1,Jend)) .gt. 0.) then
               dfy=grad(i,Jend)
             else
               dfy=grad(i+1,Jend)
             endif
- 
-#   ifdef OBC_COM_RAD_NORMAL
-            dfy=0.
-#   endif
             cff=max(dfx*dfx+dfy*dfy, eps)
             cx=dft*dfx
-#   ifdef OBC_COM_RAD_NPO
-            cy=0.
-#   else
             cy=min(cff,max(dft*dfy,-cff))
-#   endif
             t(i,Jend+1,k,indx,itrc)=( cff*t(i,Jend+1,k,nstp,itrc)
      &                                 +cx*t(i,Jend  ,k,indx,itrc)
      &                                -max(cy,0.)*grad(i  ,Jend+1)
@@ -526,21 +508,7 @@ c        call t3dbc_interp_tile(Istr,Iend,Jstr,Jend,indx,itrc)
 #   endif
           enddo
         enddo
-#  elif defined OBC_COM_NORTH && defined OBC_COM_TSPECIFIED
-!                                           Northern edge Specified BC
-!                                           ======== ==== ========= ==
-        do k=1,N
-          do i=Istr,Iend
-#   ifdef T_FRC_BRY
-            t(i,Jend+1,k,indx,itrc)=tbry_north(i,k,itrc)
-#   else
-            t(i,Jend+1,k,indx,itrc)=tclm(i,Jend+1,k,itrc)
-#   endif
-#   ifdef MASKING
-     &                                   *rmask(i,Jend+1)
-#   endif
-          enddo
-        enddo
+!
 #  else
 !                                           Northern edge gradient BC
 !                                           ======== ==== ======== ==

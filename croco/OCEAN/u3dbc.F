@@ -57,6 +57,7 @@
 # include "param.h"
 # include "grid.h"
 # include "ocean3d.h"
+# include "coupling.h"
 # include "climat.h"
 # include "scalars.h"
 # include "boundary.h"  
@@ -89,71 +90,7 @@
 !====================================================================
       if (WESTERN_EDGE) then
 #  ifdef OBC_COM_WEST
-#   ifdef OBC_COM_M3ORLANSKI
-        do k=1,N                             ! Western edge radiation
-          do j=Jstr,Jend+1                   ! ======= ==== =========
-            grad(Istr  ,j)=(u(Istr  ,j,k,nstp)-u(Istr  ,j-1,k,nstp))
-#    ifdef MASKING
-     &                                                *pmask(Istr,j)
-#    endif
-            grad(Istr+1,j)=(u(Istr+1,j,k,nstp)-u(Istr+1,j-1,k,nstp))
-#    ifdef MASKING
-     &                                              *pmask(Istr+1,j)
-#    endif
-          enddo
-          do j=Jstr,Jend
-            dft=u(Istr+1,j,k,nstp)-u(Istr+1,j,k,nnew)
-            dfx=u(Istr+1,j,k,nnew)-u(Istr+2,j,k,nnew)
- 
-            if (dfx*dft .lt. 0.) then
-              dft=0.                       ! <-- cancel cx, if inflow
-#    if defined M3_FRC_BRY || defined M3CLIMATOLOGY
-              tau=tau_in
-            else
-              tau=tau_out
-#    endif
-            endif
- 
-            if (dft*(grad(Istr+1,j)+grad(Istr+1,j+1)) .gt. 0.) then
-              dfy=grad(Istr+1,j)
-            else
-              dfy=grad(Istr+1,j+1)
-            endif
- 
-#    ifdef OBC_COM_RAD_NORMAL
-            dfy=0.
-#    endif
-            cff=max(dfx*dfx+dfy*dfy, eps)
-            cx=dft*dfx
-#    ifdef OBC_COM_RAD_NPO
-            cy=0.
-#    else
-            cy=min(cff,max(dft*dfy,-cff))
-#    endif
- 
-            u(Istr,j,k,nnew)=( cff*u(Istr,j,k,nstp)
-     &                        +cx*u(Istr+1,j,k,nnew)
-     &                    -max(cy,0.)*grad(Istr,j  )
-     &                    -min(cy,0.)*grad(Istr,j+1)
-     &                                   )/(cff+cx)
-#    if defined M3_FRC_BRY  || defined M3CLIMATOLOGY 
-            u(Istr,j,k,nnew)=(1.-tau)*u(Istr,j,k,nnew)+tau*
-#     ifdef M3_FRC_BRY
-     &                                      ubry_west(j,k)
-#     else     
-     &                                      uclm(Istr,j,k)
-#     endif
-#    endif
-#    ifdef MASKING
-            u(Istr,j,k,nnew)=u(Istr,j,k,nnew)*umask(Istr,j)
-#    endif
-#    ifdef WET_DRY
-            u(Istr,j,k,nnew)=u(Istr,j,k,nnew)*umask_wet(Istr,j)
-#    endif
-          enddo
-        enddo
-!
-#   elif defined OBC_COM_M3SPECIFIED
+#   if defined OBC_COM_M3SPECIFIED || defined OBC_COM_M3SPECIFIED_WEST
 !                                            Western edge Specified BC
 !                                            ======= ==== ========= ==
         do k=1,N
@@ -171,6 +108,86 @@
 #    endif
           enddo
         enddo
+!
+!  Replace external mode
+!
+#  define usum grad
+        usum=0.
+        do k=1,N
+          do j=Jstr,Jend
+            usum(Istr,j)=usum(Istr,j)+u(Istr,j,k,nnew)
+     &                    *0.5*(Hz(Istr,j,k)+Hz(Istr-1,j,k))
+          enddo
+        enddo
+        do k=1,N
+          do j=Jstr,Jend
+            cff=0.5*(z_w(0,j,N)+z_w(1,j,N)-z_w(0,j,0)-z_w(1,j,0))
+            u(Istr,j,k,nnew)=u(Istr,j,k,nnew)
+     &                         +(DU_avg1(Istr,j,nnew)
+     &                         -usum(Istr,j))/cff
+#    ifdef MASKING
+     &                                 *umask(Istr,j)
+#    endif
+#    ifdef WET_DRY
+     &                             *umask_wet(Istr,j)
+#    endif
+          enddo
+        enddo
+#  undef usum
+!
+#   elif defined OBC_COM_M3ORLANSKI
+        do k=1,N                             ! Western edge radiation
+          do j=Jstr,Jend+1                   ! ======= ==== =========
+            grad(Istr  ,j)=(u(Istr  ,j,k,nstp)-u(Istr  ,j-1,k,nstp))
+#    ifdef MASKING
+     &                                                *pmask(Istr,j)
+#    endif
+            grad(Istr+1,j)=(u(Istr+1,j,k,nstp)-u(Istr+1,j-1,k,nstp))
+#    ifdef MASKING
+     &                                              *pmask(Istr+1,j)
+#    endif
+          enddo
+          do j=Jstr,Jend
+            dft=u(Istr+1,j,k,nstp)-u(Istr+1,j,k,nnew)
+            dfx=u(Istr+1,j,k,nnew)-u(Istr+2,j,k,nnew)
+            if (dfx*dft .lt. 0.) then
+              dft=0.                       ! <-- cancel cx, if inflow
+#    if defined M3_FRC_BRY || defined M3CLIMATOLOGY
+              tau=tau_in
+            else
+              tau=tau_out
+#    endif
+            endif
+            if (dft*(grad(Istr+1,j)+grad(Istr+1,j+1)) .gt. 0.) then
+              dfy=grad(Istr+1,j)
+            else
+              dfy=grad(Istr+1,j+1)
+            endif
+            cff=max(dfx*dfx+dfy*dfy, eps)
+            cx=dft*dfx
+            cy=min(cff,max(dft*dfy,-cff))
+            u(Istr,j,k,nnew)=(  cff*u(Istr,j,k,nstp)
+     &                        +cx*u(Istr+1,j,k,nnew)
+     &                    -max(cy,0.)*grad(Istr,j  )
+     &                    -min(cy,0.)*grad(Istr,j+1)
+     &                                    )/(cff+cx)
+#    if defined M3_FRC_BRY  || defined M3CLIMATOLOGY 
+            u(Istr,j,k,nnew)=(1.-tau)*u(Istr,j,k,nnew)+tau*
+#     ifdef M3_FRC_BRY
+     &                                      ubry_west(j,k)
+#     else     
+     &                                      uclm(Istr,j,k)
+#     endif
+#    endif
+#    ifdef MASKING
+            u(Istr,j,k,nnew)=u(Istr,j,k,nnew)*umask(Istr,j)
+#    endif
+#    ifdef WET_DRY
+            u(Istr,j,k,nnew)=u(Istr,j,k,nnew)*umask_wet(Istr,j)
+#    endif
+          enddo
+        enddo
+!
 #   else
 !                                            Western edge gradient BC
 !                                            ======= ==== ======== ==
@@ -182,18 +199,6 @@
 #    endif
 #    ifdef WET_DRY
      &                       *umask_wet(Istr,j)
-#    endif
-          enddo
-        enddo
-#   endif
-!
-#   ifdef MRL_WCI000
-        do k=1,N                               ! Western edge WEC
-          do j=jstr,jend                       ! ======= ==== ===
-            u(istr,j,k,nnew)=u(istr,j,k,nnew)
-     &                       -ust(istr,j,k)    ! no Lagrangian flux
-#    ifdef MASKING
-     &                       *umask(istr,j)
 #    endif
           enddo
         enddo
@@ -220,71 +225,7 @@
 !====================================================================
       if (EASTERN_EDGE) then
 #  ifdef OBC_COM_EAST
-#   ifdef OBC_COM_M3ORLANSKI
-        do k=1,N                             ! Eastern edge radiation
-          do j=Jstr,Jend+1                   ! ======= ==== =========
-            grad(Iend  ,j)=(u(Iend  ,j,k,nstp)-u(Iend  ,j-1,k,nstp))
-#    ifdef MASKING
-     &                                                *pmask(Iend,j)
-#    endif
-            grad(Iend+1,j)=(u(Iend+1,j,k,nstp)-u(Iend+1,j-1,k,nstp))
-#    ifdef MASKING
-     &                                              *pmask(Iend+1,j)
-#    endif
-          enddo
-          do j=Jstr,Jend
-            dft=u(Iend,j,k,nstp)-u(Iend  ,j,k,nnew)
-            dfx=u(Iend,j,k,nnew)-u(Iend-1,j,k,nnew)
- 
-            if (dfx*dft .lt. 0.) then
-              dft=0.                      ! <-- cancel cx, if inflow
-#    if defined M3_FRC_BRY || defined M3CLIMATOLOGY
-              tau=tau_in
-            else
-              tau=tau_out
-#    endif
-            endif
- 
-            if (dft*(grad(Iend,j)+grad(Iend,j+1)) .gt. 0.) then
-              dfy=grad(Iend,j)
-            else
-              dfy=grad(Iend,j+1)
-            endif
- 
-#    ifdef OBC_COM_RAD_NORMAL
-            dfy=0.
-#    endif
-            cff=max(dfx*dfx+dfy*dfy, eps)
-            cx=dft*dfx
-#    ifdef OBC_COM_RAD_NPO
-            cy=0.
-#    else
-            cy=min(cff,max(dft*dfy,-cff))
-#    endif
- 
-            u(Iend+1,j,k,nnew)=( cff*u(Iend+1,j,k,nstp)
-     &                              +cx*u(Iend,j,k,nnew)
-     &                      -max(cy,0.)*grad(Iend+1,j  )
-     &                      -min(cy,0.)*grad(Iend+1,j+1)
-     &                                       )/(cff+cx)
-#    if defined M3_FRC_BRY  || defined M3CLIMATOLOGY 
-            u(Iend+1,j,k,nnew)=(1.-tau)*u(Iend+1,j,k,nnew)+tau*
-#     ifdef M3_FRC_BRY
-     &                                          ubry_east(j,k)
-#     else     
-     &                                        uclm(Iend+1,j,k)
-#     endif
-#    endif
-#    ifdef MASKING
-            u(Iend+1,j,k,nnew)=u(Iend+1,j,k,nnew)*umask(Iend+1,j)
-#    endif
-#    ifdef WET_DRY
-            u(Iend+1,j,k,nnew)=u(Iend+1,j,k,nnew)*umask_wet(Iend+1,j)
-#    endif
-          enddo
-        enddo
-!
-#   elif defined OBC_COM_M3SPECIFIED
+#   if defined OBC_COM_M3SPECIFIED || defined OBC_COM_M3SPECIFIED_EAST
 !                                            Eastern edge Specified BC
 !                                            ======= ==== ========= ==
         do k=1,N
@@ -302,6 +243,60 @@
 #    endif
           enddo
         enddo
+!
+#   elif defined OBC_COM_M3ORLANSKI
+        do k=1,N                             ! Eastern edge radiation
+          do j=Jstr,Jend+1                   ! ======= ==== =========
+            grad(Iend  ,j)=(u(Iend  ,j,k,nstp)-u(Iend  ,j-1,k,nstp))
+#    ifdef MASKING
+     &                                                *pmask(Iend,j)
+#    endif
+            grad(Iend+1,j)=(u(Iend+1,j,k,nstp)-u(Iend+1,j-1,k,nstp))
+#    ifdef MASKING
+     &                                              *pmask(Iend+1,j)
+#    endif
+          enddo
+          do j=Jstr,Jend
+            dft=u(Iend,j,k,nstp)-u(Iend  ,j,k,nnew)
+            dfx=u(Iend,j,k,nnew)-u(Iend-1,j,k,nnew)
+            if (dfx*dft .lt. 0.) then
+              dft=0.                      ! <-- cancel cx, if inflow
+#    if defined M3_FRC_BRY || defined M3CLIMATOLOGY
+              tau=tau_in
+            else
+              tau=tau_out
+#    endif
+            endif
+            if (dft*(grad(Iend,j)+grad(Iend,j+1)) .gt. 0.) then
+              dfy=grad(Iend,j)
+            else
+              dfy=grad(Iend,j+1)
+            endif
+            cff=max(dfx*dfx+dfy*dfy, eps)
+            cx=dft*dfx
+            cy=min(cff,max(dft*dfy,-cff))
+            u(Iend+1,j,k,nnew)=(  cff*u(Iend+1,j,k,nstp)
+     &                              +cx*u(Iend,j,k,nnew)
+     &                      -max(cy,0.)*grad(Iend+1,j  )
+     &                      -min(cy,0.)*grad(Iend+1,j+1)
+     &                                        )/(cff+cx)
+#    if defined M3_FRC_BRY  || defined M3CLIMATOLOGY 
+            u(Iend+1,j,k,nnew)=(1.-tau)*u(Iend+1,j,k,nnew)+tau*
+#     ifdef M3_FRC_BRY
+     &                                          ubry_east(j,k)
+#     else     
+     &                                        uclm(Iend+1,j,k)
+#     endif
+#    endif
+#    ifdef MASKING
+            u(Iend+1,j,k,nnew)=u(Iend+1,j,k,nnew)*umask(Iend+1,j)
+#    endif
+#    ifdef WET_DRY
+            u(Iend+1,j,k,nnew)=u(Iend+1,j,k,nnew)*umask_wet(Iend+1,j)
+#    endif
+          enddo
+        enddo
+!
 #   else
 !                                            Eastern edge gradient BC
 !                                            ======= ==== ======== ==
@@ -313,18 +308,6 @@
 #    endif
 #    ifdef WET_DRY
      &                         *umask_wet(Iend+1,j)
-#    endif
-          enddo
-        enddo
-#   endif
-!
-#   ifdef MRL_WCI000
-        do k=1,N                                ! Eastern edge WEC
-          do j=jstr,jend                        ! ======= ==== ===
-            u(iend+1,j,k,nnew)=u(iend+1,j,k,nnew)
-     &                         -ust(iend+1,j,k) ! no Lagrangian flux
-#    ifdef MASKING
-     &                         *umask(iend+1,j)
 #    endif
           enddo
         enddo
@@ -354,64 +337,7 @@
 !====================================================================
       if (SOUTHERN_EDGE) then
 #  ifdef OBC_COM_SOUTH
-#   ifdef OBC_COM_M3ORLANSKI
-        do k=1,N                            ! Southern edge radiation
-          do i=IstrU-1,Iend                 ! ======== ==== =========
-            grad(i,Jstr-1)=u(i+1,Jstr-1,k,nstp)-u(i,Jstr-1,k,nstp)
-            grad(i,Jstr  )=u(i+1,Jstr  ,k,nstp)-u(i,Jstr  ,k,nstp)
-          enddo
-          do i=IstrU,Iend
-            dft=u(i,Jstr,k,nstp)-u(i,Jstr  ,k,nnew)
-            dfx=u(i,Jstr,k,nnew)-u(i,Jstr+1,k,nnew)
- 
-            if (dfx*dft .lt. 0.) then
-              dft=0.                       ! <-- cancel cx, if inflow
-#    if defined M3_FRC_BRY || defined M3CLIMATOLOGY
-              tau=tau_in
-            else
-              tau=tau_out
-#    endif
-            endif
- 
-            if (dft*(grad(i-1,Jstr)+grad(i,Jstr)) .gt. 0.) then
-              dfy=grad(i-1,Jstr)
-            else
-              dfy=grad(i  ,Jstr)
-            endif
- 
-#    ifdef OBC_COM_RAD_NORMAL
-            dfy=0.
-#    endif
-            cff=max(dfx*dfx+dfy*dfy, eps)
-            cx=dft*dfx
-#    ifdef OBC_COM_RAD_NPO
-            cy=0.
-#    else
-            cy=min(cff,max(dft*dfy,-cff))
-#    endif
-            u(i,Jstr-1,k,nnew)=( cff*u(i,Jstr-1,k,nstp)
-     &                              +cx*u(i,Jstr,k,nnew)
-     &                      -max(cy,0.)*grad(i-1,Jstr-1)
-     &                      -min(cy,0.)*grad(i  ,Jstr-1)
-     &                                       )/(cff+cx)
-#    if defined M3_FRC_BRY  || defined M3CLIMATOLOGY 
-           u(i,Jstr-1,k,nnew)=(1.-tau)*u(i,Jstr-1,k,nnew)
-#     ifdef M3_FRC_BRY
-     &                               +tau*ubry_south(i,k)
-#     else     
-     &                              +tau*uclm(i,Jstr-1,k)
-#     endif
-#    endif
-#    ifdef MASKING
-            u(i,Jstr-1,k,nnew)=u(i,Jstr-1,k,nnew)*umask(i,Jstr-1)
-#    endif
-#    ifdef WET_DRY
-            u(i,Jstr-1,k,nnew)=u(i,Jstr-1,k,nnew)*umask_wet(i,Jstr-1)
-#    endif
-          enddo
-        enddo
-!
-#   elif defined OBC_COM_M3SPECIFIED
+#   if defined OBC_COM_M3SPECIFIED || defined OBC_COM_M3SPECIFIED_SOUTH
 !                                           Southern edge Specified BC
 !                                           ======== ==== ========= ==
         do k=1,N
@@ -429,6 +355,54 @@
 #    endif
           enddo
         enddo
+!
+#   elif defined OBC_COM_M3ORLANSKI
+        do k=1,N                            ! Southern edge radiation
+          do i=IstrU-1,Iend                 ! ======== ==== =========
+            grad(i,Jstr-1)=u(i+1,Jstr-1,k,nstp)-u(i,Jstr-1,k,nstp)
+            grad(i,Jstr  )=u(i+1,Jstr  ,k,nstp)-u(i,Jstr  ,k,nstp)
+          enddo
+          do i=IstrU,Iend
+            dft=u(i,Jstr,k,nstp)-u(i,Jstr  ,k,nnew)
+            dfx=u(i,Jstr,k,nnew)-u(i,Jstr+1,k,nnew)
+            if (dfx*dft .lt. 0.) then
+              dft=0.                       ! <-- cancel cx, if inflow
+#    if defined M3_FRC_BRY || defined M3CLIMATOLOGY
+              tau=tau_in
+            else
+              tau=tau_out
+#    endif
+            endif
+            if (dft*(grad(i-1,Jstr)+grad(i,Jstr)) .gt. 0.) then
+              dfy=grad(i-1,Jstr)
+            else
+              dfy=grad(i  ,Jstr)
+            endif
+            cff=max(dfx*dfx+dfy*dfy, eps)
+            cx=dft*dfx
+            cy=min(cff,max(dft*dfy,-cff))
+            u(i,Jstr-1,k,nnew)=(  cff*u(i,Jstr-1,k,nstp)
+     &                              +cx*u(i,Jstr,k,nnew)
+     &                      -max(cy,0.)*grad(i-1,Jstr-1)
+     &                      -min(cy,0.)*grad(i  ,Jstr-1)
+     &                                        )/(cff+cx)
+#    if defined M3_FRC_BRY  || defined M3CLIMATOLOGY 
+           u(i,Jstr-1,k,nnew)=(1.-tau)*u(i,Jstr-1,k,nnew)
+#     ifdef M3_FRC_BRY
+     &                               +tau*ubry_south(i,k)
+#     else     
+     &                              +tau*uclm(i,Jstr-1,k)
+#     endif
+#    endif
+#    ifdef MASKING
+            u(i,Jstr-1,k,nnew)=u(i,Jstr-1,k,nnew)*umask(i,Jstr-1)
+#    endif
+#    ifdef WET_DRY
+            u(i,Jstr-1,k,nnew)=u(i,Jstr-1,k,nnew)*umask_wet(i,Jstr-1)
+#    endif
+          enddo
+        enddo
+!
 #   else
 !                                           Southern edge gradient BC
 !                                           ======== ==== ======== ==
@@ -467,65 +441,7 @@
 !====================================================================
       if (NORTHERN_EDGE) then
 #  ifdef OBC_COM_NORTH
-#   ifdef OBC_COM_M3ORLANSKI
-        do k=1,N                            ! Northern edge radiation
-          do i=IstrU-1,Iend                 ! ======== ==== =========
-            grad(i,Jend  )=u(i+1,Jend  ,k,nstp)-u(i,Jend  ,k,nstp)
-            grad(i,Jend+1)=u(i+1,Jend+1,k,nstp)-u(i,Jend+1,k,nstp)
-          enddo
-          do i=IstrU,Iend
-            dft=u(i,Jend,k,nstp)-u(i,Jend  ,k,nnew)
-            dfx=u(i,Jend,k,nnew)-u(i,Jend-1,k,nnew)
- 
-            if (dfx*dft .lt. 0.) then
-              dft=0.                                 ! <-- INFLOW
-#    if defined M3_FRC_BRY || defined M3CLIMATOLOGY
-              tau=tau_in
-            else
-              tau=tau_out
-#    endif
-            endif
- 
-            if (dft*(grad(i-1,Jend)+grad(i,Jend)) .gt. 0.) then
-              dfy=grad(i-1,Jend)
-            else
-              dfy=grad(i  ,Jend)
-            endif
- 
-#    ifdef OBC_COM_RAD_NORMAL
-            dfy=0.
-#    endif
-            cff=max(dfx*dfx+dfy*dfy, eps)
-            cx=dft*dfx
-#    ifdef OBC_COM_RAD_NPO
-            cy=0.
-#    else
-            cy=min(cff,max(dft*dfy,-cff))
-#    endif
- 
-            u(i,Jend+1,k,nnew)=( cff*u(i,Jend+1,k,nstp)
-     &                              +cx*u(i,Jend,k,nnew)
-     &                      -max(cy,0.)*grad(i-1,Jend+1)
-     &                      -min(cy,0.)*grad(i  ,Jend+1)
-     &                                       )/(cff+cx)
-#    if defined M3_FRC_BRY  || defined M3CLIMATOLOGY 
-            u(i,Jend+1,k,nnew)=(1.-tau)*u(i,Jend+1,k,nnew)
-#     ifdef M3_FRC_BRY
-     &                                +tau*ubry_north(i,k)
-#     else     
-     &                               +tau*uclm(i,Jend+1,k)
-#     endif
-#    endif
-#    ifdef MASKING
-            u(i,Jend+1,k,nnew)=u(i,Jend+1,k,nnew)*umask(i,Jend+1)
-#    endif
-#    ifdef WET_DRY
-            u(i,Jend+1,k,nnew)=u(i,Jend+1,k,nnew)*umask_wet(i,Jend+1)
-#    endif
-          enddo
-        enddo
-!
-#   elif defined OBC_COM_M3SPECIFIED
+#   if defined OBC_COM_M3SPECIFIED || defined OBC_COM_M3SPECIFIED_NORTH
 !                                           Northern edge Specified BC
 !                                           ======== ==== ========= ==
         do k=1,N
@@ -543,6 +459,54 @@
 #    endif
           enddo
         enddo
+!
+#   elif defined OBC_COM_M3ORLANSKI
+        do k=1,N                            ! Northern edge radiation
+          do i=IstrU-1,Iend                 ! ======== ==== =========
+            grad(i,Jend  )=u(i+1,Jend  ,k,nstp)-u(i,Jend  ,k,nstp)
+            grad(i,Jend+1)=u(i+1,Jend+1,k,nstp)-u(i,Jend+1,k,nstp)
+          enddo
+          do i=IstrU,Iend
+            dft=u(i,Jend,k,nstp)-u(i,Jend  ,k,nnew)
+            dfx=u(i,Jend,k,nnew)-u(i,Jend-1,k,nnew)
+            if (dfx*dft .lt. 0.) then
+              dft=0.                                 ! <-- INFLOW
+#    if defined M3_FRC_BRY || defined M3CLIMATOLOGY
+              tau=tau_in
+            else
+              tau=tau_out
+#    endif
+            endif
+            if (dft*(grad(i-1,Jend)+grad(i,Jend)) .gt. 0.) then
+              dfy=grad(i-1,Jend)
+            else
+              dfy=grad(i  ,Jend)
+            endif
+            cff=max(dfx*dfx+dfy*dfy, eps)
+            cx=dft*dfx
+            cy=min(cff,max(dft*dfy,-cff))
+            u(i,Jend+1,k,nnew)=(  cff*u(i,Jend+1,k,nstp)
+     &                              +cx*u(i,Jend,k,nnew)
+     &                      -max(cy,0.)*grad(i-1,Jend+1)
+     &                      -min(cy,0.)*grad(i  ,Jend+1)
+     &                                        )/(cff+cx)
+#    if defined M3_FRC_BRY  || defined M3CLIMATOLOGY 
+            u(i,Jend+1,k,nnew)=(1.-tau)*u(i,Jend+1,k,nnew)
+#     ifdef M3_FRC_BRY
+     &                                +tau*ubry_north(i,k)
+#     else     
+     &                               +tau*uclm(i,Jend+1,k)
+#     endif
+#    endif
+#    ifdef MASKING
+            u(i,Jend+1,k,nnew)=u(i,Jend+1,k,nnew)*umask(i,Jend+1)
+#    endif
+#    ifdef WET_DRY
+            u(i,Jend+1,k,nnew)=u(i,Jend+1,k,nnew)*umask_wet(i,Jend+1)
+#    endif
+          enddo
+        enddo
+!
 #   else
 !                                           Northern edge gradient BC
 !                                           ======== ==== ======== ==

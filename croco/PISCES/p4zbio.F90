@@ -66,8 +66,8 @@ CONTAINS
          END DO
       END DO
 
-      CALL p4z_sink ( kt, jnt )     ! vertical flux of particulate organic matter
       CALL p4z_opt  ( kt, jnt )     ! Optic: PAR in the water column
+      CALL p4z_sink ( kt, jnt )     ! vertical flux of particulate organic matter
       CALL p4z_lim  ( kt, jnt )     ! co-limitations by the various nutrients
       CALL p4z_prod ( kt, jnt )     ! phytoplankton growth rate over the global ocean. 
       !                             ! (for each element : C, Si, Fe, Chl )

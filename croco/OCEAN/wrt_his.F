@@ -15,11 +15,16 @@
                                ! into history netCDF file.
 !     implicit none
       integer ierr,  record, lstr, lvar, lenstr, type
-     &   , start(2), count(2), ibuff(4), nf_fwrite, cff
+     &   , start(2), count(2), nf_fwrite, cff
+#ifdef OUTPUTS_SURFACE
+     &   , ibuff(6)
+#else
+     &   , ibuff(4)
+#endif
       real eps
       parameter (eps=1.D-20)
       real stf_cff
-      parameter(stf_cff=86400/0.01)
+      parameter(stf_cff=86400./0.01)
 #ifdef SOLVE3D
       integer tile, itrc,i,j,k
 #endif
@@ -90,8 +95,12 @@ CR      write(*,*) 'wrt_his: Entry  ' MYID
 !     Time step number and record numbers.
 !
       type=filetype_his
-!     
-      ibuff(1)=iic
+!
+      if (iic .eq. 0) then
+        ibuff(1)=iic+ntstart
+      else
+        ibuff(1)=iic
+      endif
       ibuff(2)=nrecrst
       ibuff(3)=nrechis
 #ifdef AVERAGES
@@ -105,10 +114,31 @@ CR      write(*,*) 'wrt_his: Entry  ' MYID
       count(2)=1
       ierr=nf_put_vara_int (ncidhis, hisTstep, start, count, ibuff)
       if (ierr .ne. nf_noerr) then
-         write(stdout,1) 'time_step', record, ierr
+         MPI_master_only write(stdout,1) 'time_step', record, ierr
      &        MYID
          goto 99                !--> ERROR
       endif
+
+
+#ifdef OUTPUTS_SURFACE
+      count(1)=6
+      ibuff(5)=nrecsurf
+#ifdef AVERAGES
+      ibuff(6)=nrecsurf_avg
+#else
+      ibuff(6)=0
+#endif
+      start(1)=1
+      start(2)=record
+      count(2)=1
+      ierr=nf_put_vara_int (ncidhis, hisTstep, start, count, ibuff)
+      if (ierr .ne. nf_noerr) then
+         MPI_master_only write(stdout,1)
+     &        'time_step_surf', record, ierr
+     &        MYID
+      endif
+#endif
+
 CR      write(*,*) 'wrt_his:  time  ' MYID
 !     
 !     Time
@@ -116,7 +146,8 @@ CR      write(*,*) 'wrt_his:  time  ' MYID
       ierr=nf_put_var1_FTYPE (ncidhis, hisTime, record, time)
       if (ierr .ne. nf_noerr) then
          lvar=lenstr(vname(1,indxTime))
-         write(stdout,1) vname(1,indxTime)(1:lvar), record, ierr
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxTime)(1:lvar), record, ierr
      &        MYID
          goto 99                !--> ERROR
       endif
@@ -127,7 +158,8 @@ CR      write(*,*) 'wrt_his:  time  ' MYID
       ierr=nf_put_var1_FTYPE (ncidhis, hisTime2, record, time)
       if (ierr .ne. nf_noerr) then
          lvar=lenstr(vname(1,indxTime2))
-         write(stdout,1) vname(1,indxTime2)(1:lvar), record, ierr
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxTime2)(1:lvar), record, ierr
      &        MYID
          goto 99                !--> ERROR
       endif
@@ -204,7 +236,8 @@ CR      write(*,*) 'wrt_his:  bostr' MYID
          ierr=nf_fwrite(work2d2, ncidhis, hisWstr, record, r2dvar)
          if (ierr .ne. nf_noerr) then
             lvar=lenstr(vname(1,indxWstr))
-            write(stdout,1) vname(1,indxWstr)(1:lvar), record, ierr
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxWstr)(1:lvar), record, ierr
      &           MYID
             goto 99             !--> ERROR
          endif
@@ -218,7 +251,8 @@ CR      write(*,*) 'wrt_his:  Wstr' MYID
          ierr=nf_fwrite(work2d, ncidhis, hisUWstr, record, u2dvar)
          if (ierr .ne. nf_noerr) then
             lvar=lenstr(vname(1,indxUWstr))
-            write(stdout,1) vname(1,indxUWstr)(1:lvar), record, ierr
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxUWstr)(1:lvar), record, ierr
      &           MYID
             goto 99             !--> ERROR
          endif
@@ -232,7 +266,8 @@ CR      write(*,*) 'wrt_his:  UWstr' MYID
          ierr=nf_fwrite(work2d,ncidhis,hisVWstr,record,v2dvar)
          if (ierr .ne. nf_noerr) then
             lvar=lenstr(vname(1,indxVWstr))
-            write(stdout,1) vname(1,indxVWstr)(1:lvar), record, ierr
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxVWstr)(1:lvar), record, ierr
      &           MYID
             goto 99             !--> ERROR
          endif
@@ -245,7 +280,8 @@ CR      write(*,*) 'wrt_his:  VWstr' MYID
      &                                   hisWAVE(1), record, r2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxHRM))
-          write(stdout,1) vname(1,indxHRM)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxHRM)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -256,7 +292,8 @@ CR      write(*,*) 'wrt_his:  wrtHrm' MYID
      &                                   hisWAVE(2), record, r2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxFRQ))
-          write(stdout,1) vname(1,indxFRQ)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxFRQ)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -268,7 +305,8 @@ CR      write(*,*) 'wrt_his:  wrtFrq' MYID
      &                                   hisWAVE(3), record, r2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxWAC))
-          write(stdout,1) vname(1,indxWAC)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxWAC)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -280,7 +318,8 @@ CR      write(*,*) 'wrt_his:  wrtWac' MYID
      &                                   hisWAVE(4), record, r2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxWKX))
-          write(stdout,1) vname(1,indxWKX)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxWKX)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -291,7 +330,8 @@ CR      write(*,*) 'wrt_his:  wrtWkx' MYID
      &                                   hisWAVE(5), record, r2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxWKE))
-          write(stdout,1) vname(1,indxWKE)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxWKE)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -302,7 +342,8 @@ CR      write(*,*) 'wrt_his:  wrtWke' MYID
      &                                   hisWAVE(6), record, r2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxEPB))
-          write(stdout,1) vname(1,indxEPB)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxEPB)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -313,7 +354,8 @@ CR      write(*,*) 'wrt_his:  wrtEpb' MYID
      &                                   hisWAVE(7), record, r2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxEPD))
-          write(stdout,1) vname(1,indxEPD)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxEPD)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -326,7 +368,8 @@ CR      write(*,*) 'wrt_his:  wrtEpd' MYID
      &                                   hisWAVE(8), record, r2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxWAR))
-          write(stdout,1) vname(1,indxWAR)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxWAR)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -338,7 +381,8 @@ CR      write(*,*) 'wrt_his:  wrtWar' MYID
      &                                   hisWAVE(9), record, r2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxEPR))
-          write(stdout,1) vname(1,indxEPR)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxEPR)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -355,7 +399,8 @@ CR      write(*,*) 'wrt_his:  wrtEpr' MYID
         ierr=nf_fwrite (sup, ncidhis, hisSUP, record, r2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxSUP))
-          write(stdout,1) vname(1,indxSUP)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxSUP)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -366,7 +411,8 @@ CR      write(*,*) 'wrt_his:  wrtSup' MYID
         ierr=nf_fwrite (ust2d, ncidhis, hisUST2D, record, u2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxUST2D))
-          write(stdout,1) vname(1,indxUST2D)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxUST2D)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -377,7 +423,8 @@ CR      write(*,*) 'wrt_his:  wrtUst2D' MYID
         ierr=nf_fwrite (vst2d, ncidhis, hisVST2D, record, v2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxVST2D))
-          write(stdout,1) vname(1,indxVST2D)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxVST2D)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -389,7 +436,8 @@ CR      write(*,*) 'wrt_his:  wrtVst2D' MYID
         ierr=nf_fwrite (ust, ncidhis, hisUST,  record,  u3dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxUST))
-          write(stdout,1) vname(1,indxUST)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxUST)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -400,7 +448,8 @@ CR      write(*,*) 'wrt_his:  wrtUst' MYID
         ierr=nf_fwrite (vst, ncidhis, hisVST,  record,  v3dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxVST))
-          write(stdout,1) vname(1,indxVST)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxVST)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -414,7 +463,8 @@ CR      write(*,*) 'wrt_his:  wrtVst' MYID
         ierr=nf_fwrite (wst, ncidhis, hisWST, record, r3dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxWST))
-          write(stdout,1) vname(1,indxWST)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxWST)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -425,7 +475,8 @@ CR      write(*,*) 'wrt_his:  wrtWst' MYID
         ierr=nf_fwrite (Akb, ncidhis, hisAkb, record, w3dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxAkb))
-          write(stdout,1) vname(1,indxAkb)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxAkb)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -435,7 +486,8 @@ CR      write(*,*) 'wrt_his:  wrtAkb' MYID
         ierr=nf_fwrite (Akw, ncidhis, hisAkw, record, w3dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxAkw))
-          write(stdout,1) vname(1,indxAkw)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxAkw)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -446,7 +498,8 @@ CR      write(*,*) 'wrt_his:  wrtAkw' MYID
         ierr=nf_fwrite (kvf, ncidhis, hisKVF, record, r3dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxKVF))
-          write(stdout,1) vname(1,indxKVF)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxKVF)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -457,7 +510,8 @@ CR      write(*,*) 'wrt_his:  wrtKvf' MYID
         ierr=nf_fwrite (calP, ncidhis, hisCALP, record, r2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxCALP))
-          write(stdout,1) vname(1,indxCALP)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxCALP)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -467,7 +521,8 @@ CR      write(*,*) 'wrt_his:  wrtCalp' MYID
         ierr=nf_fwrite (Kapsrf, ncidhis, hisKAPS, record, r2dvar)
         if (ierr .ne. nf_noerr) then
           lvar=lenstr(vname(1,indxKAPS))
-          write(stdout,1) vname(1,indxKAPS)(1:lvar), record, ierr,
+         MPI_master_only write(stdout,1)
+     &        vname(1,indxKAPS)(1:lvar), record, ierr,
      &                    nf_strerror(ierr) MYID
           goto 99                                         !--> ERROR
         endif
@@ -711,7 +766,8 @@ CR      write(*,*) 'wrt_his:  wrtLsc' MYID
          ierr=nf_fwrite(work2d, ncidhis, hisShflx, record, r2dvar)
          if (ierr .ne. nf_noerr) then
             lvar=lenstr(vname(1,indxShflx))
-            write(stdout,1) vname(1,indxShflx)(1:lvar), record, ierr
+           MPI_master_only write(stdout,1)
+     &        vname(1,indxShflx)(1:lvar), record, ierr
      &           MYID
             goto 99             !--> ERROR
          endif
@@ -736,7 +792,8 @@ CR      write(*,*) 'wrt_his:  stflx(:,:,itemp)' MYID
          ierr=nf_fwrite(work2d, ncidhis, hisSwflx, record, r2dvar)
          if (ierr .ne. nf_noerr) then
             lvar=lenstr(vname(1,indxSwflx))
-            write(stdout,1) vname(1,indxSwflx)(1:lvar), record, ierr
+           MPI_master_only write(stdout,1)
+     &        vname(1,indxSwflx)(1:lvar), record, ierr
      &           MYID
             goto 99             !--> ERROR
          endif
@@ -757,7 +814,8 @@ CR      write(*,*) 'wrt_his:  stflx(:,:,isalt)' MYID
 # endif
          if (ierr .ne. nf_noerr) then
             lvar=lenstr(vname(1,indxShflx_rsw))
-            write(stdout,1) vname(1,indxShflx_rsw)(1:lvar), 
+           MPI_master_only write(stdout,1)
+     &        vname(1,indxShflx_rsw)(1:lvar), 
      &           record, ierr
      &           MYID
             goto 99             !--> ERROR
@@ -770,7 +828,8 @@ CR      write(*,*) 'wrt_his:  stflx(:,:,isalt)' MYID
      &        r2dvar)
          if (ierr .ne. nf_noerr) then
             lvar=lenstr(vname(1,indxShflx_rlw))
-            write(stdout,1) vname(1,indxShflx_rlw)(1:lvar), 
+           MPI_master_only write(stdout,1)
+     &        vname(1,indxShflx_rlw)(1:lvar), 
      &           record, ierr
      &           MYID
             goto 99             !--> ERROR
@@ -783,7 +842,8 @@ CR      write(*,*) 'wrt_his:  stflx(:,:,isalt)' MYID
      &        r2dvar)
          if (ierr .ne. nf_noerr) then
             lvar=lenstr(vname(1,indxShflx_lat))
-            write(stdout,1) vname(1,indxShflx_lat)(1:lvar), 
+           MPI_master_only write(stdout,1)
+     &        vname(1,indxShflx_lat)(1:lvar), 
      &           record, ierr
      &           MYID
             goto 99             !--> ERROR
@@ -796,7 +856,8 @@ CR      write(*,*) 'wrt_his:  stflx(:,:,isalt)' MYID
      &        r2dvar)
          if (ierr .ne. nf_noerr) then
             lvar=lenstr(vname(1,indxShflx_sen))
-            write(stdout,1) vname(1,indxShflx_sen)(1:lvar), 
+           MPI_master_only write(stdout,1)
+     &        vname(1,indxShflx_sen)(1:lvar), 
      &           record, ierr
      &           MYID
             goto 99             !--> ERROR

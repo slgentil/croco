@@ -97,8 +97,77 @@
 #  ifdef NS_PERIODIC
 #   define NS_COM_PERIODIC
 #  endif
-#else
+/* SPECIFIED OBC AT SELECTED BOUNDARY*/
+#  ifdef OBC_SPECIFIED_WEST
+#   if defined Z_FRC_BRY || defined ZCLIMATOLOGY
+#    define OBC_COM_ZSPECIFIED_WEST
+#   endif
+#   if defined M2_FRC_BRY || defined M2CLIMATOLOGY
+#    define OBC_COM_M2SPECIFIED_WEST
+#   endif
+#   if defined M3_FRC_BRY || defined M3CLIMATOLOGY
+#    define OBC_COM_M3SPECIFIED_WEST
+#   endif
+#   if defined T_FRC_BRY || defined TCLIMATOLOGY
+#    define OBC_COM_TSPECIFIED_WEST
+#   endif
+#   if defined NBQ_FRC_BRY || defined NBQCLIMATOLOGY
+#    define OBC_COM_NBQSPECIFIED_WEST
+#   endif
+#  endif
+#  ifdef OBC_SPECIFIED_EAST
+#   if defined Z_FRC_BRY || defined ZCLIMATOLOGY
+#    define OBC_COM_ZSPECIFIED_EAST
+#   endif
+#   if defined M2_FRC_BRY || defined M2CLIMATOLOGY
+#    define OBC_COM_M2SPECIFIED_EAST
+#   endif
+#   if defined M3_FRC_BRY || defined M3CLIMATOLOGY
+#    define OBC_COM_M3SPECIFIED_EAST
+#   endif
+#   if defined T_FRC_BRY || defined TCLIMATOLOGY
+#    define OBC_COM_TSPECIFIED_EAST
+#   endif
+#   if defined NBQ_FRC_BRY || defined NBQCLIMATOLOGY
+#    define OBC_COM_NBQSPECIFIED_EAST
+#   endif
+#  endif
+#  ifdef OBC_SPECIFIED_SOUTH
+#   if defined Z_FRC_BRY || defined ZCLIMATOLOGY
+#    define OBC_COM_ZSPECIFIED_SOUTH
+#   endif
+#   if defined M2_FRC_BRY || defined M2CLIMATOLOGY
+#    define OBC_COM_M2SPECIFIED_SOUTH
+#   endif
+#   if defined M3_FRC_BRY || defined M3CLIMATOLOGY
+#    define OBC_COM_M3SPECIFIED_SOUTH
+#   endif
+#   if defined T_FRC_BRY || defined TCLIMATOLOGY
+#    define OBC_COM_TSPECIFIED_SOUTH
+#   endif
+#   if defined NBQ_FRC_BRY || defined NBQCLIMATOLOGY
+#    define OBC_COM_NBQSPECIFIED_SOUTH
+#   endif
+#  endif
+#  ifdef OBC_SPECIFIED_NORTH
+#   if defined Z_FRC_BRY || defined ZCLIMATOLOGY
+#    define OBC_COM_ZSPECIFIED_NORTH
+#   endif
+#   if defined M2_FRC_BRY || defined M2CLIMATOLOGY
+#    define OBC_COM_M2SPECIFIED_NORTH
+#   endif
+#   if defined M3_FRC_BRY || defined M3CLIMATOLOGY
+#    define OBC_COM_M3SPECIFIED_NORTH
+#   endif
+#   if defined T_FRC_BRY || defined TCLIMATOLOGY
+#    define OBC_COM_TSPECIFIED_NORTH
+#   endif
+#   if defined NBQ_FRC_BRY || defined NBQCLIMATOLOGY
+#    define OBC_COM_NBQSPECIFIED_NORTH
+#   endif
+#  endif
 
+#else
 /* CHILD OBC DEFINITIONS */
 
 #  ifdef AGRIF_OBC_EAST

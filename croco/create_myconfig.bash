@@ -107,16 +107,20 @@ if [[ $copy_tag == 1 ]] ; then
     cp -Rf $SOURCES_DIR/$DIRO/croco_hindcast.in Misc/
     cp -Rf $SOURCES_DIR/$DIRO/croco_stations.in Misc/
     
+    #PISCES
+    cp -Rf $SOURCES_DIR/PISCES/namelist_pisces .
+
     # XIOS
     DIRO='XIOS'
+    cp -Rf $SOURCES_DIR/$DIRO/iodef.xml .
     cp -Rf $SOURCES_DIR/$DIRO/domain_def.xml .
     cp -Rf $SOURCES_DIR/$DIRO/field_def.xml_full . 
     cp -Rf $SOURCES_DIR/$DIRO/xios_launch.file .
     cp -Rf $SOURCES_DIR/$DIRO/README_XIOS .
 
     # TEST_CASE + NAMELIST_OANALYSIS
-    cp -Rf $SOURCES_DIR/Run/TEST_CASES TEST_CASES
-    cp -Rf $SOURCES_DIR/Run/NAMELIST_OANALYSIS NAMELIST_OANALYSIS
+    cp -Rf $SOURCES_DIR/Run/TEST_CASES .
+    cp -Rf $SOURCES_DIR/Run/NAMELIST_OANALYSIS .
     cp -Rf $SOURCES_DIR/Run/Plurimonths_scripts/*.bash .
     
     echo '=> Copy from '$SOURCES_DIR ' done'

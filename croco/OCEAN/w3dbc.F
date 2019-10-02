@@ -82,7 +82,26 @@
 !====================================================================
       if (WESTERN_EDGE) then
 #  ifdef OBC_COM_WEST
-#   ifdef OBC_COM_M3ORLANSKI
+#   if defined OBC_COM_WSPECIFIED || defined OBC_COM_WSPECIFIED_WEST
+!                                            Western edge Specified BC
+!                                            ======= ==== ========= ==
+        do k=0,N
+          do j=Jstr,Jend
+#    ifdef W_FRC_BRY
+            wz(Istr-1,j,k,nnew)=wbry_west(j,k)
+#    else
+            wz(Istr-1,j,k,nnew)=wclm(Istr-1,j,k)
+#    endif
+#    ifdef MASKING
+     &                         *rmask(Istr-1,j)
+#    endif
+#    ifdef WET_DRY
+     &                         *rmask_wet(Istr-1,j)
+#    endif
+         enddo
+        enddo
+!
+#   elif defined OBC_COM_M3ORLANSKI
 !                                           Western edge radiation BC
 !                                           ======= ==== ========= ==
         do k=0,N
@@ -101,7 +120,6 @@
           do j=Jstr,Jend
             dft=wz(Istr,j,k,nstp)-wz(Istr  ,j,k,nnew)
             dfx=wz(Istr,j,k,nnew)-wz(Istr+1,j,k,nnew)
- 
             if (dfx*dft .lt. 0.) then
               dft=0.                  ! <-- cancel, if inflow 
 #    if defined W_FRC_BRY || defined WCLIMATOLOGY
@@ -110,28 +128,19 @@
               tau=tau_out
 #    endif
             endif
- 
             if (dft*(grad(Istr,j)+grad(Istr,j+1)) .gt. 0.) then
               dfy=grad(Istr,j)
             else
               dfy=grad(Istr,j+1)
             endif
- 
-#    ifdef OBC_COM_RAD_NORMAL
-            dfy=0.
-#    endif
             cff=max(dfx*dfx+dfy*dfy, eps)
             cx=dft*dfx
-#    ifdef OBC_COM_RAD_NPO
-            cy=0.
-#    else
             cy=min(cff,max(dft*dfy,-cff))
-#    endif
             wz(Istr-1,j,k,nnew)=( cff*wz(Istr-1,j  ,k,nstp)
      &                            +cx*wz(Istr  ,j  ,k,nnew)
      &                  -max(cy,0.)*grad(Istr-1,j  )
      &                  -min(cy,0.)*grad(Istr-1,j+1)
-     &                                                 )/(cff+cx)
+     &                                           )/(cff+cx)
 #    if defined W_FRC_BRY || defined WCLIMATOLOGY
             wz(Istr-1,j,k,nnew)=(1.-tau)*wz(Istr-1,j,k,nnew)
 #     ifdef W_FRC_BRY
@@ -147,24 +156,6 @@
             wz(Istr-1,j,k,nnew)=wz(Istr-1,j,k,nnew)*rmask_wet(Istr-1,j)
 #    endif
           enddo
-        enddo
-#   elif defined OBC_COM_WSPECIFIED
-!                                            Western edge Specified BC
-!                                            ======= ==== ========= ==
-        do k=0,N
-          do j=Jstr,Jend
-#    ifdef W_FRC_BRY
-            wz(Istr-1,j,k,nnew)=wbry_west(j,k)
-#    else
-            wz(Istr-1,j,k,nnew)=wclm(Istr-1,j,k)
-#    endif
-#    ifdef MASKING
-     &                         *rmask(Istr-1,j)
-#    endif
-#    ifdef WET_DRY
-     &                         *rmask_wet(Istr-1,j)
-#    endif
-         enddo
         enddo
 #   else
         do k=0,N
@@ -185,7 +176,7 @@
 #  else           /* alternative to open */
         do k=0,N                               ! Western edge closed
           do j=jstr,jend                       ! ======= ==== ======
-            wz(Istr-1,j,k,nnew)= wz(Istr,j,k,nnew)            !  (no-flux: default)
+            wz(Istr-1,j,k,nnew)= wz(Istr,j,k,nnew) !  (no-flux: default)
           enddo
         enddo
 
@@ -197,7 +188,25 @@
 !====================================================================
       if (EASTERN_EDGE) then
 #  ifdef OBC_COM_EAST
-#   ifdef OBC_COM_M3ORLANSKI
+#   if defined OBC_COM_WSPECIFIED || defined OBC_COM_WSPECIFIED_EAST
+!                                            Eastern edge Specified BC
+!                                            ======= ==== ========= ==
+        do k=0,N
+          do j=Jstr,Jend
+#    ifdef W_FRC_BRY
+            wz(Iend+1,j,k,nnew)=wbry_east(j,k)
+#    else
+            wz(Iend+1,j,k,nnew)=wclm(Iend+1,j,k)
+#    endif
+#    ifdef MASKING
+     &                         *rmask(Iend+1,j)
+#    endif
+#    ifdef WET_DRY
+     &                         *rmask_wet(Iend+1,j)
+#    endif
+          enddo
+        enddo
+#   elif defined OBC_COM_M3ORLANSKI
 !                                           Eastern edge radiation BC
 !                                           ======= ==== ========= ==
         do k=0,N
@@ -216,7 +225,6 @@
           do j=Jstr,Jend
             dft=wz(Iend,j,k,nstp)-wz(Iend  ,j,k,nnew)
             dfx=wz(Iend,j,k,nnew)-wz(Iend-1,j,k,nnew)
- 
             if (dfx*dft .lt. 0.) then
               dft=0.                  ! <-- cancel, if inflow 
 #    if defined W_FRC_BRY || defined WCLIMATOLOGY
@@ -225,29 +233,19 @@
               tau=tau_out
 #    endif
             endif
- 
             if (dft*(grad(Iend,j)+grad(Iend,j+1)) .gt. 0.) then
               dfy=grad(Iend,j)
             else
               dfy=grad(Iend,j+1)
             endif
- 
-#    ifdef OBC_COM_RAD_NORMAL
-            dfy=0.
-#    endif
             cff=max(dfx*dfx+dfy*dfy, eps)
             cx=dft*dfx
-#    ifdef OBC_COM_RAD_NPO
-            cy=0.
-#    else
             cy=min(cff,max(dft*dfy,-cff))
-#    endif
- 
             wz(Iend+1,j,k,nnew)=( cff*wz(Iend+1,j  ,k,nstp)
      &                            +cx*wz(Iend  ,j  ,k,nnew)
      &                  -max(cy,0.)*grad(Iend+1,j  )
      &                  -min(cy,0.)*grad(Iend+1,j+1)
-     &                                                 )/(cff+cx)
+     &                                           )/(cff+cx)
 #    if defined W_FRC_BRY || defined WCLIMATOLOGY
             wz(Iend+1,j,k,nnew)=(1.-tau)*wz(Iend+1,j,k,nnew)
 #     ifdef W_FRC_BRY
@@ -261,24 +259,6 @@
 #    endif
 #    ifdef WET_DRY
             wz(Iend+1,j,k,nnew)=wz(Iend+1,j,k,nnew)*rmask_wet(Iend+1,j)
-#    endif
-          enddo
-        enddo
-#   elif defined OBC_COM_WSPECIFIED
-!                                            Eastern edge Specified BC
-!                                            ======= ==== ========= ==
-        do k=0,N
-          do j=Jstr,Jend
-#    ifdef W_FRC_BRY
-            wz(Iend+1,j,k,nnew)=wbry_east(j,k) 
-#    else
-            wz(Iend+1,j,k,nnew)=wclm(Iend+1,j,k)
-#    endif
-#    ifdef MASKING
-     &                         *rmask(Iend+1,j)
-#    endif
-#    ifdef WET_DRY
-     &                         *rmask_wet(Iend+1,j)
 #    endif
           enddo
         enddo
@@ -315,7 +295,25 @@
 !====================================================================
       if (SOUTHERN_EDGE) then
 #  ifdef OBC_COM_SOUTH
-#   ifdef OBC_COM_M3ORLANSKI
+#   if defined OBC_COM_WSPECIFIED || defined OBC_COM_WSPECIFIED_SOUTH
+!                                           Southern edge Specified BC
+!                                           ======== ==== ========= ==
+        do k=0,N
+          do i=Istr,Iend
+#    ifdef W_FRC_BRY
+            wz(i,Jstr-1,k,nnew)=wbry_south(i,k)
+#    else
+            wz(i,Jstr-1,k,nnew)=wclm(i,Jstr-1,k)
+#    endif
+#    ifdef MASKING
+     &                         *rmask(i,Jstr-1)
+#    endif
+#    ifdef WET_DRY
+     &                         *rmask_wet(i,Jstr-1)
+#    endif
+          enddo
+        enddo
+#   elif defined OBC_COM_M3ORLANSKI
 !                                          Southern edge radiation BC
 !                                          ======== ==== ========= ==
         do k=0,N
@@ -334,7 +332,6 @@
           do i=Istr,Iend
             dft=wz(i,Jstr,k,nstp)-wz(i,Jstr  ,k,nnew)
             dfx=wz(i,Jstr,k,nnew)-wz(i,Jstr+1,k,nnew)
- 
             if (dfx*dft .lt. 0.) then
               dft=0.                   ! <-- cancel, if inflow 
 #    if defined W_FRC_BRY || defined WCLIMATOLOGY
@@ -343,29 +340,19 @@
               tau=tau_out
 #    endif
             endif
- 
             if (dft*(grad(i,Jstr)+grad(i+1,Jstr)) .gt. 0.) then
               dfy=grad(i,Jstr)
             else
               dfy=grad(i+1,Jstr)
             endif
- 
-#    ifdef OBC_COM_RAD_NORMAL
-            dfy=0.
-#    endif
             cff=max(dfx*dfx+dfy*dfy, eps)
             cx=dft*dfx
-#    ifdef OBC_COM_RAD_NPO
-            cy=0.
-#    else
             cy=min(cff,max(dft*dfy,-cff))
-#    endif
- 
             wz(i,Jstr-1,k,nnew)=( cff*wz(i  ,Jstr-1,k,nstp)
      &                            +cx*wz(i  ,Jstr  ,k,nnew)
      &                  -max(cy,0.)*grad(i  ,Jstr-1)
      &                  -min(cy,0.)*grad(i+1,Jstr-1)
-     &                                                 )/(cff+cx)
+     &                                           )/(cff+cx)
 #    if defined W_FRC_BRY || defined WCLIMATOLOGY
             wz(i,Jstr-1,k,nnew)=(1.-tau)*wz(i,Jstr-1,k,nnew)
 #     ifdef W_FRC_BRY
@@ -379,24 +366,6 @@
 #    endif
 #    ifdef WET_DRY
             wz(i,Jstr-1,k,nnew)=wz(i,Jstr-1,k,nnew)*rmask_wet(i,Jstr-1)
-#    endif
-          enddo
-        enddo
-#   elif defined OBC_COM_WSPECIFIED
-!                                           Southern edge Specified BC
-!                                           ======== ==== ========= ==
-        do k=0,N
-          do i=Istr,Iend
-#    ifdef W_FRC_BRY
-            wz(i,Jstr-1,k,nnew)=wbry_south(i,k)
-#    else
-            wz(i,Jstr-1,k,nnew)=wclm(i,Jstr-1,k)
-#    endif
-#    ifdef MASKING
-     &                         *rmask(i,Jstr-1)
-#    endif
-#    ifdef WET_DRY
-     &                         *rmask_wet(i,Jstr-1)
 #    endif
           enddo
         enddo
@@ -433,7 +402,26 @@
 !====================================================================
       if (NORTHERN_EDGE) then
 #  ifdef OBC_COM_NORTH
-#   ifdef OBC_COM_M3ORLANSKI
+#   if defined OBC_COM_WSPECIFIED || defined OBC_COM_WSPECIFIED_NORTH
+!                                           Northern edge Specified BC
+!                                           ======== ==== ========= ==
+        do k=0,N
+          do i=Istr,Iend
+#    ifdef W_FRC_BRY
+            wz(i,Jend+1,k,nnew)=wbry_north(i,k)
+#    else
+            wz(i,Jend+1,k,nnew)=wclm(i,Jend+1,k)
+#    endif
+#    ifdef MASKING
+     &                         *rmask(i,Jend+1)
+#    endif
+#    ifdef WET_DRY
+     &                         *rmask_wet(i,Jend+1)
+#    endif
+          enddo
+        enddo
+!
+#   elif defined OBC_COM_M3ORLANSKI
 !                                          Northern edge radiation BC
 !                                          ======== ==== ========= ==
         do k=0,N
@@ -452,7 +440,6 @@
           do i=Istr,Iend
             dft=wz(i,Jend,k,nstp)-wz(i,Jend  ,k,nnew)
             dfx=wz(i,Jend,k,nnew)-wz(i,Jend-1,k,nnew)
- 
             if (dfx*dft .lt. 0.) then
               dft=0.                          ! <-- cancel, if inflow 
 #    if defined W_FRC_BRY || defined WCLIMATOLOGY
@@ -461,28 +448,19 @@
               tau=tau_out
 #    endif
             endif
- 
             if (dft*(grad(i,Jend)+grad(i+1,Jend)) .gt. 0.) then
               dfy=grad(i,Jend)
             else
               dfy=grad(i+1,Jend)
             endif
- 
-#    ifdef OBC_COM_RAD_NORMAL
-            dfy=0.
-#    endif
             cff=max(dfx*dfx+dfy*dfy, eps)
             cx=dft*dfx
-#    ifdef OBC_COM_RAD_NPO
-            cy=0.
-#    else
             cy=min(cff,max(dft*dfy,-cff))
-#    endif
             wz(i,Jend+1,k,nnew)=( cff*wz(i  ,Jend+1,k,nstp)
      &                            +cx*wz(i  ,Jend  ,k,nnew)
      &                  -max(cy,0.)*grad(i  ,Jend+1)
      &                  -min(cy,0.)*grad(i+1,Jend+1)
-     &                                                 )/(cff+cx)
+     &                                           )/(cff+cx)
 #    if defined W_FRC_BRY || defined WCLIMATOLOGY
             wz(i,Jend+1,k,nnew)=(1.-tau)*wz(i,Jend+1,k,nnew)
 #     ifdef W_FRC_BRY
@@ -499,24 +477,7 @@
 #    endif
           enddo
         enddo
-#   elif defined OBC_COM_WSPECIFIED
-!                                           Northern edge Specified BC
-!                                           ======== ==== ========= ==
-        do k=0,N
-          do i=Istr,Iend
-#    ifdef W_FRC_BRY
-            wz(i,Jend+1,k,nnew)=wbry_north(i,k)
-#    else
-            wz(i,Jend+1,k,nnew)=wclm(i,Jend+1,k)
-#    endif
-#    ifdef MASKING
-     &                         *rmask(i,Jend+1)
-#    endif
-#    ifdef WET_DRY
-     &                         *rmask_wet(i,Jend+1)
-#    endif
-          enddo
-        enddo
+!
 #   else
 !                                           Northern edge gradient BC
 !                                           ======== ==== ======== ==

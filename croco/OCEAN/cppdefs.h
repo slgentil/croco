@@ -152,7 +152,7 @@
 # undef  BVF_MIXING
 # define LMD_MIXING
 # undef  GLS_MIXING
-# undef  GLS_MIX2017  /* <--- Warning: under testing */
+# undef  GLS_MIX2017  /* <--- Warning: option still under testing */
 
 # ifdef LMD_MIXING
 #  define LMD_SKPP
@@ -161,6 +161,7 @@
 #  define LMD_CONVEC
 #  undef  LMD_DDMIX
 #  define LMD_NONLOCAL
+#  undef  MLCONVEC
 # endif
 # ifdef GLS_MIXING
 #  define GLS_KKL
@@ -199,8 +200,10 @@
 # else
 #  define QCORRECTION
 #  define SFLX_CORR
+#  undef SFLX_CORR_COEF
 #  define ANA_DIURNAL_SW
 # endif
+# undef SEA_ICE_NOFLUX /* no flux under sea ice */
                       /* Wave-current interactions */
 # ifdef OW_COUPLING
 #  define MRL_WCI
@@ -267,14 +270,45 @@
 # undef  OBC_M2SPECIFIED
 # undef  OBC_M3SPECIFIED
 # undef  OBC_TSPECIFIED
-                      /* Input/Output & Diagnostics */
+                      /* Input/Output */
 # define AVERAGES
 # define AVERAGES_K
+# undef OUTPUTS_SURFACE /* 2d surface fields with higher sampling */
+/*
+!                        Diagnostics 
+!---------------------------------
+! Tracers, momentum balances
+! Mixing layer balances 
+! Vertically integrated vorticity and energy balances 
+! Eddy terms
+!---------------------------------
+!
+*/
 # undef  DIAGNOSTICS_TS
 # undef  DIAGNOSTICS_UV
 # ifdef DIAGNOSTICS_TS
 #  undef  DIAGNOSTICS_TS_ADV
-#  define DIAGNOSTICS_TS_MLD
+#  undef  DIAGNOSTICS_TS_MLD
+# endif
+
+# undef  DIAGNOSTICS_VRT
+# undef  DIAGNOSTICS_EK
+# ifdef DIAGNOSTICS_EK
+#  undef DIAGNOSTICS_EK_FULL
+#  undef DIAGNOSTICS_EK_MLD
+# endif
+
+# undef DIAGNOSTICS_PV
+# undef DIAGNOSTICS_DISS
+# ifdef DIAGNOSTICS_DISS
+#  define DIAGNOSTICS_PV
+# endif
+
+# undef DIAGNOSTICS_EDDY
+
+# undef TENDENCY
+# ifdef TENDENCY
+#  define DIAGNOSTICS_UV
 # endif
 /*
 !           Applications:
@@ -570,7 +604,6 @@
 # define SOLVE3D
 # define UV_ADV
 # define UV_COR
-# define M2FILTER_FLAT
 # define NONLIN_EOS
 # define SALINITY
 # define ANA_GRID
@@ -739,6 +772,7 @@
 #  define LMD_CONVEC
 #  undef  LMD_DDMIX
 #  define LMD_NONLOCAL
+#  undef  MLCONVEC
 # endif
 # ifdef GLS_MIX2017
 #  undef  GLS_KOMEGA
@@ -822,10 +856,8 @@
 !                       ========== === =======
 */
 # define ANA_JET
-# define MPI
+# undef  MPI
 # undef  NBQ
-# undef  AGRIF
-# undef  AGRIF_2WAY
 # define SOLVE3D
 # define UV_COR
 # define UV_ADV
@@ -1076,14 +1108,21 @@
 !                       ===== ====== ===== =======
 !
 */
+# define SWASH_GLOBEX_B2
+# undef  SWASH_GLOBEX_A3
 # undef  OPENMP
 # undef  MPI
 # define SOLVE3D
-# undef  NBQ
+# define AVERAGES
+# define NBQ
+# define NBQ_PRECISE
+# define WAVE_MAKER
 # define UV_ADV
-# define UV_VIS2
-# define UV_VIS_SMAGO
-# define MASKING
+# define UV_HADV_WENO5
+# define UV_VADV_WENO5
+# define W_HADV_WENO5
+# define W_VADV_WENO5
+# define GLS_MIX2017_3D 
 # define NEW_S_COORD
 # define ANA_GRID
 # define ANA_INITIAL
@@ -1094,7 +1133,7 @@
 # define ANA_SST
 # define ANA_BTFLUX
 # define OBC_WEST
-# define SPONGE
+# define OBC_SPECIFIED_WEST
 # define FRC_BRY
 # define ANA_BRY
 # define Z_FRC_BRY
@@ -1149,6 +1188,7 @@
 # define ANA_INITIAL
 # define ANA_SMFLUX
 # define ANA_STFLUX
+# define ANA_SRFLUX
 # define ANA_BTFLUX
 # define NO_FRCFILE
 
@@ -1192,38 +1232,26 @@
 !                       ================ =========== =======
 !
 */
-# undef  KH_INST2D
-# undef  KH_INST3D
 # undef  KH_INSTY
-# undef  MPI
+# undef  KH_INST3D
+# define MPI
 # define NBQ
-# ifdef NBQ
-#  define NBQ_PERF
-#  undef  NBQ_PRECISE
-#  define NBQ_OBC
-# endif
+# define NBQ_PRECISE
 # undef  XIOS
 # define SOLVE3D
 # define NEW_S_COORD
-
-# define UV_VIS2
-# define UV_MIX_S
-# define UV_VIS_SMAGO
-# define SALINITY
-# undef  PASSIVE_TRACER
-
 # define UV_ADV
 # define TS_HADV_WENO5
 # define TS_VADV_WENO5
+# define UV_HADV_WENO5
+# define UV_VADV_WENO5
+# define W_HADV_WENO5
+# define W_VADV_WENO5
+# define UV_VIS2
+# undef  UV_VIS_SMAGO_3D
 # define TS_DIF2
-# define UV_VADV_C2
-# define UV_HADV_C2
-# undef  UV_VADV_TVD
-# undef  UV_HADV_TVD
-# undef  W_VADV_TVD
-# undef  W_HADV_TVD
-# define RESET_RHO0
-
+# undef  SALINITY
+# undef  PASSIVE_TRACER
 # define ANA_GRID
 # define ANA_INITIAL
 # define ANA_SMFLUX
@@ -1237,6 +1265,7 @@
 # else
 #  define NS_PERIODIC
 # endif
+# define NO_FRCFILE
 
 #elif defined S2DV 
 /*

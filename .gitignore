@@ -4,6 +4,8 @@ ERA/
 GRID_MOZ/
 Run_TUTO/
 CROCO_FILES/
+t1/
+t2/
 CVTK/
 Run/
 
@@ -52,7 +54,6 @@ fort.*
 *.out
 *.err
 *.app
-croco
 xios_server.exe
 
 # Kernel Module Compile Results

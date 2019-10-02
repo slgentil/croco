@@ -36,9 +36,7 @@ include Makedefs
 #        analysis routines
 #======================================================================
 
- SRCS =  \
-\
-	main.F		step.F		read_inp.F\
+ SRCS = main.F		step.F		read_inp.F\
 	timers_roms.F	init_scalars.F	init_arrays.F	set_weights.F\
 	set_scoord.F	ana_grid.F	setup_grid1.F	setup_grid2.F\
 	set_nudgcof.F	ana_initial.F	analytical.F	zonavg.F\
@@ -52,7 +50,7 @@ include Makedefs
 	hmix_coef.F	wetdry.F\
 	u3dbc.F		v3dbc.F		t3dbc.F\
 \
-	step3d_fast_zetaw.F		step3d_fast_zeta2d.F\
+	step3d_fast.F\
 	step3d_w.F	rhs3d_w_nh.F	initial_nbq.F	grid_nbq.F\
 	unbq_bc.F	vnbq_bc.F	wnbq_bc.F	rnbq_bc.F\
         w3dbc.F		nbq_bry_store.F\
@@ -79,6 +77,16 @@ include Makedefs
 	wrt_bio_diags.F	wrt_bio_diags_avg.F\
 	set_avg.F	set_diags_avg.F	set_diagsM_avg.F\
 	set_bio_diags_avg.F\
+	def_diags_vrt.F	wrt_diags_vrt.F\
+	set_diags_vrt.F	set_diags_vrt_avg.F	wrt_diags_vrt_avg.F\
+	def_diags_ek.F	wrt_diags_ek.F\
+	set_diags_ek.F	set_diags_ek_avg.F	wrt_diags_ek_avg.F\
+	def_diags_pv.F	wrt_diags_pv.F\
+	set_diags_pv.F	set_diags_pv_avg.F	wrt_diags_pv_avg.F\
+	def_diags_eddy.F\
+	set_diags_eddy_avg.F	wrt_diags_eddy_avg.F\
+	def_surf.F	wrt_surf.F\
+	set_surf_avg.F	wrt_surf_avg.F\
 \
 	get_grid.F	get_initial.F	get_vbc.F	get_wwave.F\
 	get_tclima.F    get_uclima.F    get_ssh.F       get_sss.F\
@@ -96,6 +104,9 @@ include Makedefs
 	init_floats.F	wrt_floats.F	step_floats.F	rhs_floats.F\
 	interp_rho.F	def_floats.F	init_arrays_floats.F\
 	random_walk.F	get_initial_floats.F\
+	init_floats_mpi.F  rhs_floats_mpi.F step_floats_mpi.F\
+	wrt_floats_mpi.F   interp_rho_mpi.F exchange_floats.F\
+	get_initial_floats_mpi.F\
 \
 	init_sta.F	wrt_sta.F	step_sta.F	interp_sta.F\
 	def_sta.F	init_arrays_sta.F\
@@ -150,7 +161,7 @@ AMRDIR = AGRIF/AGRIF_YOURFILES
  AMROBJS=$(AMRRCS:.f=.o)
 
 #
-# Eecutable file.
+# Executable file.
 # ========= =====
 #
 $(SBIN):  $(OBJS90) $(OBJS)

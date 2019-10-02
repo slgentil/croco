@@ -57,11 +57,7 @@
 # ifdef MASKING
             wetdry(i,j)=wetdry(i,j)*rmask(i,j)
 # endif
-# ifdef NBQ
-            IF (zeta(i,j,knew).le.Dcrit(i,j)+eps) THEN
-# else
             IF ((zeta(i,j,knew)+h(i,j)).le.Dcrit(i,j)+eps) THEN
-# endif
               wetdry(i,j)=0.
             END IF
 # ifdef AGRIF
@@ -158,8 +154,12 @@ C$OMP BARRIER
 # ifdef SOLVE3D
       END IF
 # endif
-
-# ifdef SOLVE3D
+!
+!--------------------------------------------------------------------
+!  Averaged wet/dry mask for 3D slow mode if M2 filter
+!--------------------------------------------------------------------
+!
+# if defined SOLVE3D && !defined M2FILTER_NONE
 !
 !  Wet/dry mask at RHO-points, averaged over all fast time-steps.
 !

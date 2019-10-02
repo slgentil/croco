@@ -299,8 +299,10 @@
 !
 !  PISCES biogeochemeical model parameters
 !
-#  ifdef PISCES
+#  if defined BIOLOGY && defined PISCES
 !      call get_dust
+      CALL trc_nam_pisces
+      CALL trc_sbc_pisces
 #  endif
 !
 !  Read sediment initial values and parameters from sediment.in file
@@ -507,7 +509,6 @@ C$OMP PARALLEL DO PRIVATE(tile)
       do tile=0,NSUB_X*NSUB_E-1
         call  pisces_ini_tile (tile)
       enddo
-      CALL trc_nam_pisces
 # endif
 CR      write(*,*) ' -6' MYID 
       if (may_day_flag.ne.0) goto 99 !-->  EXIT
@@ -642,7 +643,7 @@ C$OMP PARALLEL DO PRIVATE(tile)
 
 C$OMP PARALLEL DO PRIVATE(tile)
       do tile=0,NSUB_X*NSUB_E-1
-        call set_depth (tile,1)
+        call set_depth (tile)
       enddo
       
 C$OMP PARALLEL DO PRIVATE(tile)
