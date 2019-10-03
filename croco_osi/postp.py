@@ -26,7 +26,7 @@ class CROCOrun(object):
     Class CROCOrun contains several xarray classes for each netCDF file type
     (ave, his, etc.), a grid object, and online output diagnostics (e.g. energy, ...).
     """
-    def __init__(self, dirname, verbose=False, open_nc=['ave','inst','sta1','sta2'], tdir_max=0):
+    def __init__(self, dirname, verbose=False, prefix=None, open_nc=[], tdir_max=0):
         """
         Constructor; we inspect a run directory and assemble scDataset
                      classes for ave, his, etc., construct a CGrid class, and
@@ -38,6 +38,7 @@ class CROCOrun(object):
         """
         self.dirname = os.path.expanduser(dirname)
         self.verbose = verbose
+        self.prefix = prefix
         self.open_nc = ['his'] + open_nc   # Ensure that we always open 'his'
         self.tdir_max = tdir_max # limits the number of t directories
         self._findfiles()   # Find files that we know how to handle
@@ -50,7 +51,7 @@ class CROCOrun(object):
         """
         Destructor: close the netcdf files upon destruction
         """
-        self.close()
+        # self.ds[:].close()
 
     def _findfiles(self):
         if self.verbose:
@@ -70,38 +71,25 @@ class CROCOrun(object):
             print("Found " + str(len(self.segs)) + " segments")
 
         # Now loop over segments in sequential order
-        self.fave, self.fhis, self.finst, self.fsta1, self.fsta2, self.flog = [], [], [], [], [], []
-        for segname in self.segs:
-            if os.path.isfile(os.path.join(self.dirname, segname, "output.mpi")):
-                self.flog.extend([(segname, "output.mpi")])
-            # We use intermediate lists for each segment so we can sort them
-            ave, his, inst, sta1, sta2 = [], [], [], [], []
-            for cfile in os.listdir(os.path.join(self.dirname, segname)):
-                if fnmatch.fnmatchcase(cfile, "file*.nc"):
-                    if fnmatch.fnmatchcase(cfile, "file_ave_*.nc"):
-                        ave.extend([(segname, cfile)])
-                    if fnmatch.fnmatchcase(cfile, "file_his_*.nc"):
-                        his.extend([(segname, cfile)])
-                    if fnmatch.fnmatchcase(cfile, "file_inst_*.nc"):
-                        inst.extend([(segname, cfile)])
-                    if fnmatch.fnmatchcase(cfile, "file_sta1_*.nc"):
-                        sta1.extend([(segname, cfile)])
-                    if fnmatch.fnmatchcase(cfile, "file_sta2_*.nc"):
-                        sta2.extend([(segname, cfile)])
-            # Append sorted intermediate lists, such that the entire list is
-            # in the correct order for accumulation with scDataset
-            self.fave.extend(sorted(ave))
-            self.fhis.extend(sorted(his))
-            self.finst.extend(sorted(inst))
-            self.fsta1.extend(sorted(sta1))
-            self.fsta2.extend(sorted(sta2))
-        if self.verbose:
-            print("Found " + str(len(self.fave)) + " average files")
-            print("Found " + str(len(self.fhis)) + " history files")
-            print("Found " + str(len(self.finst)) + " inst files")
-            print("Found " + str(len(self.fsta1)) + " station1 files")
-            print("Found " + str(len(self.fsta2)) + " station2 files")
-            print("Found " + str(len(self.flog)) + " log files")
+        self.filename={}
+        for suffix in self.open_nc:
+            self.filename[suffix] = []
+            self.flog = []
+            # self.fave, self.fhis, self.finst, self.fsta1, self.fsta2, self.flog = [], [], [], [], [], []
+            for segname in self.segs:
+                if os.path.isfile(os.path.join(self.dirname, segname, "output.mpi")):
+                    self.flog.extend([(segname, "output.mpi")])
+                # We use intermediate lists for each segment so we can sort them
+                filename = []
+                for cfile in os.listdir(os.path.join(self.dirname, segname)):
+                    if fnmatch.fnmatchcase(cfile, self.prefix+"*.nc"):
+                        if fnmatch.fnmatchcase(cfile, self.prefix+suffix+"*.nc"):
+                            filename.extend([(segname, cfile)])
+                # Append sorted intermediate lists, such that the entire list is
+                # in the correct order for accumulation with scDataset
+                self.filename[suffix].extend(sorted(filename))
+            if self.verbose:
+                print("Found " + str(len(self.filename[suffix])) + " " + suffix + " files")
 
     def _openfiles(self):
         """
@@ -110,16 +98,9 @@ class CROCOrun(object):
         # Open datasets found in list self.open_nc
         if self.verbose:
             print("Opening NC datasets: ", self.open_nc)
-        if 'his' in self.open_nc:
-            self.his  = self._create_xrDataset(self.fhis)
-        if 'ave' in self.open_nc:
-            self.ave  = self._create_xrDataset(self.fave)
-        if 'inst' in self.open_nc:
-            self.inst = self._create_xrDataset(self.finst)
-        if 'sta1' in self.open_nc:
-            self.sta1 = self._create_xrDataset(self.fsta1)
-        if 'sta2' in self.open_nc:
-            self.sta2 = self._create_xrDataset(self.fsta2)
+        self.ds = {}
+        for suffix in self.open_nc:
+            self.ds[suffix] = self._create_xrDataset(self.filename[suffix])
 
     def _create_xrDataset(self, ncset):
         # Helper function to synthesise inputs and call xarray
@@ -127,7 +108,10 @@ class CROCOrun(object):
         files = [os.path.join(self.dirname, x[0], x[1]) for x in ncset]
         datasets = []
         for f, dt in zip(files, offsets):
-            ds = xr.open_dataset(f, chunks={'time_counter': 1, 's_rho': 1})
+            try:
+                ds = xr.open_dataset(f, chunks={'time_counter': 1, 's_rho': 1})
+            except ValueError:
+                ds = xr.open_dataset(f, chunks={'time_counter': 1})
             if 'time_counter' in ds:
                 t = ds['time_counter']
                 t0 = t.isel(time_counter=0)
@@ -150,43 +134,53 @@ class CROCOrun(object):
         """
         # Read croco.in to extract parameters
         romsfile=os.path.join(self.dirname, self.segs[0], "croco.in")
-        f = open(romsfile)
-        pline=[] #previous line
-        params = {}
-        for line in iter(f):
-            if 'time_stepping:' in pline:
-                params['dt']=tofloat(line.split()[1])
-            elif 'S-coord:' in pline:
-                tmp = [tofloat(x) for x in line.split()]
-                params['theta_s'], params['theta_b'] = tmp[0], tmp[1]
-                params['Hc'] = tmp[2]
-            elif 'rho0:' in pline:
-                params['rho0']=tofloat(line.split()[0])
-            elif 'tidal_diag:' in pline:
-                params['omega']=tofloat(line.split()[0])
-            elif 'jet_ywidth' in pline:
-                params['jet_ywidth'] = tofloat(line.split()[2])
-                params['jet_weight'] = tofloat(line.split()[3])
-            elif 'y_itide' in pline:
-                params['y_itide'] = tofloat(line.split()[4])
-            pline=line
-        f.close()
-        if self.verbose:
-            print("Detected time step of " + str(params['dt']) + " s")
-            print("Detected theta_s = " + str(params['theta_s']))
-            print("Detected theta_b = " + str(self.theta_b))
-            print("Detected Hc = " + str(params['Hc']) + " m")
-            print("Detected rho0 = " + str(params['rho0']) + " kg/m^3")
-            print("Detected omega = " + str(params['omega']) + " 1/s")
-            print("Detected jet_ywidth = " + str(params['jet_ywidth']) + " m")
-            print("Detected jet_weight = " + str(params['jet_weight']))
-            print("Detected y_itide = " + str(params['y_itide']) + " m")
-        self.params = params
+        if os.path.isfile(romsfile):
+            f = open(romsfile)
+            pline=[] #previous line
+            params = {}
+            for line in iter(f):
+                if 'time_stepping:' in pline:
+                    params['dt']=tofloat(line.split()[1])
+                    if self.verbose:
+                        print("Detected time step of " + str(params['dt']) + " s")
+                elif 'S-coord:' in pline:
+                    tmp = [tofloat(x) for x in line.split()]
+                    params['theta_s'], params['theta_b'] = tmp[0], tmp[1]
+                    params['Hc'] = tmp[2]
+                    if self.verbose:
+                        print("Detected theta_s = " + str(params['theta_s']))
+                        print("Detected theta_b = " + str(params['theta_b']))
+                        print("Detected Hc = " + str(params['Hc']) + " m")
+                elif 'rho0:' in pline:
+                    params['rho0']=tofloat(line.split()[0])
+                    if self.verbose:
+                        print("Detected rho0 = " + str(params['rho0']) + " kg/m^3")
+                elif 'tidal_diag:' in pline:
+                    params['omega']=tofloat(line.split()[0])
+                    if self.verbose:
+                        print("Detected omega = " + str(params['omega']) + " 1/s")
+                elif 'jet_ywidth' in pline:
+                    params['jet_ywidth'] = tofloat(line.split()[2])
+                    params['jet_weight'] = tofloat(line.split()[3])
+                    if self.verbose:
+                        print("Detected jet_ywidth = " + str(params['jet_ywidth']) + " m")
+                        print("Detected jet_weight = " + str(params['jet_weight']))
+                elif 'y_itide' in pline:
+                    params['y_itide'] = tofloat(line.split()[4])
+                    if self.verbose:
+                        print("Detected y_itide = " + str(params['y_itide']) + " m")
+                pline=line
+            f.close()
+            self.params = params
+        else:
+            print("File not found: "+romsfile)
+            self.params = None
 
     def _readstats(self):
         # Now read each output.mpi and get the energy diagnostics
         self.t0 = dict()
         n=0
+        nbstats=None
         for ii, cfile in enumerate(self.flog):
             f = open(os.path.join(self.dirname, cfile[0], cfile[1]))
             search = False
@@ -205,11 +199,12 @@ class CROCOrun(object):
                 if search and ii==0 and 'STEP' in line:
                     # Found header; save titles and create empty storage array
                     statnames = line.split()
-                    statdata  = np.empty([5000,len(statnames)])
+                    nbstats = len(statnames)
+                    statdata  = np.empty([5000,nbstats])
                     if self.verbose:
                         print("Found " + str(len(statnames)) + " columns in output.mpi:")
                         print(statnames)
-                elif search and len(line)==114 and not 'report' in line:
+                elif search and len(line.split())==nbstats and not 'STEP' in line:
                     # The 114 condition may be fragile. ToDo: better condition
                     if firstline:
                         # record the model starting offset
@@ -227,8 +222,11 @@ class CROCOrun(object):
                         if n >= statdata.shape[0]:
                             statdata.resize((statdata.shape[0]*2, len(statnames)))
                         # Add these values to the arrays
-                        statdata[n,:] = [float(x) for x in line.split()]
-                        n=n+1
+                        try:
+                            statdata[n,:] = [float(x) for x in line.split()]
+                            n=n+1
+                        except:
+                            pass
                 pline=line
             f.close()
         # Truncate unused end of the array
