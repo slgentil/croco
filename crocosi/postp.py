@@ -53,6 +53,13 @@ class CROCOrun(object):
         """
         # self.ds[:].close()
 
+    def __getitem__(self,item):
+        """
+        Load data set by providing suffix
+        """
+        assert item in self.open_nc
+        return self.ds[item]
+
     def _findfiles(self):
         if self.verbose:
             print("Analysing directory " + self.dirname)
