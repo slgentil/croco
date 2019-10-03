@@ -54,9 +54,8 @@ Miniconda must be used with bash. If you want to use it with csh, add in your .c
 # alias Miniconda
 #----------------------------------------------------------------
 #
-setenv PATH ${PATH}: /home/machine/username/miniconda3/bin
-alias source_activate 'setenv OLDPATH ${PATH};setenv PATH /home/machine/username/miniconda3/envs/\!*/bin:${PATH}'
-alias source_deactivate 'setenv PATH $OLDPATH'
+source $home/.miniconda3/etc/profile.d/conda.csh
+conda activate croco
 ```
 where machine is the name of your computer and username is your username.
 

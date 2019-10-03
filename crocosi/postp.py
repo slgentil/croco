@@ -137,7 +137,7 @@ class CROCOrun(object):
             datasets.append(ds)
         _ds = xr.concat(datasets, dim='time_counter',
                         coords='minimal', compat='override')
-        _ds = self._adjustgrid(_ds)
+        _ds = self._adjust_grid(_ds)
         return _ds
 
     def _readparams(self):
@@ -246,7 +246,7 @@ class CROCOrun(object):
         statdata.resize((n, len(statnames)))
         self.stats = pd.DataFrame(statdata, columns=statnames).set_index('time[DAYS]')
 
-    def _adjustgrid(self, ds):
+    def _adjust_grid(self, ds):
         for c in ds.coords:
             new_c = c.replace('nav_lat','eta').replace('nav_lon','xi')
             ds = ds.rename({c:new_c})
