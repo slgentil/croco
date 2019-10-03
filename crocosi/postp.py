@@ -42,6 +42,8 @@ class CROCOrun(object):
         self.prefix = prefix
         self.open_nc = ['his'] + open_nc   # Ensure that we always open 'his'
         self.tdir_max = tdir_max # limits the number of t directories
+        self._grid_params = grid_params
+        #
         self._findfiles()   # Find files that we know how to handle
         self._readparams()  # Scan croco.in for parameters
         self._readstats()   # Scan output.mpi for parameters and stats
@@ -133,8 +135,10 @@ class CROCOrun(object):
             #ds = ds.drop([k for k in ds.coords \
             #                if k not in ['time_counter','time_centered']])
             datasets.append(ds)
-        return xr.concat(datasets, dim='time_counter',
-                         coords='minimal', compat='override')
+        _ds = xr.concat(datasets, dim='time_counter',
+                        coords='minimal', compat='override')
+        _ds = self._adjustgrid(_ds)
+        return _ds
 
     def _readparams(self):
         """
@@ -242,8 +246,19 @@ class CROCOrun(object):
         statdata.resize((n, len(statnames)))
         self.stats = pd.DataFrame(statdata, columns=statnames).set_index('time[DAYS]')
 
+    def _adjustgrid(self, ds):
+        for c in ds.coords:
+            new_c = c.replace('nav_lat','eta').replace('nav_lon','xi')
+            ds[new_c] = ds[c]
+        # fills in grid parameters, f, f0, beta
+        if 'f0' in self._grid_params:
+            ds['f0'] = self._grid_params['f0']
+        if 'beta' in self._grid_params:
+            ds['beta'] = self._grid_params['beta']
+            ds.assign_coords(f=ds.beta*ds.eta_rho+ds.f0)
+        return ds
 
-    def _readgrid(self, check=False, **params):
+    def _readgrid(self, check=False):
         # Synthesize the x_vert and y_vert that the pyroms CGrid class requests
         # Get 1D vector of x and y points on cell box sides
         xx=self.his.variables['nav_lon_dom_U'][0,:]
@@ -284,12 +299,12 @@ class CROCOrun(object):
         self.hgrid.Mm = self.Mm
 
         # fills in grid parameters, f, f0, beta
-        for _p, _v in params():
-            setattr(self,_p,_v)
-        if 'beta' in params():
-            self.hgrid.f = beta*(self.hgrid.y_rho-np.mean(self.hgrid.y_rho[:,0]))
-        if 'f0' in params():
-            self.hgrid.f += self.f0
+        #for _p, _v in params():
+        #    setattr(self,_p,_v)
+        #if 'beta' in params():
+        #    self.hgrid.f = beta*(self.hgrid.y_rho-np.mean(self.hgrid.y_rho[:,0]))
+        #if 'f0' in params():
+        #    self.hgrid.f += self.f0
 
         if self.verbose:
             print("Grid size: (L ,M, N) = (" + str(self.L) + ", " + str(self.M) + ", " + str(self.N) + ")")
