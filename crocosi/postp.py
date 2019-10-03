@@ -129,10 +129,10 @@ class CROCOrun(object):
                 t = ((t-t0)/np.timedelta64(1, 's') + dt)*second2day
                 ds['time_center'] = t
             # drop coordinates for easier concatenation
-            ds = ds.drop([k for k in ds.coords \
-                            if k not in ['time_counter','time_centered']])
+            #ds = ds.drop([k for k in ds.coords \
+            #                if k not in ['time_counter','time_centered']])
             datasets.append(ds)
-        return xr.concat(datasets, dim='time_counter')
+        return xr.concat(datasets, dim='time_counter', compat='override')
 
     def _readparams(self):
         """
@@ -241,7 +241,7 @@ class CROCOrun(object):
         self.stats = pd.DataFrame(statdata, columns=statnames).set_index('time[DAYS]')
 
 
-    def _readgrid(self, check=False):
+    def _readgrid(self, check=False, **params):
         # Synthesize the x_vert and y_vert that the pyroms CGrid class requests
         # Get 1D vector of x and y points on cell box sides
         xx=self.his.variables['nav_lon_dom_U'][0,:]
@@ -281,12 +281,13 @@ class CROCOrun(object):
         self.hgrid.M  = self.M
         self.hgrid.Mm = self.Mm
 
-        # fills in actual value of f, f0 and beta0
-        f0 = 1.0313e-4
-        beta = 1.6186e-11
-        self.hgrid.f = f0 + beta*(self.hgrid.y_rho-np.mean(self.hgrid.y_rho[:,0]))
-        self.hgrid.f0=f0
-        self.hgrid.beta=beta
+        # fills in grid parameters, f, f0, beta
+        for _p, _v in **params():
+            setattr(self,_p,_v)
+        if 'beta' in params():
+            self.hgrid.f = beta*(self.hgrid.y_rho-np.mean(self.hgrid.y_rho[:,0]))
+        if 'f0' in params():
+            self.hgrid.f += self.f0
 
         if self.verbose:
             print("Grid size: (L ,M, N) = (" + str(self.L) + ", " + str(self.M) + ", " + str(self.N) + ")")
