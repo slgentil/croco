@@ -133,7 +133,8 @@ class CROCOrun(object):
             #ds = ds.drop([k for k in ds.coords \
             #                if k not in ['time_counter','time_centered']])
             datasets.append(ds)
-        return xr.concat(datasets, dim='time_counter', compat='override')
+        return xr.concat(datasets, dim='time_counter',
+                         coords='minimal', compat='override')
 
     def _readparams(self):
         """
