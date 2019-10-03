@@ -26,7 +26,8 @@ class CROCOrun(object):
     Class CROCOrun contains several xarray classes for each netCDF file type
     (ave, his, etc.), a grid object, and online output diagnostics (e.g. energy, ...).
     """
-    def __init__(self, dirname, verbose=False, prefix=None, open_nc=[], tdir_max=0):
+    def __init__(self, dirname, verbose=False, prefix=None, open_nc=[],
+                 tdir_max=0, grid_params={}):
         """
         Constructor; we inspect a run directory and assemble scDataset
                      classes for ave, his, etc., construct a CGrid class, and
@@ -45,7 +46,7 @@ class CROCOrun(object):
         self._readparams()  # Scan croco.in for parameters
         self._readstats()   # Scan output.mpi for parameters and stats
         self._openfiles()   # Open the NetCDF files as scDatasets
-        #self._readgrid()    # Read the horizontal grid
+        #self._readgrid(**grid_params)    # Read the horizontal grid
 
     def __del__(self):
         """
@@ -282,7 +283,7 @@ class CROCOrun(object):
         self.hgrid.Mm = self.Mm
 
         # fills in grid parameters, f, f0, beta
-        for _p, _v in **params():
+        for _p, _v in params():
             setattr(self,_p,_v)
         if 'beta' in params():
             self.hgrid.f = beta*(self.hgrid.y_rho-np.mean(self.hgrid.y_rho[:,0]))
