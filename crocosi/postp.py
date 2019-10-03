@@ -249,7 +249,7 @@ class CROCOrun(object):
     def _adjustgrid(self, ds):
         for c in ds.coords:
             new_c = c.replace('nav_lat','eta').replace('nav_lon','xi')
-            ds[new_c] = ds[c]
+            ds = ds.rename({c:new_c})
         # fills in grid parameters, f, f0, beta
         if 'f0' in self._grid_params:
             ds['f0'] = self._grid_params['f0']
