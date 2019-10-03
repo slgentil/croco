@@ -252,9 +252,9 @@ class CROCOrun(object):
             ds = ds.rename({c:new_c})
         # fills in grid parameters, f, f0, beta
         if 'f0' in self._grid_params:
-            ds['f0'] = self._grid_params['f0']
+            ds.assign_attrs(f0=self._grid_params['f0'])
         if 'beta' in self._grid_params:
-            ds['beta'] = self._grid_params['beta']
+            ds.assign_attrs(beta=self._grid_params['beta'])
             ds = ds.assign_coords(f=ds.beta*ds.eta_rho+ds.f0)
         return ds
 
