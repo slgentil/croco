@@ -47,7 +47,7 @@ Once miniconda is installed, you can use the conda command to install any other 
 
 After downloading `Miniconda3-latest-Linux-x86_64.sh` or `Miniconda3-latest-MacOSX-x86_64.sh` you need to run it with: `bash Miniconda3-latest-MacOSX-x86_64.sh`
 
-Miniconda must be used with bash. If you want to use it with csh, add in your .cshrc (not ideal solution)
+Add in your .cshrc:
 ```
 #
 #----------------------------------------------------------------

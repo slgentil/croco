@@ -25,8 +25,7 @@ git clone https://github.com/slgentil/croco.git
 For pre/post processing, install an appropriate conda-environment.
 Download Miniconda3 (i.e. for python3) from the [conda website](https://conda.io/miniconda.html) and run:
 ```
-bash Miniconda3-latest-Linux-x86_64.sh
-bash
+./Miniconda3-latest-Linux-x86_64.sh
 conda update conda
 conda create -n croco -c conda-forge python=3.7 dask dask-jobqueue \
             xarray zarr netcdf4 python-graphviz \

@@ -247,15 +247,19 @@ class CROCOrun(object):
         self.stats = pd.DataFrame(statdata, columns=statnames).set_index('time[DAYS]')
 
     def _adjust_grid(self, ds):
+        eta_suff={}
         for c in ds.coords:
             new_c = c.replace('nav_lat','eta').replace('nav_lon','xi')
             ds = ds.rename({c:new_c})
+            if 'eta_rho' in new_c:
+                eta_suff[new_c] = new_c.lstrip('eta_rho')
         # fills in grid parameters, f, f0, beta
         if 'f0' in self._grid_params:
             ds = ds.assign_attrs(f0=self._grid_params['f0'])
         if 'beta' in self._grid_params:
             ds = ds.assign_attrs(beta=self._grid_params['beta'])
-            ds = ds.assign_coords(f=ds.beta*ds.eta_rho+ds.f0)
+            for c, suff in eta_suff.items():
+                ds = ds.assign_coords(**{'f'+suff: ds.beta*ds[c]+ds.f0})
         return ds
 
     def _readgrid(self, check=False):
