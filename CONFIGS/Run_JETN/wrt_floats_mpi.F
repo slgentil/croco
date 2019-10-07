@@ -91,7 +91,7 @@
       close(12)
 
       ! ascii output format
-   2  format(I4,6(1x,e16.8)) 
+   2  format(I4,11(1x,e16.8)) 
 
       	endif
       endif
