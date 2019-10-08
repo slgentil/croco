@@ -114,14 +114,21 @@ class CROCOrun(object):
 
     def _create_xrDataset(self, ncset):
         # Helper function to synthesise inputs and call xarray
-        offsets = [self.t0[x[0]] for x in ncset]
+        tdir = [x[0] for x in ncset]
+        offsets = self.t0.copy()
         files = [os.path.join(self.dirname, x[0], x[1]) for x in ncset]
         datasets = []
-        for f, dt in zip(files, offsets):
+        deltat=0
+        for f, td in zip(files, tdir):
             try:
                 ds = xr.open_dataset(f, chunks={'time_counter': 1, 's_rho': 1})
             except ValueError:
                 ds = xr.open_dataset(f, chunks={'time_counter': 1})
+            if deltat==0:
+                dt = offsets[td]
+                deltat = (ds.time_counter[-1] - ds.time_counter[0]) \
+                         /pd.Timedelta('1s')/(ds.time_counter.size-1) \
+                         *ds.time_counter.size
             if 'time_counter' in ds:
                 t = ds['time_counter']
                 t0 = t.isel(time_counter=0)
@@ -131,12 +138,14 @@ class CROCOrun(object):
                 t = ds['time_center']
                 t = ((t-t0)/np.timedelta64(1, 's') + dt)*second2day
                 ds['time_center'] = t
+            dt = dt + deltat
             # drop coordinates for easier concatenation
             #ds = ds.drop([k for k in ds.coords \
             #                if k not in ['time_counter','time_centered']])
             datasets.append(ds)
         _ds = xr.concat(datasets, dim='time_counter',
                         coords='minimal', compat='override')
+        _ds = _ds.rename({'time_counter':'time'})
         _ds = self._adjust_grid(_ds)
         return _ds
 
