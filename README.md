@@ -34,9 +34,9 @@ conda create -n croco -c conda-forge python=3.7 dask dask-jobqueue \
             hvplot geoviews datashader nodejs \
             intake-xarray gcsfs \
             cmocean gsw \
-            pytide pyinterp \
-            xgcm
+            pytide pyinterp
 conda activate croco
+pip install git+https://github.com/xgcm/xgcm.git
 conda install pywavelets
 # install croco_visu, parcels ...
 cd croco; pip install -e .
