@@ -21,6 +21,7 @@ clean
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+*.so
 
 # eclipse related files
 .project
@@ -62,3 +63,8 @@ xios_server.exe
 
 # Kernel Module Compile Results
 *.mod*
+
+# dask
+dask-worker-space
+
+

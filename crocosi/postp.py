@@ -123,6 +123,7 @@ class CROCOrun(object):
         deltat=0
         for f, td in zip(files, tdir):
             try:
+                # chunks should be an option
                 ds = xr.open_dataset(f, chunks={'time_counter': 1, 's_rho': 1})
             except ValueError:
                 ds = xr.open_dataset(f, chunks={'time_counter': 1})
