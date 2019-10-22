@@ -15,7 +15,7 @@ from glob import glob
 
 second2day = 1./86400.
 
-from xr_utils import *
+from crocosi.gridop import *
 
 def tofloat(x):
     """
@@ -50,7 +50,7 @@ class CROCOrun(object):
         self._readparams()  # Scan croco.in for parameters
         self._readstats()   # Scan output.mpi for parameters and stats
         self._openfiles()   # Open the NetCDF files as scDatasets
-        #self._readgrid(**grid_params)    # Read the horizontal grid
+        self._readgrid()    # Read the horizontal/vertical grid
 
     def __del__(self):
         """
@@ -276,52 +276,44 @@ class CROCOrun(object):
     def _readgrid(self, check=False):
         """ !!! old code, update or delete !!!
         """
-        # Synthesize the x_vert and y_vert that the pyroms CGrid class requests
-        # Get 1D vector of x and y points on cell box sides
-        xx=self.his.variables['nav_lon_dom_U'][0,:]
-        yy=self.his.variables['nav_lat_dom_V'][:,0]
-        # Extrapolate by one at each end (assumes equal grid spacing at the ends)
-        xxx=np.append(np.append(2*xx[0]-xx[1],xx),2*xx[-1]-xx[-2])
-        yyy=np.append(np.append(2*yy[0]-yy[1],yy),2*yy[-1]-yy[-2])
+        def s_coordinate(sc, theta_s, theta_b):
+                    '''
+                    Allows use of theta_b > 0 (July 2009)
+                    '''
+                    one64 = np.float64(1)
 
-        x_vert, y_vert = np.meshgrid(xxx,yyy)
-        self.hgrid = CGrid(x_vert, y_vert)
-
-        if check:
-            # Verify that CGrid class regenerated the right grid
-            a=np.max(np.abs(self.hgrid.x_u-self.his.variables['nav_lon_dom_U'][:]))
-            b=np.max(np.abs(self.hgrid.y_u-self.his.variables['nav_lat_dom_U'][:]))
-            c=np.max(np.abs(self.hgrid.x_v-self.his.variables['nav_lon_dom_V'][:]))
-            d=np.max(np.abs(self.hgrid.y_v-self.his.variables['nav_lat_dom_V'][:]))
-            e=np.max(np.abs(self.hgrid.x_rho-self.his.variables['nav_lon_dom_T'][:]))
-            f=np.max(np.abs(self.hgrid.y_rho-self.his.variables['nav_lat_dom_T'][:]))
-            if np.any([a,b,c,d,e,f]):
-                print("CGrid synthesis failure!")
-            else:
-                print("CGrid synthesis successful!")
+                    if theta_s > 0.:
+                        csrf = ((one64 - np.cosh(theta_s * sc)) /
+                                (np.cosh(theta_s) - one64))
+                    else:
+                        csrf = -sc ** 2
+                    sc1 = csrf + one64
+                    if theta_b > 0.:
+                        Cs = ((np.exp(theta_b * sc1) - one64) /
+                              (np.exp(theta_b) - one64) - one64)
+                    else:
+                        Cs = csrf
+                    return Cs
 
         # Store grid sizes
-        self.L = len(xx)
-        self.M = len(yy)
+        self.L = self.ds['his'].sizes['x_rho']
+        self.M = self.ds['his'].sizes['y_rho']
         self.Lm = self.L - 1
         self.Mm = self.M - 1
-        sr=self.his.variables['s_r'][:]
-        self.N  = len(sr)
+        self.N  = self.ds['his'].sizes['s_rho']
         self.Np = self.N + 1
 
-        # Copy the horizontal dimenions to the hgrid object
-        self.hgrid.L  = self.L
-        self.hgrid.Lm = self.Lm
-        self.hgrid.M  = self.M
-        self.hgrid.Mm = self.Mm
+        # add S-coordinate stretching curves at RHO-points in dataset if not in
+        if 'sc_r' not in list(self.ds['his'].data_vars):
+            sc = ((np.arange(1, self.N + 1, dtype=np.float64)) - self.N - 0.5) / self.N
+            self.ds['his']["sc_r"]=(['s_rho'],  sc)
+        if 'Cs_r' not in list(self.ds['his'].data_vars):
+            cs = s_coordinate(sc, self.params['theta_s'], self.params['theta_b'])
+            self.ds['his']["Cs_r"]=(['s_rho'],  cs)
 
-        # fills in grid parameters, f, f0, beta
-        #for _p, _v in params():
-        #    setattr(self,_p,_v)
-        #if 'beta' in params():
-        #    self.hgrid.f = beta*(self.hgrid.y_rho-np.mean(self.hgrid.y_rho[:,0]))
-        #if 'f0' in params():
-        #    self.hgrid.f += self.f0
+        # Add topography in dataset if not in
+        if 'h' not in list(self.ds['his'].data_vars):
+            self.ds['his']['h']=(['y_rho','x_rho'],  self.H*np.ones((self.M,self.L)))
 
         if self.verbose:
             print("Grid size: (L ,M, N) = (" + str(self.L) + ", " + str(self.M) + ", " + str(self.N) + ")")
