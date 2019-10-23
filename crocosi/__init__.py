@@ -1,3 +1,3 @@
-__all__ = ['postp']
+__all__ = ['postp','gridop']
 
 from . import postp

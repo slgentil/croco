@@ -195,3 +195,57 @@ def interp2z_xr(z0, z, v,  hgrid='rho', extrap=True):
                          dims=['z_r','eta_'+_ygrid,'xi_'+_xgrid],
                          coords={'z_r': z0.values, 'xi_'+_xgrid: v['xi_'+_xgrid],
                                  'eta_'+_ygrid: v['eta_'+_ygrid]}) )
+
+
+def N2Profile(run, strat, z, g=9.81):
+    """
+    Method to compute the N2 profile : 
+    """
+    
+    grid = run.ds['his'].attrs['xgcm-Grid']
+    N2 = -g/run.params['rho0'] * grid.diff(strat,'s') / grid.diff(z,'s')
+    N2.isel(s_w=0).values = N2.isel(s_w=1).values
+    N2.isel(s_w=-1).values = N2.isel(s_w=-2).values
+    # if np.any(N2<0):
+    #     print("Unstable N2 profile detected")
+    return (N2)
+
+def hinterp(ds,var,coords=None):
+    import pyinterp
+    #create Tree object
+    mesh = pyinterp.RTree()
+
+    L = ds.dims['x_r']
+    M = ds.dims['y_r']
+    N = ds.dims['s_r']
+    z_r = get_z(ds)
+    #coords = np.array([coords])
+
+    # where I know the values
+    z_r = get_z(ds)
+    vslice = []
+    #lon_r = np.tile(ds.lon_r.values,ds.dims['s_r']).reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
+    lon_r = np.tile(ds.lon_r.values,(ds.dims['s_r'],1,1)).reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
+    lat_r = np.tile(ds.lat_r.values,(ds.dims['s_r'],1,1)).reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
+    z_r = get_z(ds)
+    mesh.packing(np.vstack((lon_r.flatten(), lat_r.flatten(), z_r.values.flatten())).T,
+                            var.values.flatten())
+
+    # where I want the values
+    zcoord = np.zeros_like(ds.lon_r.values)
+    zcoord[:] = coords
+    vslice, neighbors = mesh.inverse_distance_weighting(
+        np.vstack((ds.lon_r.values.flatten(), ds.lat_r.values.flatten(), zcoord.flatten())).T,
+        within=True)    # Extrapolation is forbidden)
+
+
+    # The undefined values must be set to nan.
+    print(ds.mask_rho.values)
+    mask=np.where(ds.mask_rho.values==1.,)
+    vslice[int(ds.mask_rho.values)] = float("nan")
+
+    vslice = xr.DataArray(np.asarray(vslice.reshape(ds.dims['y_r'], ds.dims['x_r'])),dims=('x_r','y_r'))
+    yslice = ds.lat_r
+    xslice = ds.lon_r
+
+    return[xslice,yslice,vslice]

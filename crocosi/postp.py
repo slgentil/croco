@@ -277,6 +277,8 @@ class CROCOrun(object):
     def _readgrid(self, check=False):
         """ !!! old code, update or delete !!!
         """
+        from xgcm import Grid
+
         def s_coordinate(sc, theta_s, theta_b):
                     '''
                     Allows use of theta_b > 0 (July 2009)
@@ -297,27 +299,41 @@ class CROCOrun(object):
                     return Cs
 
         # Store grid sizes
-        self.L = self.ds['his'].sizes['x_rho']
-        self.M = self.ds['his'].sizes['y_rho']
+        ds = self.ds['his']
+        self.L = ds.sizes['x_rho']
+        self.M = ds.sizes['y_rho']
         self.Lm = self.L - 1
         self.Mm = self.M - 1
-        self.N  = self.ds['his'].sizes['s_rho']
+        self.N  = ds.sizes['s_rho']
         self.Np = self.N + 1
 
         # add S-coordinate stretching curves at RHO-points in dataset if not in
-        if 'sc_r' not in list(self.ds['his'].data_vars):
+        if 'sc_r' not in list(ds.data_vars):
             sc = ((np.arange(1, self.N + 1, dtype=np.float64)) - self.N - 0.5) / self.N
-            self.ds['his']["sc_r"]=(['s_rho'],  sc)
-        if 'Cs_r' not in list(self.ds['his'].data_vars):
-            cs = s_coordinate(sc, self.params['theta_s'], self.params['theta_b'])
-            self.ds['his']["Cs_r"]=(['s_rho'],  cs)
+            ds["sc_r"]=(['s_rho'],  sc)
+        if 'sc_w' not in list(ds.data_vars):
+            sc = (np.arange(self.N + 1, dtype=np.float64) - self.N) / self.N
+            ds["sc_w"]=(['s_w'],  sc)
+        if 'Cs_r' not in list(ds.data_vars):
+            cs = s_coordinate(ds["sc_r"].values, self.params['theta_s'], self.params['theta_b'])
+            ds["Cs_r"]=(['s_rho'],  cs)
+        if 'Cs_w' not in list(ds.data_vars):
+            cs = s_coordinate(ds["sc_w"].values, self.params['theta_s'], self.params['theta_b'])
+            ds["Cs_w"]=(['s_w'],  cs)
 
         # Add topography in dataset if not in
-        if 'h' not in list(self.ds['his'].data_vars):
-            self.ds['his']['h']=(['y_rho','x_rho'],  self.H*np.ones((self.M,self.L)))
+        if 'h' not in list(ds.data_vars):
+            ds['h']=(['y_rho','x_rho'],  self.H*np.ones((self.M,self.L)))
 
         if self.verbose:
             print("Grid size: (L ,M, N) = (" + str(self.L) + ", " + str(self.M) + ", " + str(self.N) + ")")
+
+        # Create xgcm grid
+        coords={'xi':{'center':'x_rho', 'inner':'x_u'}, 
+                'eta':{'center':'y_rho', 'inner':'y_v'}, 
+                's':{'center':'s_rho', 'outer':'s_w'}}
+        ds.attrs['xgcm-Grid'] = Grid(ds, coords=coords)
+
 
     def getZ(self,pt,zeta=None):
         """ !!! need update !!!
