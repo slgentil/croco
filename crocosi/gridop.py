@@ -4,61 +4,60 @@ import numpy as np
 
 # ------------------------------------------------------------------------------------------------
 
+def add_coords(ds, var, coords):
+    for co in coords:
+        var.coords[co] = ds.coords[co]
+
 def rho2u(v, ds):
     """
     interpolate horizontally variable from rho to u point
     """
     grid = ds.attrs['xgcm-Grid']
     var = grid.interp(v,'X')
-    add_coords(ds, var, ['xi_u','eta_u'])
+    # add_coords(ds, var, ['xi_u','eta_u'])
     var.attrs = v.attrs
-    var.name = v.name
-    return var
+    return var.rename(v.name)
 
 def u2rho(v, ds):
     """
     interpolate horizontally variable from u to rho point
     """
     grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'X')
-    add_coords(ds, var, ['xi_rho','eta_rho'])
+    var = grid.interp(v,'xi')
+    # add_coords(ds, var, ['xi_rho','eta_rho'])
     var.attrs = v.attrs
-    var.name = v.name
-    return var
+    return var.rename(v.name)
 
 def v2rho(v, ds):
     """
     interpolate horizontally variable from rho to v point
     """
     grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'Y')
-    add_coords(ds, var, ['xi_rho','eta_rho'])
+    var = grid.interp(v,'eta')
+    # add_coords(ds, var, ['xi_rho','eta_rho'])
     var.attrs = v.attrs
-    var.name = v.name
-    return var
+    return var.rename(v.name)
 
 def rho2v(v, ds):
     """
     interpolate horizontally variable from rho to v point
     """
     grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'Y')
-    add_coords(ds, var, ['xi_v','eta_v'])
+    var = grid.interp(v,'eta')
+    # add_coords(ds, var, ['xi_v','eta_v'])
     var.attrs = v.attrs
-    var.name = v.name
-    return var
+    return var.rename(v.name)
 
 def rho2psi(v, ds):
     """
     interpolate horizontally variable from rho to psi point
     """
     grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'X')
+    var = grid.interp(v,'xi')
     var = grid.interp(var,'Y')
-    add_coords(ds, var, ['xi_u','eta_v'])
+    # add_coords(ds, var, ['xi_u','eta_v'])
     var.attrs = v.attrs
-    var.name = v.name
-    return var
+    return var.rename(v.name)
 
 def psi2rho(v, ds):
     """
@@ -67,10 +66,9 @@ def psi2rho(v, ds):
     grid = ds.attrs['xgcm-Grid']
     var = grid.interp(v,'X')
     var = grid.interp(var,'Y')
-    add_coords(ds, var, ['xi_rho','eta_rho'])
+    # add_coords(ds, var, ['xi_rho','eta_rho'])
     var.attrs = v.attrs
-    var.name = v.name
-    return var
+    return var.rename(v.name)
 
 def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r'):
     ''' compute vertical coordinates
@@ -98,8 +96,8 @@ def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r'):
         _zeta = rho2v(_zeta, ds)
         _h = rho2v(_h, ds)
     #
-    sc=run.ds['his']['sc_'+vgrid]
-    cs=run.ds['his']['Cs_'+vgrid]
+    sc=run['his']['sc_'+vgrid]
+    cs=run['his']['Cs_'+vgrid]
 
     #
     z0 = (hc * sc + _h * cs) / (hc + _h)
@@ -164,37 +162,40 @@ def get_pv(u, v, rho, rho_a, f, f0, zr, zw, ds):
 
     return q
 
-def interp2z(z0, z, v, extrap):
-    ''' Interpolate on a horizontally uniform grid
-    '''
-    import fast_interp3D as fi  # OpenMP accelerated C based interpolator
-    #
-    if v.ndim == 1 or z.ndim == 1 :
-        lz = z.squeeze()[:,None,None]
+def interp2z_3d(z0, z, v, extrap):
+    import crocosi.fast_interp3D as fi  # OpenMP accelerated C based interpolator
+    # check v and z have identical shape
+    assert v.ndim==z.ndim
+    # test if temporal dimension is present
+    if v.ndim == 1:
         lv = v.squeeze()[:,None,None]
-    elif v.ndim == 2 :
-        lz = z[...,None]
+        lz = z.squeeze()[:,None,None]
+    elif v.ndim == 2:
         lv = v[...,None]
+        lz = z[...,None]
     else:
         lz = z[...]
         lv = v[...]
     #
     if extrap:
         zmin = np.min(z0)-1.
-        lv = np.vstack((lv[[0],...], lv))
-        lz = np.vstack((zmin+0.*lz[[0],...], lz))
+        lv = np.concatenate((lv[[0],...], lv), axis=0)
+        lz = np.concatenate((zmin+0.*lz[[0],...], lz), axis=0)
     #
-    vi = fi.interp(z0.astype('float64'), lz.astype('float64'), lv.astype('float64'))
-    return vi
+    return fi.interp(z0.astype('float64'), lz.astype('float64'), lv.astype('float64'))
 
-def interp2z_xr(z0, z, v,  hgrid='rho', extrap=True):
-    _xmap = {'rho': 'rho', 'u': 'u', 'v': 'rho'}
-    _ymap = {'rho': 'rho', 'u': 'rho', 'v': 'v'}
-    _xgrid, _ygrid = _xmap[hgrid], _ymap[hgrid]
-    return (xr.DataArray(interp2z(z0.values, z.values, v.values, extrap),
-                         dims=['z_r','eta_'+_ygrid,'xi_'+_xgrid],
-                         coords={'z_r': z0.values, 'xi_'+_xgrid: v['xi_'+_xgrid],
-                                 'eta_'+_ygrid: v['eta_'+_ygrid]}) )
+def interp2z(z0, z, v, extrap):
+    ''' interpolate vertically
+    '''
+    # check v and z have identical shape
+    assert v.ndim==z.ndim
+    # test if temporal dimension is present
+    if v.ndim == 4:
+        vi = [interp2z_3d(z0, z[...,t], v[...,t], extrap)[...,None] for t in range(v.shape[-1])]
+        return np.concatenate(vi, axis=0) # (50, 722, 258, 1)
+        #return v*0 + v.shape[3]
+    else:
+        return interp2z_3d(z0, z, v, extrap)
 
 
 def N2Profile(run, strat, z, g=9.81):
