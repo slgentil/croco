@@ -13,8 +13,8 @@ def rho2u(v, ds):
     interpolate horizontally variable from rho to u point
     """
     grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'X')
-    # add_coords(ds, var, ['xi_u','eta_u'])
+    var = grid.interp(v,'xi')
+    add_coords(ds, var, ['xi_u','eta_u'])
     var.attrs = v.attrs
     return var.rename(v.name)
 
@@ -24,7 +24,7 @@ def u2rho(v, ds):
     """
     grid = ds.attrs['xgcm-Grid']
     var = grid.interp(v,'xi')
-    # add_coords(ds, var, ['xi_rho','eta_rho'])
+    add_coords(ds, var, ['xi_rho','eta_rho'])
     var.attrs = v.attrs
     return var.rename(v.name)
 
@@ -34,7 +34,7 @@ def v2rho(v, ds):
     """
     grid = ds.attrs['xgcm-Grid']
     var = grid.interp(v,'eta')
-    # add_coords(ds, var, ['xi_rho','eta_rho'])
+    add_coords(ds, var, ['xi_rho','eta_rho'])
     var.attrs = v.attrs
     return var.rename(v.name)
 
@@ -44,7 +44,7 @@ def rho2v(v, ds):
     """
     grid = ds.attrs['xgcm-Grid']
     var = grid.interp(v,'eta')
-    # add_coords(ds, var, ['xi_v','eta_v'])
+    add_coords(ds, var, ['xi_v','eta_v'])
     var.attrs = v.attrs
     return var.rename(v.name)
 
@@ -54,8 +54,7 @@ def rho2psi(v, ds):
     """
     grid = ds.attrs['xgcm-Grid']
     var = grid.interp(v,'xi')
-    var = grid.interp(var,'Y')
-    # add_coords(ds, var, ['xi_u','eta_v'])
+    var = grid.interp(var,'eta')
     var.attrs = v.attrs
     return var.rename(v.name)
 
@@ -64,9 +63,9 @@ def psi2rho(v, ds):
     interpolate horizontally variable from rho to psi point
     """
     grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'X')
-    var = grid.interp(var,'Y')
-    # add_coords(ds, var, ['xi_rho','eta_rho'])
+    var = grid.interp(v,'xi')
+    var = grid.interp(var,'eta')
+    add_coords(ds, var, ['xi_rho','eta_rho'])
     var.attrs = v.attrs
     return var.rename(v.name)
 
