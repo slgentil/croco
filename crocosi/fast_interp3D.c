@@ -32,13 +32,13 @@ static inline void myinterp(double *zsk, double *vsk, double *ztk, double *vtk, 
       //else if (ztk[k] >= zsk[NZ-1]) vtk[k] = lin_int(zsk[NZ-2],vsk[NZ-2],zsk[NZ-1],vsk[NZ-1],ztk[k]);
       //if (ztk[k] <= zsk[0])         vtk[k] = vsk[0];
       if (ztk[k] <= zsk[0]){
-          if (b_extrap == 1) vtk[k] = zsk[0];
+          if (b_extrap == 1) vtk[k] = vsk[0];
           else if (b_extrap == 2) vtk[k] = lin_int(zsk[0],vsk[0],zsk[1],vsk[1],ztk[k]);
           else vtk[k] = NPY_NAN;
       }
       else if (ztk[k] >= zsk[NZ-1]){
         if (t_extrap == 1) vtk[k] = vsk[NZ-1];
-        else if (t_extrap == 2) vtk[k] = lin_int(zsk[Nz-2],vsk[Nz-2],zsk[Nz-1],vsk[Nz-1],ztk[k]);
+        else if (t_extrap == 2) vtk[k] = lin_int(zsk[NZ-2],vsk[NZ-2],zsk[NZ-1],vsk[NZ-1],ztk[k]);
         else vtk[k] = NPY_NAN;
       }
       else {
