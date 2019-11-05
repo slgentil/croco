@@ -259,6 +259,10 @@ class CROCOrun(object):
         self.stats = pd.DataFrame(statdata, columns=statnames).set_index('time[DAYS]')
 
     def _adjust_grid(self, ds):
+        # rename dimensions
+        ds = ds.rename({'x_w':'x_rho', 'x_v':'x_rho'})
+        ds = ds.rename({'y_w':'y_rho', 'y_u':'y_rho'})
+        # rename coordinates
         eta_suff={}
         for c in ds.coords:
             new_c = c.replace('nav_lat','eta').replace('nav_lon','xi')

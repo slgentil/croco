@@ -75,18 +75,18 @@ def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r'):
         vertical coordinate should be first
     '''
 
-    ds = run.ds['his']
+    ds = run['his']
     N = run.N
     hc = run.params['Hc']
 
     if zeta is not None:
         _zeta = zeta
     else:
-        _zeta = run.ds['his'].ssh
+        _zeta = ds.ssh
     if h is not None:
         _h = h
     else:
-        _h = run.ds['his'].h
+        _h = ds.h
     #
     if hgrid is 'u':
         _zeta = rho2u(_zeta, ds)
@@ -102,7 +102,9 @@ def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r'):
     z0 = (hc * sc + _h * cs) / (hc + _h)
     z = np.squeeze(_zeta + (_zeta + _h) * z0)
     # manually swap dims, could also perform align with T,S
-    if z.ndim == 3:
+    if z.ndim ==4:
+        z = z.transpose(z.dims[0], z.dims[3], z.dims[1], z.dims[2])
+    elif z.ndim == 3:
         z = z.transpose(sc.dims[0], _zeta.dims[0], _zeta.dims[1])
     elif z.ndim == 2:
         z = z.transpose(sc.dims[0], _zeta.dims[0])
