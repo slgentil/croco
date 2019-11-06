@@ -23,7 +23,7 @@ static inline double lin_int(double x0, double y0, double x1, double y1, double 
 }
 
 // Linear interpolate a 1D vector, assumes everything is sorted increasing
-static inline void myinterp(double *zsk, double *vsk, double *ztk, double *vtk, npy_uint NZ, npy_uint NZT)
+static inline void myinterp(double *zsk, double *vsk, double *ztk, double *vtk, npy_uint NZ, npy_uint NZT, npy_uint b_extrap, npy_uint t_extrap)
 {
     npy_uint k, k0, k1 = 1; // initial guess for k1
     for (k=0;k<NZT;k++)
@@ -31,8 +31,16 @@ static inline void myinterp(double *zsk, double *vsk, double *ztk, double *vtk, 
       //if (ztk[k] <= zsk[0])         vtk[k] = lin_int(zsk[0]   ,vsk[0]   ,zsk[1]   ,vsk[1]   ,ztk[k]);
       //else if (ztk[k] >= zsk[NZ-1]) vtk[k] = lin_int(zsk[NZ-2],vsk[NZ-2],zsk[NZ-1],vsk[NZ-1],ztk[k]);
       //if (ztk[k] <= zsk[0])         vtk[k] = vsk[0];
-      if (ztk[k] <= zsk[0])         vtk[k] = NPY_NAN;
-      else if (ztk[k] >= zsk[NZ-1]) vtk[k] = vsk[NZ-1];
+      if (ztk[k] <= zsk[0]){
+          if (b_extrap == 1) vtk[k] = vsk[0];
+          else if (b_extrap == 2) vtk[k] = lin_int(zsk[0],vsk[0],zsk[1],vsk[1],ztk[k]);
+          else vtk[k] = NPY_NAN;
+      }
+      else if (ztk[k] >= zsk[NZ-1]){
+        if (t_extrap == 1) vtk[k] = vsk[NZ-1];
+        else if (t_extrap == 2) vtk[k] = lin_int(zsk[NZ-2],vsk[NZ-2],zsk[NZ-1],vsk[NZ-1],ztk[k]);
+        else vtk[k] = NPY_NAN;
+      }
       else {
           while (ztk[k] > zsk[k1]) k1++;
           k0 = k1-1;
@@ -47,10 +55,12 @@ static PyObject* fast_interp3D(PyObject* self, PyObject* args)
     PyArrayObject *vt=NULL;
     double        *zsk, *vsk, *ztk, *vtk;
     npy_uint      NX,NY,NZ,NZT,nd,i,j,k,typ;
+    int b_extrap = 0;
+    int t_extrap = 0;
 
     // Parse numpy ndarray arguments
-    if (!PyArg_ParseTuple(args, "O!O!O!", &PyArray_Type, &zt,
-        &PyArray_Type, &z, &PyArray_Type, &vs ))
+    if (!PyArg_ParseTuple(args, "O!O!O!ii", &PyArray_Type, &zt,
+        &PyArray_Type, &z, &PyArray_Type, &vs, &b_extrap, &t_extrap ))
         return NULL;
 
     // Check meta data
@@ -93,7 +103,7 @@ static PyObject* fast_interp3D(PyObject* self, PyObject* args)
           if (typ==NPY_FLOAT32)      for (k=0;k<NZ;k++) vsk[k] = (double)FVS(k,j,i); // data
           else if (typ==NPY_FLOAT64) for (k=0;k<NZ;k++) vsk[k] = DVS(k,j,i); // data
           for (k=0;k<NZ;k++) zsk[k] = Z(k,j,i); // z values
-          myinterp(zsk,vsk,ztk,vtk,NZ,NZT); // interpolate this column
+          myinterp(zsk,vsk,ztk,vtk,NZ,NZT,b_extrap,t_extrap); // interpolate this column
           for (k=0;k<NZT;k++) VT(k,j,i) = vtk[k]; // copy to output
         } // end for i
       } // end for j
@@ -134,5 +144,3 @@ PyMODINIT_FUNC PyInit_fast_interp3D(void)
     return m;
 }
 #endif
-
-
