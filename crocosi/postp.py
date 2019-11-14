@@ -29,7 +29,7 @@ class CROCOrun(object):
     (ave, his, etc.), a grid object, and online output diagnostics (e.g. energy, ...).
     """
     def __init__(self, dirname, verbose=False, prefix=None, open_nc=[],
-                 tdir_max=0, grid_params={}):
+                 tdir_max=0, grid_params={}, chunk_time=1):
         """
         Constructor; we inspect a run directory and assemble scDataset
                      classes for ave, his, etc., construct a CGrid class, and
@@ -45,6 +45,7 @@ class CROCOrun(object):
         self.open_nc = ['his'] + open_nc   # Ensure that we always open 'his'
         self.tdir_max = tdir_max # limits the number of t directories
         self._grid_params = grid_params
+        self._chunk_time = chunk_time
         #
         self._findfiles()   # Find files that we know how to handle
         self._readparams()  # Scan croco.in for parameters
@@ -120,28 +121,18 @@ class CROCOrun(object):
         offsets = self.t0.copy()
         files = [os.path.join(self.dirname, x[0], x[1]) for x in ncset]
         datasets = []
-        deltat=0
         for f, td in zip(files, tdir):
             try:
                 # chunks should be an option
-                ds = xr.open_dataset(f, chunks={'time_counter': 1, 's_rho': 1})
+                ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time, 's_rho': 1})
             except ValueError:
-                ds = xr.open_dataset(f, chunks={'time_counter': 1})
-            if deltat==0:
-                dt = offsets[td]
-                deltat = (ds.time_counter[-1] - ds.time_counter[0]) \
-                         /pd.Timedelta('1s')/(ds.time_counter.size-1) \
-                         *ds.time_counter.size
-            if 'time_counter' in ds:
-                t = ds['time_counter']
-                t0 = t.isel(time_counter=0)
-                t = ((t-t0)/np.timedelta64(1, 's') + dt)*second2day
-                ds['time_counter'] = t
-            if 'time_center' in ds:
-                t = ds['time_center']
-                t = ((t-t0)/np.timedelta64(1, 's') + dt)*second2day
-                ds['time_center'] = t
-            dt = dt + deltat
+                ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time})
+            t0 = pd.Timestamp(ds.time_counter.time_origin).to_datetime64()
+            _timevars = (t for t in ['time_counter', 'time_center', 'time_instant'] if t in ds)
+            for tvar in _timevars:
+                t = ds[tvar]
+                t = ((t-t0)/np.timedelta64(1, 's') + offsets[td])*second2day
+                ds[tvar] = t
             # drop coordinates for easier concatenation
             #ds = ds.drop([k for k in ds.coords \
             #                if k not in ['time_counter','time_centered']])
@@ -260,8 +251,9 @@ class CROCOrun(object):
 
     def _adjust_grid(self, ds):
         # rename dimensions
-        ds = ds.rename({'x_w':'x_rho', 'x_v':'x_rho'})
-        ds = ds.rename({'y_w':'y_rho', 'y_u':'y_rho'})
+        _dims = (d for d in ['x_v', 'y_u', 'x_w', 'y_w'] if d in ds.dims)
+        for d in _dims:
+            ds = ds.rename({d: d[0]+'_rho'})
         # rename coordinates
         eta_suff={}
         for c in ds.coords:
