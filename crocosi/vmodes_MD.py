@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Vertical mode projection class
-
+this module was written by Michael Dunphy. 
+It is not build against xarray and dask and is not being used as is in the current package.
 """
 
 import numpy as np
