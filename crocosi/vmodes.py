@@ -1,5 +1,7 @@
 import scipy.sparse as sp
 import scipy.sparse.linalg as la
+import numpy as np
+import xarray as xr
 
 ### default values
 _g = 9.81
@@ -90,14 +92,9 @@ def compute_vmodes_1D(zc, zf, N2f, nmodes=_nmodes, free_surf=True, g=_g, sigma=_
     H = abs(zf[0])
     
     # Build Dz, C-to-F grid 
-    if False:
-        v1=-1.0/np.append(dzc, 1)
-        v2= 1.0/np.append(1, dzc)
-        v12=np.append([v1],[v2],axis=0)
-    else:
-        v1=-1.0/np.concatenate([dzc,np.ones(1)])
-        v2= 1.0/np.concatenate([np.ones(1),dzc])
-        v12=np.stack([v1, v2])
+    v1=-1.0/np.concatenate([dzc,np.ones(1)])
+    v2= 1.0/np.concatenate([np.ones(1),dzc])
+    v12=np.stack([v1, v2])
     Dz=sp.spdiags(v12,[-1, 0],Np,Np-1,format="lil")
     # Adjust matrix for BCs
     Dz[0,:]=0
@@ -106,14 +103,9 @@ def compute_vmodes_1D(zc, zf, N2f, nmodes=_nmodes, free_surf=True, g=_g, sigma=_
         Dz[-1,-1]=np.divide(-N20, g + N20*(zf[-1] - zc[-1]))
 
     # Build Dz2, F-to-C grid
-    if False:
-        v1=-1.0/np.append(dzf,1)
-        v2= 1.0/np.append(1,dzf)
-        v12=np.append([v1],[v2],axis=0)
-    else:
-        v1=-1.0/np.concatenate([dzf,np.ones(1)])
-        v2= 1.0/np.concatenate([np.ones(1),dzf])
-        v12=np.stack([v1,v2])
+    v1=-1.0/np.concatenate([dzf,np.ones(1)])
+    v2= 1.0/np.concatenate([np.ones(1),dzf])
+    v12=np.stack([v1,v2])
     Dz2=sp.spdiags(v12,[0, 1],Np-1,Np,format="lil")
     
     # Construct A, solve eigenvalue problem
@@ -137,6 +129,7 @@ def compute_vmodes_1D(zc, zf, N2f, nmodes=_nmodes, free_surf=True, g=_g, sigma=_
         tmp = np.sum((fn**2)*dzf)/H
         phic[:,mi] = s*fn/np.sqrt(tmp) # (1/H)*\int_{-H}^{0} \phi_m(z)^2 dz = 1
         
-    # dphi at cell faces
-    dphif=Dz*phic
+    # dphi at cell faces: phi'=dphidz (buoyancy modes)
+    dphif = Dz*phic
+    # this would give w-modes: np.r_[np.zeros((1,nmodes+1)),(dzf[:,None]*phic).cumsum(axis=0)]
     return c, phic, dphif
