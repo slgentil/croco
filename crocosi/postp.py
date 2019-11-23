@@ -45,7 +45,10 @@ class CROCOrun(object):
         self.open_nc = ['his'] + open_nc   # Ensure that we always open 'his'
         self.tdir_max = tdir_max # limits the number of t directories
         self._grid_params = grid_params
-        self._chunk_time = chunk_time
+        if isinstance(chunk_time,dict):
+            self._chunk_time = chunk_time
+        else:
+            self._chunk_time = {nc:chunk_time for nc in self.open_nc}
         #
         self._findfiles()   # Find files that we know how to handle
         self._readparams()  # Scan croco.in for parameters
@@ -59,12 +62,25 @@ class CROCOrun(object):
         """
         # self.ds[:].close()
 
-    def __getitem__(self,item):
+    def __getitem__(self, key):
         """
         Load data set by providing suffix
         """
-        assert item in self.open_nc
-        return self.ds[item]
+        assert key in self.open_nc
+        return self.ds[key]
+
+    def __setitem__(self, key, item):
+        """
+        Load data set by providing suffix
+        """
+        assert key in self.open_nc
+        self.ds[key] = item
+    
+    def __iter__(self):
+        """ this allows looping over datasets
+        """
+        for item in self.open_nc:
+            yield item, self.ds[item]
 
     def _findfiles(self):
         if self.verbose:
@@ -113,9 +129,9 @@ class CROCOrun(object):
             print("Opening NC datasets: ", self.open_nc)
         self.ds = {}
         for suffix in self.open_nc:
-            self.ds[suffix] = self._create_xrDataset(self.filename[suffix])
+            self.ds[suffix] = self._create_xrDataset(self.filename[suffix], suffix)
 
-    def _create_xrDataset(self, ncset):
+    def _create_xrDataset(self, ncset, suffix):
         # Helper function to synthesise inputs and call xarray
         tdir = [x[0] for x in ncset]
         offsets = self.t0.copy()
@@ -124,9 +140,10 @@ class CROCOrun(object):
         for f, td in zip(files, tdir):
             try:
                 # chunks should be an option
-                ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time, 's_rho': 1})
+                ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[suffix],
+                                                's_rho': 1})
             except ValueError:
-                ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time})
+                ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[suffix]})
             t0 = pd.Timestamp(ds.time_counter.time_origin).to_datetime64()
             _timevars = (t for t in ['time_counter', 'time_center', 'time_instant'] if t in ds)
             for tvar in _timevars:
@@ -139,7 +156,7 @@ class CROCOrun(object):
             datasets.append(ds)
         _ds = xr.concat(datasets, dim='time_counter',
                         coords='minimal', compat='override')
-        _ds = _ds.rename({'time_counter':'time'})
+        _ds = _ds.rename_dims({'time_counter':'time'})
         _ds = self._adjust_grid(_ds)
         return _ds
 

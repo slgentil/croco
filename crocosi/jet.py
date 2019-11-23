@@ -1,4 +1,16 @@
 
+
+# ongoing that will ease treatment of time: 
+# https://github.com/pydata/xarray/issues/1603
+def set_relevant_time(r):
+    tc, ti = 'time_counter', 'time_instant'
+    _tmap = {'his': tc, 'ave': tc,
+             'surf': ti, 'inst': ti, 'sta1': ti, 'sta2': ti}
+    for nc, ds in r:
+        r[nc] = ds.rename({_tmap[nc]: 'time'})
+
+
+
 # This piece of code needs to be reworked
 
 def getini(self, config=1):
