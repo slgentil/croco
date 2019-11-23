@@ -24,7 +24,7 @@ cp /home2/pharos/othr/aponte/croco/jet_cfg1_wp75_4km_0a2000j/t20/jetn_rst*.nc /h
 
 ## outputs:
 
-see [`iodefs.xml`](iodefs.xml)
+see [`iodef.xml`](iodef.xml)
 
 ### file_his_*.nc
 
@@ -42,7 +42,7 @@ Variables are 2D or 3D:
 
 The relevant time interval for this output has size `freq_op` (2d typically) and is outputed every `output_freq` (25d typically).
 
-![his](croco_jetn_time_001.png)
+![his](croco_jetn_time.001.png)
 
 
 ### file_ave_*.nc
@@ -57,7 +57,7 @@ Variables are 2D and averaged over a temporal window of size `output_freq` (2d t
 
 - `v_t_sin` : temporal averaged of $v\times\cos(\omega t)$
 
-![ave](croco_jetn_time_002.png)
+![ave](croco_jetn_time.002.png)
 
 ### file_surf_*.nc
 
