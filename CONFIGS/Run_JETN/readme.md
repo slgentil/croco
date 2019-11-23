@@ -76,5 +76,7 @@ Variables are 1D and instantaneous every `output_freq` (30min typically).
 Not that useful for now.
 
 
+### nicer treatment of time coordinate
 
-Selecting non-dim coordinates [issue](https://github.com/pydata/xarray/issues/1603)
+Work is ongoing around xarray in order to implement useful features for this
+such as selection alon non-dim coordinates [issue](https://github.com/pydata/xarray/issues/1603)
