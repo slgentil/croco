@@ -18,7 +18,7 @@
 !     implicit none
 # include "param.h"
 # include "scalars.h"
-# include "mpi_roms.h"
+# include "mpi_cpl.h"
 # include "floats.h"
       include 'mpif.h'
 !

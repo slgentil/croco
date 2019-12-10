@@ -36,7 +36,7 @@
 # include "mixing.h"
 # include "scalars.h"
 # include "ocean3d.h"
-# include "mpi_roms.h"
+# include "mpi_cpl.h"
 # ifdef NBQ_NUDGING
 #  include "nbq.h"
 # endif

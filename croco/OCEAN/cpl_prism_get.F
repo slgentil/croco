@@ -29,7 +29,7 @@
 
 #include "param.h"
 #include "forces.h"
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
 #include "ocean3d.h"
 #include "scalars.h"
 #include "grid.h"

@@ -32,7 +32,7 @@
 # include "ocean2d.h"
 #endif
 #include "scalars.h"
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
 #if defined NBQ && defined DIAG_CFL
 # include "nbq.h"
 #endif 

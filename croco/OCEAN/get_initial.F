@@ -26,7 +26,7 @@
 # include "bbl.h"
 #endif
 #if defined OA_COUPLING || defined OW_COUPLING
-# include "mpi_roms.h"
+# include "mpi_cpl.h"
 #endif
 #ifdef NBQ
 # include "grid.h"

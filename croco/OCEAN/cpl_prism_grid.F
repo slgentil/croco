@@ -21,7 +21,7 @@
 #include "param.h"
 #include "grid.h"
 #include "scalars.h"
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
 #include "set_global_definitions.h"
 !
       integer, intent(in) :: id_partition

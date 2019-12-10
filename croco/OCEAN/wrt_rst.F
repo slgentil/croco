@@ -23,7 +23,7 @@
 #include "ocean2d.h"
 #include "ocean3d.h"
 #include "netcdf.inc"
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
 #ifdef SEDIMENT
 # include "sediment.h"
 #endif

@@ -1,171 +1,153 @@
 <?xml version="1.0"?>
 <simulation> 
-<!-- <context id="romsc" calendar_type="Gregorian" start_date="2012-03-01 15:00:00" time_origin="2012-02-29 15:00:00"> -->
- <context id="roms" time_origin="1950-01-01 00:00:00" >
-    
+
+  <context id="roms">
+    <calendar_type="Gregorian" start_date="1999-01-15 12:00:00" time_origin="1970-01-01 00:00:00" />    
 
 
-  <!-- ========================================================================== -->
-  <!-- ========================================================================== -->
+    <!-- ========================================================================== -->
+    <!-- ========================================================================== -->
 
     <field_definition src="./field_def.xml"/>
 
-   <!-- ========================================================================== -->
-   <!-- ========================================================================== -->
+    <!-- ========================================================================== -->
+    <!-- ========================================================================== -->
 
 
-<file_definition type="one_file" output_freq="1800s" output_level="10" enabled=".TRUE."> 
+    <file_definition type="one_file" output_freq="1800s" output_level="10"> 
 
-     <file id="output_av" name="file_ave" output_freq="2d" sync_freq="2d" split_freq="100d">
-       <field_group id="av_fields" operation="average" freq_op="1ts" >
-        <field field_ref="zeta" />
-        <field field_ref="temp" name="T_xy" grid_ref="rho_3Dxy" />
-        <field field_ref="u" name="u_xy" grid_ref="u_3Dxy" />
-        <field field_ref="v" name="v_xy" grid_ref="v_3Dxy" />
-        <field field_ref="w" name="w_xy" grid_ref="w_3Dxy" />       
-        <field field_ref="u" name="u_yz" grid_ref="u_yz" />
-        <field field_ref="v" name="v_yz" grid_ref="v_yz" />
-        <field field_ref="temp" name="T_yz" grid_ref="rho_yz" />
-        <field field_ref="w" name="w_yz" grid_ref="w_yz" />       
-        <field field_ref="ssh_t_cos" />
-        <field field_ref="ssh_t_sin" />
-        <field field_ref="T_t_cos" name="t_xy_cos" grid_ref="rho_3Dxy" />
-        <field field_ref="T_t_sin" name="t_xy_sin" grid_ref="rho_3Dxy" />
-        <field field_ref="u_t_cos" name="u_xy_cos" grid_ref="u_3Dxy" />
-        <field field_ref="u_t_sin" name="u_xy_sin" grid_ref="u_3Dxy" />
-        <field field_ref="v_t_cos" name="v_xy_cos" grid_ref="v_3Dxy" />
-        <field field_ref="v_t_sin" name="v_xy_sin" grid_ref="v_3Dxy" />
-        <field field_ref="ke" />
-        <field field_ref="ens" />
-       </field_group>
-     </file>
-     <file id="output_in" name="file_inst" output_freq="1800s" sync_freq="1d" split_freq="50d">
-       <field_group id="inst_fields" operation="instant" >
-<!--        <field field_ref="ssh" name="ssh_xy" grid_ref="rho_2D" /> -->
-        <field field_ref="zeta" name="ssh_y" grid_ref="rho_2Dy" />
-        <field field_ref="temp" name="T_y" grid_ref="rho_3Dy" />
-        <field field_ref="u" name="u_y" grid_ref="u_3Dy" />
-        <field field_ref="v" name="v_y" grid_ref="v_3Dy" />
-        <field field_ref="w" name="w_y" grid_ref="w_3Dy" />
-        <field field_ref="rot" name="rot_y" grid_ref="rho_3Dy" />
-       </field_group>
-     </file>
-     <file id="output_st1" name="file_sta1" output_freq="1800s" sync_freq="1d" split_freq="50d">
-       <field_group id="st1_fields" operation="instant" >
-        <field field_ref="temp" name="T_station1" grid_ref="sta1_rho" />
-        <field field_ref="u" name="u_station1" grid_ref="sta1_u" />
-        <field field_ref="v" name="v_station1" grid_ref="sta1_v" />
-       </field_group>
-     </file>
-     <file id="output_st2" name="file_sta2" output_freq="1800s" sync_freq="1d" split_freq="50d">
-       <field_group id="st2_fields" operation="instant" >
-        <field field_ref="temp" name="T_station2" grid_ref="sta2_rho" />
-        <field field_ref="u" name="u_station2" grid_ref="sta2_u" />
-        <field field_ref="v" name="v_station2" grid_ref="sta2_v" />
-       </field_group>
-     </file> 
-     <file id="output_his" name="file_his" output_freq="25d" sync_freq="25d" split_freq="25d">
-       <field_group id="his_fields" operation="instant" freq_op="1d">
-        <field name="ssh_a" grid_ref="rho_2D" > @ssh_a </field>
-        <field name="T_a" grid_ref="rho_3D" > @T_a </field>
-        <field name="u_a" grid_ref="u_3D" > @u_a </field>
-        <field name="v_a" grid_ref="v_3D" > @v_a </field>
-        <field name="w_a" grid_ref="rho_3D" > @w_a </field>
-        <field name="ssh_t_cos" grid_ref="rho_2D" > @ssh_t_cosa </field>
-        <field name="ssh_t_sin" grid_ref="rho_2D" > @ssh_t_sina </field>
-        <field name="T_t_cos" grid_ref="rho_3D" > @T_t_cosa </field>
-        <field name="T_t_sin" grid_ref="rho_3D" > @T_t_sina </field>
-        <field name="u_t_cos" grid_ref="u_3D" > @u_t_cosa </field>
-        <field name="u_t_sin" grid_ref="u_3D" > @u_t_sina </field>
-        <field name="v_t_cos" grid_ref="v_3D" > @v_t_cosa </field>
-        <field name="v_t_sin" grid_ref="v_3D" > @v_t_sina </field>
-        <field name="w_t_cos" grid_ref="w_3D" > @w_t_cosa </field>
-        <field name="w_t_sin" grid_ref="w_3D" > @w_t_sina </field>
-        <field name="ssh_t_dirac" grid_ref="rho_2D" > @ssh_t_diraca </field>
-        <field name="T_t_dirac" grid_ref="rho_3D" > @T_t_diraca </field>
-        <field name="u_t_dirac" grid_ref="u_3D" > @u_t_diraca </field>
-        <field name="v_t_dirac" grid_ref="v_3D" > @v_t_diraca </field>
-        <field name="w_t_dirac" grid_ref="w_3D" > @w_t_diraca </field>
-       </field_group>
-     </file>
-     <file id="output_surf" name="file_surf" output_freq="600s" sync_freq="1d" split_freq="50d" >
-       <field_group id="surf_fields" operation="instant" >
-        <field field_ref="zeta" name="ssh" grid_ref="rho_2D" />
-        <field field_ref="temp" name="T" grid_ref="rho_3Dxy" />
-        <field field_ref="u" name="u" grid_ref="u_3Dxy" />
-        <field field_ref="v" name="v" grid_ref="v_3Dxy" />
-        <field field_ref="w" name="w" grid_ref="w_3Dxy" />
-       </field_group>
-     </file>
-     <file id="output_swath" name="file_swath" output_freq="6h" sync_freq="1d" split_freq="50d">
-       <field_group id="swath_fields" operation="instant" >
-        <field field_ref="zeta" name="ssh_swath" grid_ref="rho_2Dswath" />
-       </field_group>
-     </file>
+      <file id="file_grd" name="file_grid" output_freq="1ts"  enabled=".TRUE.">
+          <field_group id="grid_fields" operation="once">
+            <field field_ref="hc" />
+            <field field_ref="theta_s" />
+            <field field_ref="theta_b" />
+            <field field_ref="Tcline" />
+            <field field_ref="Vtransform" />
+            <field field_ref="h" />
+            <field field_ref="f" />
+            <field field_ref="pm" />
+            <field field_ref="pn" />
+            <field field_ref="x_rho" />
+            <field field_ref="y_rho" />
+            <field field_ref="x_psi" />
+            <field field_ref="y_psi" />
+            <field field_ref="Cs_r" />
+            <field field_ref="sc_r" />
+            <field field_ref="Cs_w" />
+            <field field_ref="sc_w" />
+          </field_group>
+      </file>
 
-   </file_definition>
+      <file id="file_av" name="file_ave" output_freq="2d" sync_freq="2d" split_freq="100d"  enabled=".TRUE.">
+          <field_group id="av_fields" operation="average" freq_op="1ts" >
+            <field field_ref="zeta" />
+            <field field_ref="temp" name="T_xy" grid_ref="rho_3Dxy" />
+            <field field_ref="u" name="u_xy" grid_ref="u_3Dxy" />
+            <field field_ref="v" name="v_xy" grid_ref="v_3Dxy" />
+            <field field_ref="w" name="w_xy" grid_ref="w_3Dxy" />       
+            <field field_ref="u" name="u_yz" grid_ref="u_yz" />
+            <field field_ref="v" name="v_yz" grid_ref="v_yz" />
+            <field field_ref="temp" name="T_yz" grid_ref="rho_yz" />
+            <field field_ref="w" name="w_yz" grid_ref="w_yz" />   
+            <field field_ref="P" name="P_yz" grid_ref="rho_yz" />    
+            <field field_ref="ssh_t_cos" />
+            <field field_ref="ssh_t_sin" />
+            <field field_ref="T_t_cos" name="t_xy_cos" grid_ref="rho_3Dxy" />
+            <field field_ref="T_t_sin" name="t_xy_sin" grid_ref="rho_3Dxy" />
+            <field field_ref="u_t_cos" name="u_xy_cos" grid_ref="u_3Dxy" />
+            <field field_ref="u_t_sin" name="u_xy_sin" grid_ref="u_3Dxy" />
+            <field field_ref="v_t_cos" name="v_xy_cos" grid_ref="v_3Dxy" />
+            <field field_ref="v_t_sin" name="v_xy_sin" grid_ref="v_3Dxy" />
+            <field field_ref="ke" />
+            <field field_ref="ens" />
+          </field_group>
+      </file>
 
+      <file id="file_in" name="file_inst" output_freq="1800s" sync_freq="1d" split_freq="50d" enabled=".FALSE.">
+          <field_group id="inst_fields" operation="instant" >
+            <field field_ref="zeta" name="ssh_y" grid_ref="rho_2Dy" />
+            <field field_ref="temp" name="T_y" grid_ref="rho_3Dy" />
+            <field field_ref="u" name="u_y" grid_ref="u_3Dy" />
+            <field field_ref="v" name="v_y" grid_ref="v_3Dy" />
+            <field field_ref="w" name="w_y" grid_ref="w_3Dy" />
+            <field field_ref="rot" name="rot_y" grid_ref="rho_3Dy" />
+          </field_group>
+      </file>
 
-  <!-- ========================================================================== -->
-  <!-- ========================================================================== -->
+      <file id="file_st1" name="file_sta1" output_freq="600s" sync_freq="1d" split_freq="50d"  enabled=".TRUE.">
+          <field_group id="st1_fields" operation="instant" >
+            <field field_ref="temp" name="T_station1" grid_ref="sta1_rho" />
+            <field field_ref="u" name="u_station1" grid_ref="sta1_u" />
+            <field field_ref="v" name="v_station1" grid_ref="sta1_v" />
+            <field field_ref="P" name="P_station1" grid_ref="sta1_rho" />
+          </field_group>
+      </file>
 
-   <axis_definition>
-     <axis id="s_rho" />
-     <axis id="s_rho_slice0"/>
-     <axis id="s_w" />
-     <axis id="s_w_slice0"/>
- <!-- For Sediment -->
-     <axis id="s_b" />
-   </axis_definition>
+      <file id="file_st2" name="file_sta2" output_freq="600s" sync_freq="1d" split_freq="50d"  enabled=".TRUE.">
+          <field_group id="st2_fields" operation="instant" >
+            <field field_ref="temp" name="T_station2" grid_ref="sta2_rho" />
+            <field field_ref="u" name="u_station2" grid_ref="sta2_u" />
+            <field field_ref="v" name="v_station2" grid_ref="sta2_v" />
+            <field field_ref="P" name="P_station2" grid_ref="sta2_rho" />
+          </field_group>
+      </file> 
 
-   <domain_definition src="./domain_def.xml"/>
+      <file id="file_his" name="file_his" output_freq="25d" sync_freq="25d" split_freq="25d"  enabled=".TRUE.">
+          <field_group id="his_fields" operation="instant" freq_op="2d">
+            <field name="ssh_a" grid_ref="rho_2D" > @ssh_a </field>
+            <field name="T_a" grid_ref="rho_3D" > @T_a </field>
+            <field name="u_a" grid_ref="u_3D" > @u_a </field>
+            <field name="v_a" grid_ref="v_3D" > @v_a </field>
+            <field name="w_a" grid_ref="rho_3D" > @w_a </field>
+            <field name="P_a" grid_ref="rho_3D" > @P_a </field>
+            <field name="ssh_t_cos" grid_ref="rho_2D" > @ssh_t_cosa </field>
+            <field name="ssh_t_sin" grid_ref="rho_2D" > @ssh_t_sina </field>
+            <field name="T_t_cos" grid_ref="rho_3D" > @T_t_cosa </field>
+            <field name="T_t_sin" grid_ref="rho_3D" > @T_t_sina </field>
+            <field name="u_t_cos" grid_ref="u_3D" > @u_t_cosa </field>
+            <field name="u_t_sin" grid_ref="u_3D" > @u_t_sina </field>
+            <field name="v_t_cos" grid_ref="v_3D" > @v_t_cosa </field>
+            <field name="v_t_sin" grid_ref="v_3D" > @v_t_sina </field>
+            <field name="w_t_cos" grid_ref="w_3D" > @w_t_cosa </field>
+            <field name="w_t_sin" grid_ref="w_3D" > @w_t_sina </field>
+            <field name="ssh_t_dirac" grid_ref="rho_2D" > @ssh_t_diraca </field>
+            <field name="T_t_dirac" grid_ref="rho_3D" > @T_t_diraca </field>
+            <field name="u_t_dirac" grid_ref="u_3D" > @u_t_diraca </field>
+            <field name="v_t_dirac" grid_ref="v_3D" > @v_t_diraca </field>
+            <field name="w_t_dirac" grid_ref="w_3D" > @w_t_diraca </field>
+          </field_group>
+      </file>
 
-   <grid_definition>    
-     <grid id="rho_2D" domain_ref="rho"/>
-     <grid id="rho_3D" domain_ref="rho" axis_ref="s_rho"/>
-     <grid id="u_2D" domain_ref="u"/>
-     <grid id="u_3D" domain_ref="u" axis_ref="s_rho"/>
-     <grid id="v_2D" domain_ref="v"/>
-     <grid id="v_3D" domain_ref="v" axis_ref="s_rho"/>
-     <grid id="w_2D" domain_ref="w"/>
-     <grid id="w_3D" domain_ref="w" axis_ref="s_rho"/> 
-     <grid id="b_2D" domain_ref="b"/>
-     <grid id="b_3D" domain_ref="b" axis_ref="s_b"/> 
+      <file id="file_surf" name="file_surf" output_freq="600s" sync_freq="1d" split_freq="50d"   enabled=".TRUE.">
+          <field_group id="surf_fields" operation="instant" >
+            <field field_ref="zeta" name="ssh" grid_ref="rho_2D" />
+            <field field_ref="temp" name="T" grid_ref="rho_3Dxy" />
+            <field field_ref="u" name="u" grid_ref="u_3Dxy" />
+            <field field_ref="v" name="v" grid_ref="v_3Dxy" />
+            <field field_ref="w" name="w" grid_ref="w_3Dxy" />
+          </field_group>
+      </file>
 
-     <grid id="rho_2Dy" domain_ref="rhoy" />
-     <grid id="rho_3Dy" domain_ref="rhoy" axis_ref="s_rho_slice0"/>
-     <grid id="u_3Dy" domain_ref="uy" axis_ref="s_rho_slice0"/>
-     <grid id="v_3Dy" domain_ref="vy" axis_ref="s_rho_slice0"/>
-     <grid id="w_3Dy" domain_ref="rhoy" axis_ref="s_rho_slice0"/>
+      <file id="file_swath" name="file_swath" output_freq="6h" sync_freq="1d" split_freq="50d" enabled=".FALSE.">
+          <field_group id="swath_fields" operation="instant" >
+            <field field_ref="zeta" name="ssh_swath" grid_ref="rho_2Dswath" />
+          </field_group>
+      </file>
 
-     <grid id="rho_3Dxy" domain_ref="rho" axis_ref="s_rho_slice0"/>
-     <grid id="u_3Dxy" domain_ref="u" axis_ref="s_rho_slice0"/>
-     <grid id="v_3Dxy" domain_ref="v" axis_ref="s_rho_slice0"/>
-     <grid id="w_3Dxy" domain_ref="rho" axis_ref="s_rho_slice0"/>
-     
-     <grid id="rho_yz" domain_ref="rhoy" axis_ref="s_rho"/>
-     <grid id="u_yz" domain_ref="uy" axis_ref="s_rho"/>
-     <grid id="v_yz" domain_ref="vy" axis_ref="s_rho"/>
-     <grid id="w_yz" domain_ref="rhoy" axis_ref="s_rho"/>
+    </file_definition>
 
-     <grid id="sta1_rho" domain_ref="sta1_rho" axis_ref="s_rho"/>
-     <grid id="sta1_u" domain_ref="sta1_u" axis_ref="s_rho"/>
-     <grid id="sta1_v" domain_ref="sta1_v" axis_ref="s_rho"/>
-     <grid id="sta2_rho" domain_ref="sta2_rho" axis_ref="s_rho"/>
-     <grid id="sta2_u" domain_ref="sta2_u" axis_ref="s_rho"/>
-     <grid id="sta2_v" domain_ref="sta2_v" axis_ref="s_rho"/>
+    <!-- ========================================================================== -->
+    <!-- ========================================================================== -->
 
-     <grid id="rho_vm" domain_ref="rho" axis_ref="n_vmodes"/>
-     <grid id="u_vm" domain_ref="u" axis_ref="n_vmodes"/>
-     <grid id="v_vm" domain_ref="v" axis_ref="n_vmodes"/>
+    <scalar_definition>
+      <scalar id="scalar"/>
+    </scalar_definition>
 
-     <grid id="rho_2Dswath" domain_ref="swath_rho" />
-     <grid id="rho_3Dswath" domain_ref="swath_rho" axis_ref="s_rho_slice0"/>
-     <grid id="u_3Dswath" domain_ref="swath_u" axis_ref="s_rho_slice0"/>
-     <grid id="v_3Dswath" domain_ref="swath_v" axis_ref="s_rho_slice0"/>
-     <grid id="w_3Dswath" domain_ref="swath_rho" axis_ref="s_rho_slice0"/>
+    <domain_definition src="./domain_def.xml"/>
 
-   </grid_definition>    
+    <axis_definition src="./axis_def.xml"/>
+
+    <grid_definition src="./grid_def.xml"/>
   
   </context>
 
@@ -174,15 +156,19 @@
 
   
   <context id="xios">
-      <variable_definition>
-          <variable id="buffer_size"               type="integer">50000000</variable>
-          <variable id="buffer_server_factor_size" type="integer">2</variable>
-          <variable id="info_level"                type="integer">0</variable>
-          <variable id="using_server"              type="boolean">true</variable>
-          <variable id="using_oasis"               type="boolean">false</variable>
-          <variable id="oasis_codes_id"            type="string" >oceanx</variable>
-          <variable id="print_file"                type="bool"   >true</variable>
-      </variable_definition>
+    <variable_definition>
+      <variable_group id="buffer">
+        <variable id="optimal_buffer_size" type="string">performance</variable>
+        <variable id="buffer_size_factor" type="double">1.0</variable>
+      </variable_group>
+
+      <variable_group id="parameters" >
+        <variable id="using_server" type="bool">true</variable>
+        <variable id="info_level" type="int">0</variable>
+        <variable id="print_file" type="bool">true</variable>
+      </variable_group>
+    </variable_definition>
   </context>
+
 </simulation>
 

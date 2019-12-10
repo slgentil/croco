@@ -64,7 +64,7 @@
 # endif
 # if defined MPI 
       include 'mpif.h'
-#  include "mpi_roms.h"
+#  include "mpi_cpl.h"
       integer ierr
 # endif
 # include "grid.h"
@@ -1377,7 +1377,7 @@ c        cff1=3.D0/16.D0
 #ifdef MPI
       include 'mpif.h'
       integer status(MPI_STATUS_SIZE), ierr
-#     include "mpi_roms.h"
+#     include "mpi_cpl.h"
 #endif
 #include "grid.h"
 #include "wkb_wwave.h"

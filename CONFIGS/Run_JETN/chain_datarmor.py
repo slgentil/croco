@@ -39,7 +39,11 @@ resolution=int(sys.argv[4])
 jobname=sys.argv[5]
 restart=int(sys.argv[6])
 
-if resolution==4:
+
+if resolution==8:
+    nbproc_roms=8
+    nbproc_xios=1
+elif resolution==4:
     nbproc_roms=48
     nbproc_xios=1
 elif resolution==2:
@@ -61,8 +65,8 @@ nb_nodes = int((nb_cores)/28)+1
 
 startdir=os.getcwd()
 USER = os.getenv('USER')
-#WORK = os.getenv('DATAWORK')
-WORK = os.getenv('SCRATCH')
+WORK = os.getenv('DATAWORK')
+#WORK = os.getenv('SCRATCH')
 RPATH = WORK+'/'+workdir
 if os.path.exists(RPATH) :    
     os.system('rm -Rf '+RPATH)
@@ -83,6 +87,8 @@ for t in range(0,nbchain+1):
         shutil.copy(startdir+'/croco.in',tdir)
         shutil.copy(startdir+'/iodef.xml',tdir)
         shutil.copy(startdir+'/domain_def.xml',tdir)
+        shutil.copy(startdir+'/axis_def.xml',tdir)
+        shutil.copy(startdir+'/grid_def.xml',tdir)
         shutil.copy(startdir+'/field_def.xml',tdir)    
         shutil.copy(startdir+'/floats.in',tdir)
         shutil.copy(startdir+'/xios_server.exe',tdir)

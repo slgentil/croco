@@ -20,7 +20,7 @@
   use module_parallel_nbq
   use module_nbq  !!!ONLY,......
   implicit none
-# include "mpi_roms.h"
+# include "mpi_cpl.h"
   integer,intent(in) :: imax,jmax,kmax
   par%rank = mynode
   par%comm2d = MPI_COMM_WORLD

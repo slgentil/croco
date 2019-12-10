@@ -117,7 +117,7 @@
       subroutine auto_tiling
       implicit none
 #include "param.h"
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
 #include "private_scratch.h"
 #include "scalars.h"
 #include "ncscrum.h"

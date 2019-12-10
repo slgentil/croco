@@ -31,7 +31,7 @@
 # include "scalars.h"
 # include "floats.h"
 # include "init_floats.h"  
-#include "mpi_roms.h"     
+#include "mpi_cpl.h"     
       include "mpif.h"
 
 !

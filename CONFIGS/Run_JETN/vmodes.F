@@ -18,7 +18,7 @@
 
 #ifdef MPI
       include 'mpif.h'
-# include "mpi_roms.h"
+# include "mpi_cpl.h"
 !      integer size, step, status(MPI_STATUS_SIZE), ierr
       integer status(MPI_STATUS_SIZE), ierr
       integer rank_root

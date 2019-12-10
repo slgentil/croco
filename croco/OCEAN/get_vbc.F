@@ -188,7 +188,7 @@
 #include "scalars.h"
 #include "climat.h"
 #include "sources.h"
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
       integer i,j,is, Istr,Iend,Jstr,Jend
       real cff,cff1
       real wrk(PRIVATE_2D_SCRATCH_ARRAY)

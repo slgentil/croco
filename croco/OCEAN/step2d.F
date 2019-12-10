@@ -167,7 +167,7 @@ C$    trd=omp_get_thread_num()
 #endif
 !
 #ifdef MPI
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
       include 'mpif.h'
 # define LOCALLM Lmmpi
 # define LOCALMM Mmmpi

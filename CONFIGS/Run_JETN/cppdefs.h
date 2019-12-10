@@ -55,7 +55,7 @@
 ! perturbation of the initial jet
 # define JET_PERTURB
 ! resolution (dx in km)
-# define RESOLUTION 8
+# define RESOLUTION 4
 ! stratification profiles
 # define JET_CONFIG 1
 ! narrow channel for internal tide test case
@@ -209,7 +209,6 @@
 
 !                    Diagnostics
 # define TIDAL_DIAGS
-!# define XIOS
 # undef DIAGNOSTICS_TS
 # undef DIAGNOSTICS_UV
 # undef DIAGS_UV_SPEC /* not implemented */

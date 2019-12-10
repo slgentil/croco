@@ -36,7 +36,7 @@
 #include "mixing.h"
 #include "diags_pv.h"
 #include "diagnostics.h"
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
 #ifdef SEDIMENT
 # include "sediment.h"
 #endif

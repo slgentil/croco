@@ -38,9 +38,12 @@
 /*  
    Activate the RVTK_DEBUG procedure that will test the reproducibility 
    of parallel computation by comparing binary files produced by serial 
-   and parallel runs
+   and parallel runs. For the umpteenth time, RVTK_DEBUG itself should
+   be defined from cppdefs.h, so not undefined here !!!!! 
 */
-#undef RVTK_DEBUG
+#if defined RVTK_DEBUG && !defined MPI && !defined OPENMP && !defined RVTK_DEBUG_READ
+# define RVTK_DEBUG_WRITE
+#endif
 
 /*
     Constant tracer option (for debugging)
@@ -50,7 +53,7 @@
 /* 
 ======================================================================
    Set OA COUPLING options:
-   Define MPI, select OA_MCT    
+   Define MPI  
    Change the generic name of MPI communicator MPI_COMM_WORLD
    to OASIS-MCT local communicator
 ======================================================================
@@ -58,20 +61,19 @@
 #ifdef OA_COUPLING
 # undef  OPENMP
 # define MPI
-# define OA_MCT
 # define MPI_COMM_WORLD ocean_grid_comm
 # undef  OA_GRID_UV
 # undef  BULK_FLUX
 # undef  QCORRECTION
 # undef  SFLX_CORR
 # undef  ANA_DIURNAL_SW
-# undef  OA_GRID_UV
+# undef  SMFLUX_CFB
 #endif
 
 /* 
 ======================================================================
    Set OW COUPLING options:
-   Define MPI, select OA_MCT    
+   Define MPI
    Change the generic name of MPI communicator MPI_COMM_WORLD
    to OASIS-MCT local communicator
 ======================================================================
@@ -79,7 +81,6 @@
 #ifdef OW_COUPLING
 # undef  OPENMP
 # define MPI
-# define OA_MCT
 # define MPI_COMM_WORLD ocean_grid_comm
 # undef  WKB_WWAVE
 # undef  WAVE_OFFLINE
@@ -87,6 +88,11 @@
 #  undef  WAVE_ROLLER
 #  define WAVE_STREAMING
 #  define WAVE_RAMP
+# endif
+# ifdef OA_COUPLING
+#  undef WAVE_SMFLUX
+# else
+#  define WAVE_SMFLUX
 # endif
 #endif
 
@@ -99,6 +105,7 @@
 ======================================================================
 */ 
 #ifdef XIOS
+# define XIOS2
 # define MPI
 # define MPI_COMM_WORLD ocean_grid_comm
 # define key_iomput

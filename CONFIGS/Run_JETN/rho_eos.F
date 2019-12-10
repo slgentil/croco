@@ -531,7 +531,7 @@
       real*QUAD mrho,vol
 #  ifdef MPI
       include 'mpif.h'
-#  include "mpi_roms.h"
+#  include "mpi_cpl.h"
       integer ierr
       real*QUAD allrho(1,NNODES),allvol(1,NNODES)
 #  endif

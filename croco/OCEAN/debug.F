@@ -34,7 +34,7 @@
 # include "param.h"
 # include "scalars.h"  
 # include "ocean2d.h" 
-# include "mpi_roms.h"
+# include "mpi_cpl.h"
 # ifdef MPI
       include 'mpif.h'
 # endif   

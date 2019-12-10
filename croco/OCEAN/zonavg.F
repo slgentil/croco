@@ -10,7 +10,7 @@
 
 # include "param.h"
 # include "scalars.h"
-# include "mpi_roms.h"
+# include "mpi_cpl.h"
 
 
       real    A(GLOBAL_2D_ARRAY), Azon(0:Mm+1)
@@ -61,7 +61,7 @@
 
 # include "param.h"
 # include "scalars.h"
-# include "mpi_roms.h"
+# include "mpi_cpl.h"
 
 
       real    A(GLOBAL_2D_ARRAY,N), Azon(0:Mm+1,N)

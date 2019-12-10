@@ -40,7 +40,7 @@
 #include "ncscrum.h"
 #include "grid.h"
 #include "ocean2d.h"
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
 #ifdef FLOATS
 # include "floats.h"
 # include "ncscrum_floats.h"

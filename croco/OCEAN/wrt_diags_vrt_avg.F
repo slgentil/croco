@@ -35,7 +35,7 @@
 #include "ocean3d.h"
 #include "mixing.h"
 #include "diags_vrt.h"
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
 #ifdef SEDIMENT
 # include "sediment.h"
 #endif

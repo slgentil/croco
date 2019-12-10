@@ -35,7 +35,7 @@
 #include "ocean3d.h"
 #include "mixing.h"
 #include "surf.h"
-#include "mpi_roms.h"
+#include " mpi_cpl.h"
 #ifdef SOLVE3D
       integer tile,itrc,i,j,k,ivar
 # include "work.h"

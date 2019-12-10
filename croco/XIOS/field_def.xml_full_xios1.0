@@ -1,17 +1,14 @@
-   <field_definition level="1" enabled=".TRUE." default_value="1.e20">   
-
-      <field id="time" long_name="time (in s) since beginning"  unit="second" grid_ref="scalar_grid"/>
-
+   <field_definition level="1" enabled=".TRUE.">   
 #ifdef SOLVE3D
-      <field_group id="Vertical_dimension_rho" grid_ref="rho_vertical_dimension" >
+      <field_group id="Vertical_dimension_rho" domain_ref="1point" axis_ref="s_rho"  >
          <field id="Cs_r" long_name="ocean s roms coordinate at rho point"  />
          <field id="sc_r" long_name="S-coordinate stretching curves at RHO-points"  />
       </field_group>
-      <field_group id="Vertical_dimension_w"  grid_ref="w_vertical_dimension" >
+      <field_group id="Vertical_dimension_w"  domain_ref="1point" axis_ref="s_w"  >
          <field id="Cs_w" long_name="ocean s roms coordinate at w point"  />
          <field id="sc_w" long_name="S-coordinate stretching curves at W-points"  />
       </field_group>
-      <field_group id="scalar" grid_ref="scalar_grid"  >
+      <field_group id="scalar" domain_ref="1point"  >
          <field id="hc" long_name="S-coordinate parameter, critical depth"  />
          <field id="theta_s" long_name="S-coordinate surface control parameter"  />
          <field id="theta_b" long_name="S-coordinate bottom control parameter"  />
@@ -49,8 +46,6 @@
 #endif
 
          <field id="zeta" long_name="free-surface" unit="meter" />
-         <field id="temp_surf" long_name="surface temperature" unit="Celsius" />
-         <field id="salt_surf" long_name="surface salinity" unit="PSU" />
          <field id="bostr" long_name="Kinematic bottom stress" unit="N/m2" />
          <field id="wstr" long_name="Kinematic wind stress" unit="N/m2" />
          <field id="temp" long_name="potential temperature" unit="Celsius" grid_ref="rho_3D" />
@@ -74,10 +69,8 @@
          <field id="vortuw_nbq" long_name="UW vorticity " unit="??????" grid_ref="u_3D"/>
 #endif
 
-
-
 #ifdef LMD_SKPP
- <!--         <field id="hbl" long_name="depth of planetary boundary layer" unit="meter" /> -->
+         <field id="hbl" long_name="depth of planetary boundary layer" unit="meter" />
 #endif
 #ifdef LMD_BKPP
          <field id="hbbl" long_name="depth of bottom boundary layer" unit="meter" />
@@ -88,7 +81,6 @@
          <!-- END MOVING_BATHY -->
 #endif
          <field id="rho" long_name="density anomaly" unit="kilogram meter-3" grid_ref="rho_3D"/>
-         <field id="bvf" long_name="Brunt Vaisala frequency" unit="second-2" grid_ref="w_3D"/>
 #ifdef VIS_COEF_3D
          <!-- VIS_COEF_3D -->
          <field id="visc3d" long_name="horizontal viscosity coefficient" unit="meter2 second-1" grid_ref="rho_3D"/>
@@ -266,9 +258,7 @@
          <field id="ubar" long_name="vertically integrated u-momentum component" unit="meter second-1"/>
          <field id="sustr" long_name="surface u-momentum stress" unit="N/m2" />
          <field id="bustr" long_name="bottom  u-momentum stress" unit="N/m2" />
-         <field id="u" long_name="u-momentum component" unit="meter second-1" grid_ref="u_3D"/>
-         <field id="u_surf" long_name="u-momentum component" unit="meter second-1" />
-         <field id="uwnd" long_name="surface u-momentum wind" unit="-" />
+         <field id="u" long_name="v-momentum component" unit="meter second-1" grid_ref="u_3D"/>
 #ifdef MASKING
          <field id="mask_u" long_name="land/sea mask along u points" unit="--" />
 #endif
@@ -295,8 +285,6 @@
          <field id="svstr" long_name="surface v-momentum stress" unit="N/m2" />
          <field id="bvstr" long_name="bottom  v-momentum stress" unit="N/m2" />
          <field id="v" long_name="v-momentum component" unit="meter second-1" grid_ref="v_3D"/>
-         <field id="v_surf" long_name="v-momentum component" unit="meter second-1" />
-         <field id="vwnd" long_name="surface v-momentum wind" unit="-" />
 #ifdef MASKING
          <field id="mask_v" long_name="land/sea mask along v points" unit="--" />
 #endif
@@ -343,95 +331,5 @@
          <!-- END GLS_MIXING -->
 #endif
      </field_group>
-
-
-#ifdef DIAGNOSTICS_UV
-     <field_group id="u_diaM" grid_ref="u_3D">
-         <field id="u_rate" long_name="u rate" unit="meter second-2" grid_ref="u_3D"/>
-         <field id="u_adv" long_name="u adv" unit="meter second-2" grid_ref="u_3D"/>
-         <field id="u_Cor" long_name="u cor" unit="meter second-2" grid_ref="u_3D"/>
-         <field id="u_Prsgrd" long_name="u Prsgrd" unit="meter second-2" grid_ref="u_3D"/>
-         <field id="u_Hmix" long_name="u Hmix" unit="meter second-2" grid_ref="u_3D"/>
-         <field id="u_Hdiff" long_name="u Hdiff" unit="meter second-2" grid_ref="u_3D"/>
-         <field id="u_Vmix" long_name="u Vmix" unit="meter second-2" grid_ref="u_3D"/>
-         <field id="u_Vmix2" long_name="u Vmix2" unit="meter second-2" grid_ref="u_3D"/>
-         <field id="u_Baro" long_name="u Baro" unit="meter second-2" grid_ref="u_3D"/>
-#  ifdef M3FAST
-         <field id="u_fast" long_name="u fast" unit="meter second-2" grid_ref="u_3D"/>
-#  endif
-     </field_group>
-     <field_group id="v_diaM" grid_ref="v_3D">
-         <field id="v_rate" long_name="v rate" unit="meter second-2" grid_ref="v_3D"/>
-         <field id="v_adv" long_name="v adv" unit="meter second-2" grid_ref="v_3D"/>
-         <field id="v_Cor" long_name="v Cor" unit="meter second-2" grid_ref="v_3D"/>
-         <field id="v_Prsgrd" long_name="v Prsgrd" unit="meter second-2" grid_ref="v_3D"/>
-         <field id="v_Hmix" long_name="v Hmix" unit="meter second-2" grid_ref="v_3D"/>
-         <field id="v_Hdiff" long_name="v Hdiff" unit="meter second-2" grid_ref="v_3D"/>
-         <field id="v_Vmix" long_name="v Vmix" unit="meter second-2" grid_ref="v_3D"/>
-         <field id="v_Vmix2" long_name="v Vmix2" unit="meter second-2" grid_ref="v_3D"/>
-         <field id="v_Baro" long_name="v Baro" unit="meter second-2" grid_ref="v_3D"/>
-#  ifdef M3FAST
-         <field id="v_fast" long_name="v fast" unit="meter second-2" grid_ref="v_3D"/>
-#  endif
-    </field_group>
-#endif
-
-
-
-#ifdef DIAGNOSTICS_EK
-     <field_group id="ek" grid_ref="rho_2D">
-         <field id="ekrate" long_name="ek rate" unit="meter2 second-3"/>
-         <field id="ekadv" long_name="ek adv" unit="meter2 second-3"/>
-         <field id="ekCor" long_name="ek Cor" unit="meter2 second-3"/>
-         <field id="ekPrsgrd" long_name="ek Prsgrd" unit="meter2 second-3"/>
-         <field id="ekHmix" long_name="ek Hmix" unit="meter2 second-3"/>
-         <field id="ekHdiff" long_name="ek Hdiff" unit="meter2 second-3"/>
-         <field id="ekVmix" long_name="ek Vmix" unit="meter2 second-3"/>
-         <field id="ekVmix2" long_name="ek Vmix2" unit="meter2 second-3"/>
-         <field id="ekBaro" long_name="ek Baro" unit="meter2 second-3"/>
-         <field id="ekvol" long_name="ek vol" unit="meter2 second-3"/>
-         <field id="ekDrag" long_name="ek Drag" unit="meter2 second-3"/>
-         <field id="ekWind" long_name="ek Wind" unit="meter2 second-3"/>
-#  ifdef M3FAST
-         <field id="ekfast" long_name="ek fast" unit="meter2 second-3"/>
-#  endif
-    </field_group>
-#endif
-
-#ifdef DIAGNOSTICS_VRT
-     <field_group id="vrt" grid_ref="rho_2D">
-         <field id="vrtrate" long_name="vrt rate" unit="meter second-2"/>
-         <field id="vrtadv" long_name="vrt adv" unit="meter second-2"/>
-         <field id="vrtCor" long_name="vrt Cor" unit="meter second-2"/>
-         <field id="vrtPrsgrd" long_name="vrt Prsgrd" unit="meter second-2"/>
-         <field id="vrtHmix" long_name="vrt Hmix" unit="meter second-2"/>
-         <field id="vrtHdiff" long_name="vrt Hdiff" unit="meter second-2"/>
-         <field id="vrtVmix2" long_name="vrt Vmix2" unit="meter second-2"/>
-         <field id="vrtBaro" long_name="vrt Baro" unit="meter second-2"/>
-#  ifdef M3FAST
-         <field id="vrtfast" long_name="vrt fast" unit="meter second-2"/>
-#  endif
-         <field id="vrtDrag" long_name="vrt Drag" unit="meter second-2"/>
-         <field id="vrtWind" long_name="vrt Wind" unit="meter second-2"/>
-    </field_group>
-#endif
-
-#ifdef DIAGNOSTICS_EDDY
-     <field_group id="eddy" grid_ref="rho_3D">
-         <field id="uu" long_name="uu" unit="meter2 second-2"/>
-         <field id="uv" long_name="uv" unit="meter2 second-2"/>
-         <field id="vv" long_name="vv" unit="meter2 second-2"/>
-         <field id="ub" long_name="ub" unit="meter2 second-3"/>
-         <field id="vb" long_name="vb" unit="meter2 second-3"/>
-         <field id="wb" long_name="wb" unit="meter2 second-3"/>
-         <field id="uT" long_name="uT" unit="deg meter second-1"/>
-         <field id="vT" long_name="vT" unit="deg meter second-1"/>
-         <field id="wT" long_name="wT" unit="deg meter second-1"/>
-         <field id="uS" long_name="uS" unit="PSU meter second-1"/>
-         <field id="vS" long_name="vS" unit="PSU meter second-1"/>
-         <field id="wS" long_name="wS" unit="PSU meter second-1"/>
-    </field_group>
-#endif
-
 
    </field_definition>

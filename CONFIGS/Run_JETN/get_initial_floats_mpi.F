@@ -19,7 +19,7 @@ C       implicit none
 # include "param.h"
 # include "scalars.h"
 # include "floats.h"
-# include "mpi_roms.h"
+# include "mpi_cpl.h"
 
       integer i, j, k, iflt, nfltmax, ierr
 ! ascii rst file

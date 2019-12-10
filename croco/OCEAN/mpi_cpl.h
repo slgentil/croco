@@ -1,5 +1,3 @@
-! $Id: mpi_roms.h 1507 2014-03-20 09:36:13Z serena $
-!
 !======================================================================
 ! CROCO is a branch of ROMS developped at IRD and INRIA, in France
 ! The two other branches from UCLA (Shchepetkin et al) 

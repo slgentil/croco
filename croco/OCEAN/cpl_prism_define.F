@@ -19,7 +19,7 @@
 #include "param.h"
 #include "grid.h"
 #include "scalars.h"
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
 #include "ncscrum.h"
       integer i, j, ji, i0, j0, ja
       integer nproc, myproc, error_flg, ierr

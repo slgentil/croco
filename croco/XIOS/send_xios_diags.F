@@ -16,17 +16,23 @@
       MODULE xios_module
       USE xios
       IMPLICIT NONE
- 
+
       PUBLIC set_grid
       PUBLIC iom_set_domain_attr
       PUBLIC iom_set_axis_attr
       PUBLIC iom_set_field_attr
       PUBLIC iom_set_file_attr
+      PUBLIC iom_set_file_global_attr_char
+      PUBLIC iom_set_file_global_attr_float
       PUBLIC iom_get_file_attr
       PUBLIC set_scalar
       
+
+
+
+
       CONTAINS
-#include "cppdefs.h"
+!#include "cppdefs.h"
 
 
       SUBROUTINE set_grid( cdgrd, plon, plat)
@@ -40,8 +46,9 @@
       !!
       !! ** Method  :   
       !!
-      !! ** History :   A. Ponte   , adaptation for CROCO 
-      !!                S. Masson  , original version (NEMO)  
+      !! ** History :   S. Theetten , adaptation for XIOS-2.5 (May, 2019)
+      !!                A. Ponte    , adaptation for CROCO
+      !!                S. Masson   , original version (NEMO)  
       !!
       !!----------------------------------------------------------------------
       CHARACTER(LEN=*)            , INTENT(in) ::   cdgrd
@@ -78,6 +85,10 @@
          vtype=r2dvar
          nx_glo=LLm+2
          ny_glo=MMm+2
+      CASE ("psi")
+         vtype=p2dvar
+         nx_glo=LLm+1
+         ny_glo=MMm+1
       END SELECT
 
       ! From nf_fread.F
@@ -133,8 +144,13 @@
 # endif
 
       ! notes iminmpi, jminmpi are computed in MPI_Setup.F
+# if ! defined XIOS2
       CALL iom_set_domain_attr(TRIM(cdgrd),ni_glo=nx_glo, nj_glo=ny_glo,
      &     ibegin=istart, ni=ni,jbegin=jstart,nj=nj)
+# else
+      CALL iom_set_domain_attr(TRIM(cdgrd),ni_glo=nx_glo, nj_glo=ny_glo,
+     &     ibegin=istart-1, ni=ni,jbegin=jstart-1,nj=nj)
+# endif
       ! to do: below should have be rewritten to match all configs (periodic, number of ghost points, ...)
       ! see set_global_definitions.h
       CALL iom_set_domain_attr(TRIM(cdgrd),data_dim=2,
@@ -149,11 +165,98 @@
       !      
       END SUBROUTINE set_grid
 
+#ifdef MASKING
+      SUBROUTINE set_mask(cdgrd)
+# include "param.h"
+# include "ncscrum.h"
+# include "scalars.h"
+# include "grid.h"
+      !!----------------------------------------------------------------------
+      !!                     ***  ROUTINE set_mask  ***
+      !!
+      !! ** Purpose :   set mask in domain definition to XIOS library
+      !!
+      !! ** Method  :   
+      !!
+      !! ** History :   S. Petton   , adapt from set_grid
+      !!                S. Theetten , adaptation for XIOS-2.5 (May, 2019)
+      !!                A. Ponte    , adaptation for CROCO
+      !!                S. Masson   , original version (NEMO)  
+      !!
+      !!----------------------------------------------------------------------
+      CHARACTER(LEN=*)            , INTENT(in) ::   cdgrd
+      LOGICAL zmask(GLOBAL_2D_ARRAY)
+      !
+      INTEGER vtype, horiz_type, vert_type
+      INTEGER imin, imax, jmin, jmax, ni, nj
+      !!----------------------------------------------------------------------
+      !
+      zmask(:,:) = .false.
+      SELECT CASE (TRIM(cdgrd))
+      CASE ("rho")
+         vtype=r2dvar
+         where(rmask(:,:) > 0) zmask(:,:) = .true.
+      CASE ("b")
+         vtype=r2dvar
+         where(rmask(:,:) > 0) zmask(:,:) = .true.
+      CASE ("u")
+         vtype=u2dvar
+         where(umask(:,:) > 0) zmask(:,:) = .true.
+      CASE ("v")
+         vtype=v2dvar
+         where(vmask(:,:) > 0) zmask(:,:) = .true.
+      CASE ("w")
+         vtype=r2dvar
+         where(rmask(:,:) > 0) zmask(:,:) = .true.
+      CASE ("psi")
+         vtype=p2dvar
+         where(pmask(:,:) > 0) zmask(:,:) = .true.
+      END SELECT
+
+      ! From nf_fread.F
+      vert_type=vtype/4            ! vertical and horizontal
+      horiz_type=vtype-4*vert_type ! grid types, then calculate
+      jmin=horiz_type/2            ! starting indices indices
+      imin=horiz_type-2*jmin       ! in horizontal directions.
+
+# ifdef MPI
+      IF (ii.gt.0) then
+         imin=1
+      ENDIF
+      IF (ii.eq.NP_XI-1) then
+         imax=Lmmpi+1
+      ELSE
+         imax=Lmmpi
+      ENDIF
+      IF (jj.gt.0) then
+         jmin=1
+      ENDIF
+      IF (jj.eq.NP_ETA-1) then
+         jmax=Mmmpi+1
+      ELSE
+         jmax=Mmmpi
+      ENDIF
+# else
+      imin=1
+      imax=Lm+1
+      jmin=1
+      jmax=Mm+1
+# endif
+
+      ! there is probably already a variable for ni and nj 
+      ni=imax-imin+1
+      nj=jmax-jmin+1
+
+      CALL iom_set_domain_attr(TRIM(cdgrd),
+     &     mask=RESHAPE(zmask(imin:imax,jmin:jmax), (/ni*nj/)))
+      
+      END SUBROUTINE set_mask
+#endif
 
       SUBROUTINE iom_set_domain_attr( cdid, ni_glo, nj_glo, ibegin, jbegin,
      & ni, nj, zoom_ibegin, zoom_jbegin, zoom_ni, zoom_nj,
      & data_dim, data_ibegin, data_ni, data_jbegin, data_nj, 
-     & lonvalue, latvalue, mask )
+     & lonvalue, latvalue, mask,nvertex, bounds_lon, bounds_lat, area )
       !!----------------------------------------------------------------------
       !!                     ***  ROUTINE iom_set_domain_attr  ***
       !!
@@ -161,8 +264,9 @@
       !!
       !! ** Method  :   
       !!
-      !! ** History :   R. Benshila, adaptation for CROCO 
-      !!                S. Masson  , original version (NEMO)  
+      !! ** History :   S. Theetten , adaptation for XIOS-2.5 (May, 2019)
+      !!                R. Benshila , adaptation for CROCO
+      !!                S. Masson   , original version (NEMO)  
       !!
       !!----------------------------------------------------------------------
       CHARACTER(LEN=*) , INTENT(in) :: cdid
@@ -171,38 +275,82 @@
       INTEGER , OPTIONAL, INTENT(in) :: data_dim, data_ibegin, data_ni
       INTEGER , OPTIONAL, INTENT(in) :: data_jbegin, data_nj
       INTEGER , OPTIONAL, INTENT(in) :: zoom_ibegin, zoom_jbegin
-      INTEGER , OPTIONAL, INTENT(in) :: zoom_ni, zoom_nj
-      REAL , DIMENSION(:) , OPTIONAL, INTENT(in) :: lonvalue, latvalue
-      LOGICAL, DIMENSION(:,:), OPTIONAL, INTENT(in) :: mask
+      INTEGER , OPTIONAL, INTENT(in) :: zoom_ni, zoom_nj, nvertex
+      REAL, DIMENSION(:)   , OPTIONAL, INTENT(in) ::   lonvalue, latvalue
+      REAL, DIMENSION(:,:) , OPTIONAL, INTENT(in) ::   bounds_lon, 
+     & bounds_lat, area
+# if ! defined XIOS2
+      LOGICAL,  DIMENSION(:,:) , OPTIONAL, INTENT(in) ::   mask
+# else
+      LOGICAL,  DIMENSION(:) , OPTIONAL, INTENT(in) ::   mask
+# endif
       !!----------------------------------------------------------------------
       !
+# if ! defined XIOS2
+      IF ( xios_is_valid_domain     (cdid) ) THEN
+         CALL xios_set_domain_attr     ( cdid, ni_glo=ni_glo, nj_glo=nj_glo, 
+     &    ibegin=ibegin, jbegin=jbegin, ni=ni, nj=nj,  
+     &    data_dim=data_dim, data_ibegin=data_ibegin, data_ni=data_ni, 
+     &    data_jbegin=data_jbegin, data_nj=data_nj ,  
+     &    zoom_ibegin=zoom_ibegin, zoom_jbegin=zoom_jbegin, 
+     &    zoom_ni=zoom_ni, zoom_nj=zoom_nj,                       
+     &    lonvalue=lonvalue, latvalue=latvalue, mask=mask,
+     &    nvertex=nvertex, bounds_lon=bounds_lon,                 
+     &    bounds_lat=bounds_lat)!RB, area=area )
+      ENDIF
+      IF ( xios_is_valid_domaingroup(cdid) ) THEN
+         CALL xios_set_domaingroup_attr( cdid, ni_glo=ni_glo, nj_glo=nj_glo,
+     &    ibegin=ibegin, jbegin=jbegin, ni=ni, nj=nj,
+     &    data_dim=data_dim, data_ibegin=data_ibegin, data_ni=data_ni, 
+     &    data_jbegin=data_jbegin, data_nj=data_nj ,   
+     &    zoom_ibegin=zoom_ibegin, zoom_jbegin=zoom_jbegin, 
+     &    zoom_ni=zoom_ni, zoom_nj=zoom_nj,                       
+     &    lonvalue=lonvalue, latvalue=latvalue, mask=mask, 
+     &    nvertex=nvertex, bounds_lon=bounds_lon,                  
+     &    bounds_lat=bounds_lat)!RB, area=area )
+      ENDIF
+
+# else
+
       IF ( xios_is_valid_domain(cdid) ) THEN
-        CALL xios_set_domain_attr(cdid, ni_glo=ni_glo, nj_glo=nj_glo, 
-     & ibegin=ibegin, jbegin=jbegin, ni=ni, nj=nj,
-     & data_dim=data_dim, data_ibegin=data_ibegin, data_ni=data_ni, 
-     & data_jbegin=data_jbegin, data_nj=data_nj, 
-     & zoom_ibegin=zoom_ibegin, zoom_jbegin=zoom_jbegin, 
-     & zoom_ni=zoom_ni, zoom_nj=zoom_nj,
-     &    lonvalue=lonvalue, latvalue=latvalue,mask=mask )
+         CALL xios_set_domain_attr( cdid, ni_glo=ni_glo, nj_glo=nj_glo, 
+     &    ibegin=ibegin, jbegin=jbegin, ni=ni, nj=nj,
+     &    data_dim=data_dim, data_ibegin=data_ibegin, data_ni=data_ni,
+     &    data_jbegin=data_jbegin, data_nj=data_nj,   
+     &    lonvalue_1D=lonvalue, latvalue_1D=latvalue, mask_1D=mask,
+     &    nvertex=nvertex, bounds_lon_1D=bounds_lon,       
+     &    bounds_lat_1D=bounds_lat, area=area, type='curvilinear')
       ENDIF
       !
       IF ( xios_is_valid_domaingroup(cdid) ) THEN
-         CALL xios_set_domaingroup_attr( cdid,
-     &  ni_glo=ni_glo, nj_glo=nj_glo, 
-     &  ibegin=ibegin, jbegin=jbegin, ni=ni, nj=nj,
-     &  data_dim=data_dim, data_ibegin=data_ibegin, data_ni=data_ni, 
-     &  data_jbegin=data_jbegin, data_nj=data_nj ,
-     &  zoom_ibegin=zoom_ibegin, zoom_jbegin=zoom_jbegin, 
-     &  zoom_ni=zoom_ni, zoom_nj=zoom_nj,
-     &  lonvalue=lonvalue, latvalue=latvalue,mask=mask )
+         CALL xios_set_domaingroup_attr( cdid, ni_glo=ni_glo, nj_glo=nj_glo, 
+     &    ibegin=ibegin, jbegin=jbegin, ni=ni, nj=nj,
+     &    data_dim=data_dim, data_ibegin=data_ibegin, data_ni=data_ni, 
+     &    data_jbegin=data_jbegin, data_nj=data_nj ,   
+     &    lonvalue_1D=lonvalue, latvalue_1D=latvalue, mask_1D=mask,
+     & nvertex=nvertex, bounds_lon_1D=bounds_lon,                  
+     &    bounds_lat_1D=bounds_lat, area=area, type='curvilinear')
       ENDIF
+# endif
       !
       CALL xios_solve_inheritance()
       ! 
       END SUBROUTINE iom_set_domain_attr
 
+# if defined XIOS2
+      SUBROUTINE iom_set_zoom_domain_attr( cdid, ibegin, jbegin, ni, nj)
+      CHARACTER(LEN=*)          , INTENT(in) ::   cdid
+      INTEGER         , OPTIONAL, INTENT(in) ::   ibegin, jbegin, ni, nj
+
+      IF ( xios_is_valid_zoom_domain     (cdid) ) THEN
+         CALL xios_set_zoom_domain_attr     ( cdid, ibegin=ibegin-1, 
+     &        jbegin=jbegin-1, ni=ni, nj=nj)
+      ENDIF
+      END SUBROUTINE iom_set_zoom_domain_attr
+# endif
+
       
-      SUBROUTINE iom_set_axis_attr( cdid, paxis )
+      SUBROUTINE iom_set_axis_attr( cdid, paxis,bounds )
       !!----------------------------------------------------------------------
       !!                     ***  ROUTINE iom_set_axis_attr  ***
       !!
@@ -210,14 +358,18 @@
       !!
       !! ** Method  :   
       !!
-      !! ** History :   A. Ponte   , adaptation for CROCO 
-      !!                S. Masson  , original version (NEMO)  
+      !! ** History :   S. Theetten , adaptation for XIOS-2.5 (May, 2019)
+      !!                A. Ponte    , adaptation for CROCO
+      !!                S. Masson   , original version (NEMO)
       !!
       !!----------------------------------------------------------------------
       CHARACTER(LEN=*)      , INTENT(in) ::   cdid
-      REAL, DIMENSION(:), INTENT(in) ::   paxis
+      REAL, DIMENSION(:)  , OPTIONAL, INTENT(in) ::   paxis
+      REAL, DIMENSION(:,:), OPTIONAL, INTENT(in) ::   bounds
       !!----------------------------------------------------------------------
       !
+      IF ( PRESENT(paxis) ) THEN
+# if ! defined XIOS2
       IF ( xios_is_valid_axis (cdid) ) then
        CALL xios_set_axis_attr(cdid, size=size(paxis),value=paxis )
       ENDIF
@@ -225,7 +377,24 @@
       IF ( xios_is_valid_axisgroup(cdid) ) then
        CALL xios_set_axisgroup_attr(cdid, size=size(paxis),value=paxis )
       ENDIF
+# else
+      IF ( xios_is_valid_axis (cdid) ) then
+       CALL xios_set_axis_attr(cdid,n_glo=SIZE(paxis), value=paxis )
+      ENDIF
       !
+      IF ( xios_is_valid_axisgroup(cdid) ) then
+       CALL xios_set_axisgroup_attr(cdid, n_glo=SIZE(paxis),value=paxis)
+      ENDIF
+# endif
+      !
+      ENDIF
+      IF ( xios_is_valid_axis     (cdid) )  then 
+         CALL xios_set_axis_attr     ( cdid, bounds=bounds )
+      ENDIF
+      IF ( xios_is_valid_axisgroup(cdid) )  then
+         CALL xios_set_axisgroup_attr( cdid, bounds=bounds )
+      ENDIF
+      
       CALL xios_solve_inheritance()
       !
       END SUBROUTINE iom_set_axis_attr
@@ -238,13 +407,22 @@
       !!
       !! ** Method  :   
       !!
-      !! ** History :   A. Ponte   , adaptation for CROCO 
-      !!                S. Masson  , original version (NEMO)  
+      !! ** History :   S. Theetten , adaptation for XIOS-2.5 (May, 2019)
+      !!                A. Ponte    , adaptation for CROCO 
+      !!                S. Masson   , original version (NEMO)  
       !!
       !!----------------------------------------------------------------------
       CHARACTER(LEN=*)          , INTENT(in) ::   cdid
+      TYPE(xios_file) :: file_hdl
+      TYPE(xios_variable) :: var_hdl
+      LOGICAL ok
+# if ! defined XIOS2
       CHARACTER(LEN=*),OPTIONAL , INTENT(in) ::   freq_op
       CHARACTER(LEN=*),OPTIONAL , INTENT(in) ::   freq_offset
+# else
+      TYPE(xios_duration),OPTIONAL , INTENT(in) ::   freq_op
+      TYPE(xios_duration),OPTIONAL , INTENT(in) ::   freq_offset
+# endif      
       !!----------------------------------------------------------------------
       !
       IF ( xios_is_valid_field     (cdid) ) 
@@ -259,8 +437,121 @@
       !
       END SUBROUTINE iom_set_field_attr
 
+      SUBROUTINE iom_set_file_global_attr_char(cdid, type, name, value)
+# include "param.h"
+# include "scalars.h"
+      !!----------------------------------------------------------------------
+      !!                     ***  ROUTINE iom_set_file_global_attr_char  ***
+      !!
+      !! ** Purpose :   set file global attribute for XIOS
+      !!
+      !! ** Method  :   
+      !!
+      !! ** History :   S. Theetten : add global attributes , May, 2019
 
+      !!
+      !!----------------------------------------------------------------------
+      CHARACTER(LEN=*)          , INTENT(in) ::   cdid
+      CHARACTER(LEN=*)          , INTENT(in) ::   type
+      CHARACTER(LEN=*),OPTIONAL , INTENT(in) ::   name, value
+      LOGICAL :: ok
+      TYPE(xios_file) :: file_hdl
+      TYPE(xios_variable) :: var_hdl
+      !!----------------------------------------------------------------------
+
+      CALL xios_solve_inheritance()
+
+      IF ( xios_is_valid_file     (cdid) )   THEN
+          CALL xios_get_handle(cdid,file_hdl)
+
+          CALL xios_add_child(file_hdl, var_hdl, trim(name))
+          CALL xios_set_variable_attr(trim(name), name=name, type=type)
+          ok = xios_setvar(trim(name),value)
+      ENDIF
+
+      CALL xios_solve_inheritance()
+      !
+      END SUBROUTINE iom_set_file_global_attr_char
+
+
+      SUBROUTINE iom_set_file_global_attr_float(cdid, type, name, value)
+# include "param.h"
+# include "scalars.h"
+      !!----------------------------------------------------------------------
+      !!                     ***  ROUTINE iom_set_file_global_attr_char  ***
+      !!
+      !! ** Purpose :   set file global attribute for XIOS
+      !!
+      !! ** Method  :   
+      !!
+      !! ** History :   S. Theetten : add global attributes , May, 2019
+
+      !!
+      !!----------------------------------------------------------------------
+      CHARACTER(LEN=*)          , INTENT(in) ::   cdid
+      CHARACTER(LEN=*)          , INTENT(in) ::   type
+      CHARACTER(LEN=*),OPTIONAL , INTENT(in) ::   name
+	  REAL                                   ::   value
+      LOGICAL :: ok
+      TYPE(xios_file) :: file_hdl
+      TYPE(xios_variable) :: var_hdl
+      !!----------------------------------------------------------------------
+
+      CALL xios_solve_inheritance()
+
+      IF ( xios_is_valid_file     (cdid) )   THEN
+          CALL xios_get_handle(cdid,file_hdl)
+
+          CALL xios_add_child(file_hdl, var_hdl, trim(name))
+          CALL xios_set_variable_attr(trim(name), name=name, type=type)
+          ok = xios_setvar(trim(name),value)
+      ENDIF
+
+      CALL xios_solve_inheritance()
+      !
+      END SUBROUTINE iom_set_file_global_attr_float
+	  
+      SUBROUTINE iom_set_file_global_attr_int(cdid, type, name, value)
+# include "param.h"
+# include "scalars.h"
+      !!----------------------------------------------------------------------
+      !!                     ***  ROUTINE iom_set_file_global_attr_int  ***
+      !!
+      !! ** Purpose :   set file global attribute for XIOS
+      !!
+      !! ** Method  :   
+      !!
+      !! ** History :   S. Theetten : add global attributes , May, 2019
+
+      !!
+      !!----------------------------------------------------------------------
+      CHARACTER(LEN=*)          , INTENT(in) ::   cdid
+      CHARACTER(LEN=*)          , INTENT(in) ::   type
+      CHARACTER(LEN=*),OPTIONAL , INTENT(in) ::   name
+      INTEGER                                ::   value
+      LOGICAL :: ok
+      TYPE(xios_file) :: file_hdl
+      TYPE(xios_variable) :: var_hdl
+      !!----------------------------------------------------------------------
+
+      CALL xios_solve_inheritance()
+
+      IF ( xios_is_valid_file     (cdid) )   THEN
+          CALL xios_get_handle(cdid,file_hdl)
+
+          CALL xios_add_child(file_hdl, var_hdl, trim(name))
+          CALL xios_set_variable_attr(trim(name), name=name, type=type)
+          ok = xios_setvar(trim(name),value)
+      ENDIF
+
+      CALL xios_solve_inheritance()
+      !
+      END SUBROUTINE iom_set_file_global_attr_int
+	  
+	  
       SUBROUTINE iom_set_file_attr( cdid, name, name_suffix )
+# include "param.h"
+# include "scalars.h"
       !!----------------------------------------------------------------------
       !!                     ***  ROUTINE iom_set_file_attr  ***
       !!
@@ -275,7 +566,6 @@
       CHARACTER(LEN=*)          , INTENT(in) ::   cdid
       CHARACTER(LEN=*),OPTIONAL , INTENT(in) ::   name, name_suffix
       !!----------------------------------------------------------------------
-      !
       IF ( xios_is_valid_file     (cdid) )   CALL xios_set_file_attr  
      &    ( cdid, name=name, name_suffix=name_suffix )
       !
@@ -305,16 +595,24 @@
       CHARACTER(LEN=*)          , INTENT(in ) :: 
      &   cdid
       CHARACTER(LEN=*),OPTIONAL , INTENT(out) :: 
-     &   name, name_suffix, output_freq
-      !
+     &   name, name_suffix
+# if ! defined XIOS2
+      CHARACTER(LEN=*),OPTIONAL , INTENT(out) ::    output_freq
+# else
+      TYPE(xios_duration)   ,OPTIONAL , INTENT(out) :: output_freq
+# endif 
       LOGICAL                                 :: 
      &   llexist1,llexist2,llexist3
       !---------------------------------------------------------------------
       !
       IF( PRESENT( name        ) )   name = ''          ! default values
       IF( PRESENT( name_suffix ) )   name_suffix = ''
+# if ! defined XIOS2
       IF( PRESENT( output_freq ) )   output_freq = ''
-      IF ( xios_is_valid_file     (cdid) ) THEN
+# else
+      IF( PRESENT( output_freq ) )   output_freq = xios_duration(0,0,0,0,0,0)
+# endif
+       IF ( xios_is_valid_file     (cdid) ) THEN
          CALL xios_solve_inheritance()
          CALL xios_is_defined_file_attr   
      &      ( cdid, name = llexist1, name_suffix = llexist2,
@@ -348,19 +646,28 @@
       !!----------------------------------------------------------------------
       !!                     ***  ROUTINE set_scalar  ***
       !!
-      !! ** Purpose :   fake axis for salar output
+      !! ** Purpose :   fake axis for scalar output
       !!
       !! ** Method  :   
-      !!
-      !! ** History :   R. Benshila, adaptation for CROCO 
-      !!                S. Masson  , original version (NEMO)  
+      !! ** History :   S. Theetten , adaptation for XIOS-2.5 (May, 2019)
+      !!                R. Benshila , adaptation for CROCO 
+      !!                S. Masson   , original version (NEMO)  
       !!
       !!----------------------------------------------------------------------
       REAL, DIMENSION(1) ::   zz = 1.
       !!----------------------------------------------------------------------
       ! 
+# if ! defined XIOS2
       CALL iom_set_domain_attr('scalarpoint', ni_glo=NNODES, nj_glo=1, 
      &  ibegin=mynode+1, jbegin=1, ni=1, nj=1)
+!      CALL iom_set_domain_attr('scalarpoint', data_dim=2,data_ibegin = 1, 
+!     &                         data_ni = 1, data_jbegin = 1, data_nj = 1)
+# else
+      CALL iom_set_domain_attr('scalarpoint', ni_glo=NNODES, nj_glo=1,
+     &  ibegin=mynode, jbegin=0, ni=1, nj=1)
+!      CALL iom_set_domain_attr('scalarpoint', data_dim=2,data_ibegin = 0,
+!     &                         data_ni = 1, data_jbegin = 0, data_nj = 1)
+# endif
       CALL iom_set_domain_attr('scalarpoint', data_dim=2,data_ibegin = 1, 
      &                         data_ni = 1, data_jbegin = 1, data_nj = 1)
       zz=REAL(mynode+1)
@@ -369,9 +676,217 @@
       !
       END SUBROUTINE set_scalar
 
-      
+      SUBROUTINE set_xml_global_att(cdid)
+# include "param.h"
+# include "scalars.h"
+# include "ncscrum.h"
+# include "strings.h"
+      !!----------------------------------------------------------------------
+      !!                     ***  ROUTINE set_xml_global_att  ***
+      !!
+      !! ** Purpose :   automatic definitions of global attributs
+      !!
+      !! ** Method  :
+      !!
+      !! ** History :   S. Theetten, (May, 2019)
+
+      !!
+      !!----------------------------------------------------------------------
+      CHARACTER(LEN=*)          , INTENT(in) ::   cdid
+      CHARACTER(LEN=40)  ::   char_value
+
+      char_value=trim(title)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='title', value=char_value)
+#ifdef START_DATE
+C start_date
+#endif
+C       char_value=trim(date_str)
+C        CALL iom_set_file_global_attr   (cdid
+C       &          ,type='string',name='date', value=char_value)
+      char_value=trim(rstname)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='rst_file', value=char_value)
+#ifndef ANA_GRID
+      char_value=trim(grdname)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='grd_file', value=char_value)
+#endif
+#ifndef ANA_INITIAL
+      char_value=trim(ininame)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='ini_file', value=char_value)
+#endif
+#if !defined ANA_SMFLUX || !defined ANA_STFLUX \
+      || !defined ANA_BTFLUX \
+      || (defined BBL && !defined ANA_BSEDIM)  \
+      || (defined BBL && !defined ANA_WWAVE)   \
+      || (defined SALINITY && !defined ANA_SSFLUX)  \
+      || ((defined LMD_SKPP || defined LMD_BKPP)  && !defined ANA_SRFLUX)
+      char_value=trim(frcname)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='frc_file', value=char_value)
+#endif
+#ifdef PSOURCE_NCFILE
+C qbar_file
+#endif
+#ifdef ASSIMILATION
+C ass_file
+C apar_file
+#endif
+#ifdef SOLVE3D
+# ifdef  NEW_S_COORD
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='VertCoordType', value='NEW')
+# endif
+# ifdef  LMD_SKPP2005
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='skpp', value='2005')
+# endif
+      CALL iom_set_file_global_attr_float   (cdid
+     &     ,type='float',name='theta_s', value=theta_s)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='theta_s_expl'
+     &     ,value='S-coordinate surface control parameter')
+      CALL iom_set_file_global_attr_float   (cdid
+     &     ,type='float',name='theta_b', value=theta_b)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='theta_b_expl'
+     &     , value='S-coordinate bottom control parameter')
+      CALL iom_set_file_global_attr_float   (cdid
+     &     ,type='float',name='Tcline', value=Tcline)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='Tcline_expl'
+     &     , value='S-coordinate surface/bottom layer width')
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='Tcline_units', value='meter')
+      CALL iom_set_file_global_attr_float   (cdid
+     &      ,type='float',name='hc', value=hc)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='hc_expl'
+     &     , value='S-coordinate parameter, critical depth')
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='hc_units', value='meter')
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='sc_w'
+     &     , value='have a look at variable sc_w in this file')
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='Cs_w'
+     &     , value='have a look at variable Cs_w in this file')
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='sc_r'
+     &     , value='have a look at variable sc_r in this file')
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='Cs_r'
+     &     , value='have a look at variable Cs_r in this file')
+#endif
+      CALL iom_set_file_global_attr_int   (cdid
+     &     ,type='int',name='ntimes', value=ntimes)
+      CALL iom_set_file_global_attr_int   (cdid
+     &     ,type='int',name='ndtfast', value=ndtfast)
+      CALL iom_set_file_global_attr_float   (cdid
+     &     ,type='float',name='dt', value=dt)
+      CALL iom_set_file_global_attr_float   (cdid
+     &     ,type='float',name='dtfast', value=dtfast)
+      CALL iom_set_file_global_attr_int   (cdid
+     &      ,type='int',name='nwrt', value=nwrt)
+#ifdef UV_VIS2
+#endif
+#ifdef UV_VIS4
+#endif
+#ifdef SOLVE3D
+# ifdef TS_DIF2
+# endif
+# ifdef TS_DIF4
+C       CALL iom_set_file_global_attr_float   (cdid
+C      &     ,type='float',name='tnu4', value=tnu4)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='tnu4_expl'
+     &     , value='biharmonic mixing coefficient for tracers')
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='units', value='meter4 second-1')
+# endif
+# if !defined LMD_MIXING && !defined BVF_MIXING
+!
+! Background vertical viscosity and tracer mixing coefficients.
+!
+# endif
+#endif
+!
+! Bottom drag coefficients.
+!
+C      if (maxval(Zob).ne.0.) then
+C 		  elseif (rdrg2.gt.0.) then
+C 			  elseif (rdrg.ne.0) then
+ 
+      CALL iom_set_file_global_attr_float   (cdid
+     &     ,type='float',name='rdrg', value=rdrg)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='rdrg_expl'
+     &     , value='linear drag coefficient')
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='rdrg_units'
+     &     , value='meter second-1')
+C 				  endif
+#ifdef SOLVE3D
+!
+! Equation of State parameters.
+!
+      CALL iom_set_file_global_attr_float   (cdid
+     &     ,type='float',name='rho0', value=rho0)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='rho0_expl'
+     &     ,value='Mean density used in Boussinesq approximation')
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='rho0_units'
+     &     ,value='kilogram meter-3')
+# ifndef NONLIN_EOS
+# endif
+
+! Various parameters.
+!
+# ifdef BODYFORCE
+# endif
+#endif /* SOLVE3D */
+!
+! Slipperiness parameters.
+!
+      CALL iom_set_file_global_attr_float   (cdid
+     &     ,type='float',name='gamma2', value=gamma2)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='gamma2_expl', value=
+     &          'Slipperiness parameter')
+# ifdef SPONGE
+!
+! Sponge parameters
+!
+      CALL iom_set_file_global_attr_float   (cdid
+     &      ,type='float',name='x_sponge', value=x_sponge)
+      CALL iom_set_file_global_attr_float   (cdid
+     &     ,type='float',name='v_sponge', value=v_sponge)
+      CALL iom_set_file_global_attr_char   (cdid,
+     &     type='string',name='sponge_expl',value=
+     &     'Sponge parameters : extent (m) & viscosity (m2.s-1)')
+# endif
+# ifdef SEDIMENT
+!
+! Sediment parameters
+!
+# endif
+!
+! List of Source Codes and Activated CPP-switches
+!
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='SRCS', value=srcs)
+      CALL iom_set_file_global_attr_char   (cdid
+     &     ,type='string',name='CPP-options', value=Coptions)
+
+      END SUBROUTINE set_xml_global_att
+
       SUBROUTINE set_xmlatt
 # include "param.h"
+# include "scalars.h"
+
       !!----------------------------------------------------------------------
       !!                     ***  ROUTINE set_xmlatt  ***
       !!
@@ -379,7 +894,8 @@
       !!
       !! ** Method  :   
       !!
-      !! ** History :   R. Benshila, adaptation for CROCO 
+      !! ** History :   S. Theetten, adaptation for XIOS-2.5 (May, 2019)
+      !!                R. Benshila, adaptation for CROCO 
       !!                S. Masson  , original version (NEMO)  
       !!
       !!----------------------------------------------------------------------
@@ -388,6 +904,7 @@
       CHARACTER(len=1)               ::   cl1                      ! 1 character
       CHARACTER(len=2)               ::   cl2                      ! 2 characters
       CHARACTER(len=3)               ::   cl3                      ! 3 characters
+      CHARACTER(LEN=20)              ::   char_value
       INTEGER                        ::   ji, jg                   ! loop counters
       INTEGER                        ::   ix, iy                   ! i-,j- index
       REAL       ,DIMENSION(11) ::   zlontao                  ! longitudes of tao    moorings
@@ -396,12 +913,15 @@
       REAL       ,DIMENSION(11) ::   zlatrama                 ! latitudes  of rama   moorings
       REAL        ,DIMENSION( 3) ::   zlonpira                 ! longitudes of pirata moorings
       REAL     ,DIMENSION( 9) ::   zlatpira                 ! latitudes  of pirata moorings
+!!!!!!!!!!!!!!!!#if  defined XIOS2
+!!!!!!!!!!!!!!!!      TYPE(xios_duration)            ::   f_op, f_of
+!!!!!!!!!!!!!!!!#endif
       !!----------------------------------------------------------------------
       !
       ! frequency of the call of iom_put (attribut: freq_op)
       WRITE(cl1,'(i1)') 1 
-      CALL iom_set_field_attr('field_definition', 
-     & freq_op = cl1//'ts', freq_offset='0ts')
+!!!!!!!!!!!!!!!!!!      CALL iom_set_field_attr('field_definition', 
+!!!!!!!!!!!!!!!!!!     & freq_op = cl1//'ts', freq_offset='0ts')
 
       ! output file names (attribut: name)
       DO ji = 1, 9
@@ -446,6 +966,10 @@
       zlonpira = (/ -38.0, -23.0, -10.0 /)
       zlatpira = (/ -19.0, -14.0,  -8.0, 0.0, 4.0, 8.0, 12.0, 15.0, 20.0 /)
       CALL set_mooring( zlonpira, zlatpira )
+
+
+
+
       !
       END SUBROUTINE set_xmlatt
 
@@ -543,7 +1067,7 @@
 # include "param.h"
 # include "grid.h"
 # ifdef MPI
-#      include "mpi_roms.h"
+#      include "mpi_cpl.h"
        include 'mpif.h'
 # endif
       !!----------------------------------------------------------------------
@@ -654,6 +1178,7 @@
 # include "param.h"
 # include "scalars.h"
 # include "ncscrum.h"
+# include "strings.h"
       !!----------------------------------------------------------------------
       !!                    ***  ROUTINE iom_update_file_name  ***
       !!
@@ -661,7 +1186,8 @@
       !!
       !! ** Method  :   request xml attribute and modify it
       !!
-      !! ** History :   R. Benshila, adaptation for CROCO 
+      !! ** History :   S. Theetten, adaptation for XIOS-2.5 (May, 2019)
+      !!                R. Benshila, adaptation for CROCO 
       !!                S. Masson  , original version (NEMO)  
       !!
       !!---------------------------------------------------------------------
@@ -670,12 +1196,18 @@
       CHARACTER(LEN=256) ::   clname
       CHARACTER(LEN=20)  ::   clfreq
       CHARACTER(LEN=20)  ::   cldate
+      CHARACTER(LEN=20)  ::   type, name, value, nom, valeur
+      CHARACTER(LEN=20)  ::   char_value
       INTEGER            ::   idx
       INTEGER            ::   jn
       INTEGER            ::   itrlen
+      INTEGER            ::   lvar,lenstr
       INTEGER            ::   iyear, imonth, iday, isec
-      REAL               ::   zsec, jday0
+      REAL               ::   zsec, jday0,rvalue
       LOGICAL            ::   llexist
+# if  defined XIOS2
+      TYPE(xios_duration)   ::   output_freq
+# endif     
       !!----------------------------------------------------------------------
       !
 # ifdef START_DATE
@@ -684,13 +1216,20 @@
        READ(start_date(4:5),fmt='(i2)') imonth
        READ(start_date(7:10),fmt='(i4)') iyear
        CALL ymds2ju( iyear, imonth,iday, 0., jday0 )  
+# elif defined USE_CALENDAR
+       CALL ymds2ju(1900, 1, 1, 0., jday0 )  
 # else
        CALL ymds2ju( 1, 1, 1, 0., jday0 )  
 # endif
       DO jn = 1,2
 
+# if ! defined XIOS2
          IF( jn == 1 )   CALL iom_get_file_attr( cdid, name 
      &           = clname, output_freq = clfreq )
+# else
+         IF( jn == 1 )   CALL iom_get_file_attr( cdid, name 
+     &           = clname, output_freq = output_freq )
+# endif
          IF( jn == 2 )   CALL iom_get_file_attr( cdid, name_suffix = clname )
 
          IF ( TRIM(clname) /= '' ) THEN 
@@ -702,6 +1241,7 @@
                idx = INDEX(clname,'@expname@') + INDEX(clname,'@EXPNAME@')
             END DO
 
+# if ! defined XIOS2
             idx = INDEX(clname,'@freq@') + INDEX(clname,'@FREQ@')
             DO WHILE ( idx /= 0 ) 
                IF ( TRIM(clfreq) /= '' ) THEN
@@ -714,7 +1254,40 @@
                ENDIF
                idx = INDEX(clname,'@freq@') + INDEX(clname,'@FREQ@')
             END DO
-
+# else
+            idx = INDEX(clname,'@freq@') + INDEX(clname,'@FREQ@')
+            DO WHILE ( idx /= 0 )
+              IF ( output_freq%timestep /= 0) THEN
+                  WRITE(clfreq,'(I18,A2)')INT(output_freq%timestep),'ts'
+                  itrlen = LEN_TRIM(ADJUSTL(clfreq))
+              ELSE IF ( output_freq%hour /= 0 ) THEN
+                  WRITE(clfreq,'(I19,A1)')INT(output_freq%hour),'h'
+                  itrlen = LEN_TRIM(ADJUSTL(clfreq))
+              ELSE IF ( output_freq%day /= 0 ) THEN
+                  WRITE(clfreq,'(I19,A1)')INT(output_freq%day),'d'
+                  itrlen = LEN_TRIM(ADJUSTL(clfreq))
+              ELSE IF ( output_freq%month /= 0 ) THEN
+                  WRITE(clfreq,'(I19,A1)')INT(output_freq%month),'m'
+                  itrlen = LEN_TRIM(ADJUSTL(clfreq))
+              ELSE IF ( output_freq%year /= 0 ) THEN
+                  WRITE(clfreq,'(I19,A1)')INT(output_freq%year),'y'
+                  itrlen = LEN_TRIM(ADJUSTL(clfreq))
+              ELSE
+                  if(mynode .eq. 0 ) print*,'error in the name of file id '
+     &           //TRIM(cdid),
+     & ' attribute output_freq is undefined -> cannot replace @freq@ in '
+     & //TRIM(clname) 
+				  STOP
+!                  CALL ctl_stop('error in the name of file id '
+!     &			  //TRIM(cdid),   
+!     & ' attribute output_freq is undefined -> cannot replace @freq@ in '
+!     & //TRIM(clname) )
+              ENDIF
+              clname = clname(1:idx-1)//TRIM(ADJUSTL(clfreq))//
+     &        clname(idx+6:LEN_TRIM(clname))
+              idx = INDEX(clname,'@freq@') + INDEX(clname,'@FREQ@')
+            END DO
+# endif
             idx = INDEX(clname,'@startdate@') + INDEX(clname,'@STARTDATE@')
             DO WHILE ( idx /= 0 ) 
                cldate = iom_sdate( tdays+jday0  )
@@ -753,11 +1326,12 @@
                idx = INDEX(clname,'@enddatefull@')
      &           + INDEX(clname,'@ENDDATEFULL@')
             END DO
-
             IF( jn == 1 )   CALL iom_set_file_attr( cdid, name
      &               = clname )
             IF( jn == 2 )   CALL iom_set_file_attr( cdid, name_suffix
      &               = clname )
+	 
+	        CALL set_xml_global_att(cdid)
 
          ENDIF
 
@@ -812,7 +1386,7 @@
       ENDIF
 
       IF( llfull ) THEN
-         clfmt = TRIM(clfmt)//",'_',i2.2,':',i2.2,':',i2.2"
+         clfmt = TRIM(clfmt)//",'_',3i2.2"
          ihour   = isec / 3600
          isec    = MOD(isec, 3600)
          iminute = isec / 60
@@ -1102,11 +1676,12 @@
       !!----------------------------------------------------------------------
       !!                     ***  ROUTINE iom_sdate  ***
       !!
-      !! ** Purpose :   defintion of grid for output
+      !! ** Purpose :   definition of grid for output
       !!
       !! ** Method  :   
       !!
-      !! ** History :   R. Benshila, imrpovement for CROCO 
+      !! ** History :   S. Theetten, adaptation for XIOS-2.5 (May, 2019)
+      !!                R. Benshila, improvement for CROCO 
       !!                A. Ponte   , adaption for ROMS  
       !!                S. Masson  , original version (NEMO)  
       !!
@@ -1122,23 +1697,34 @@
 # include "ocean3d.h"
 # include "scalars.h"
 # include "ncscrum.h"
-# include "mpi_roms.h"
+# include "mpi_cpl.h"
       !
       INTEGER Istr,Iend,Jstr,Jend
       !
       INTEGER tile,ji
       INTEGER ilocal_comm
+# if !  defined XIOS2
       TYPE(xios_time) :: dtime  = xios_time(0, 0, 0, 0, 0, 0)
+# else
+      TYPE(xios_duration) :: dtime    = xios_duration(0,
+     &  0, 0, 0, 0, 0)
+!      TYPE(xios_date)     :: start_date
+# endif     
       TYPE(xios_context) :: ctx_hdl
       TYPE(xios_field) :: field_hdl
       TYPE(xios_fieldgroup) :: fieldgroup_hdl
       TYPE(xios_file) :: file_hdl
+      TYPE(xios_variable) :: var_hdl
       LOGICAL ok
       !
       CHARACTER(len=19) :: cldate
       CHARACTER(len=10) :: clname
       CHARACTER(len=10) :: cdname
-      INTEGER iday,imonth,iyear
+      INTEGER iday,imonth,iyear,ihour,iminute,isec
+#ifdef USE_CALENDAR
+      CHARACTER (len=19)    :: tool_sectodat
+#endif
+
       !!---------------------------------------------------------------------
       !  
 # include "compute_auxiliary_bounds.h"
@@ -1173,24 +1759,40 @@
       CALL iom_swap( cdname )
 
       ! calendar parameters
+# if ! defined XIOS2	  
       CALL xios_set_context_attr(TRIM(clname), calendar_type= 
      &      "Gregorian")
+# endif
 
 # ifdef START_DATE
       ! start_date with format dd-mm-yyyy
       READ(start_date(1:2),fmt='(i2)') iday
       READ(start_date(4:5),fmt='(i2)') imonth
       READ(start_date(7:10),fmt='(i4)') iyear
+      ihour=0
+      iminute=0
+      isec=0
+# elif defined USE_CALENDAR
+      cldate = tool_sectodat(time)
+      CALL tool_decompdate(cldate,iday,imonth,iyear,ihour,iminute,isec)
 # else
       iday=1
       imonth=1       
       iyear=1
+      ihour=0
+      iminute=0
+      isec=0
 # endif
-      WRITE(cldate,"(i4.4,'-',i2.2,'-',i2.2,' 00:00:00')") 
+# if ! defined XIOS2
+      WRITE(cldate,"(i4.4,'-',i2.2,'-',i2.2,' 00:00:00')")
      & iyear,imonth,iday
       CALL xios_set_context_attr(TRIM(clname), 
      &        start_date=cldate )
-
+# else
+      CALL xios_define_calendar( TYPE = "Gregorian", 
+     & time_origin = xios_date(1979,01,01,00,00,00),
+     & start_date = xios_date(iyear,imonth,iday,ihour,iminute,isec))
+#endif
       ! horizontal grid definition
       CALL set_scalar
 
@@ -1200,13 +1802,24 @@
       CALL set_grid( "u", lonu, latu )
       CALL set_grid( "v", lonv, latv )
       CALL set_grid( "w", lonr, latr )
+      CALL set_grid( "psi", lonu, latv )
 # else
       CALL set_grid( "rho", xr, yr )
       CALL set_grid( "b", xr, yr )
       CALL set_grid( "u", xp, yr )
       CALL set_grid( "v", xr, yp )
       CALL set_grid( "w", xr, yr )
-# endif       
+      CALL set_grid( "psi", xp, yp )
+# endif
+
+# ifdef MASKING
+      CALL set_mask("rho")
+      CALL set_mask("b")
+      CALL set_mask("u")
+      CALL set_mask("v")
+      CALL set_mask("w")
+      CALL set_mask("psi")
+# endif
  
       ! vertical grid definition
       CALL iom_set_axis_attr( "s_rho", sc_r )
@@ -1226,11 +1839,11 @@
       ! end file definition
 
       ! Accademic test with dt> 1second are non comptabile with
-      ! XIOS, set xios tilme step unit to 1 model time_step
+      ! XIOS, set xios time step unit to 1 model time_step
       if (dt < 1) then
         dtime%second =  1
       else
-	dtime%second = dt
+        dtime%second = dt
       endif
       CALL xios_set_timestep(dtime)
 
@@ -1238,6 +1851,7 @@
       CALL xios_close_context_definition()
       !
       CALL xios_update_calendar(0)
+
       END SUBROUTINE init_xios_tile
       
       
@@ -1313,7 +1927,9 @@
 !  Copyright (c) 2000 Rutgers/UCLA                                   !
 !================================================ Hernan G. Arango ===
 !                                                                    !
-!  This routine sends every diagnostics fields to Xios server                                              !
+!  This routine sends every diagnostics fields to Xios server         
+!
+!  ** History :   S. Theetten , adaptation for XIOS-2.5 (May, 2019)
 !                                                                    !
 !=====================================================================
 !
@@ -1342,6 +1958,18 @@
 # ifdef WKB_WWAVE
 #  include "wkb_wwave.h"
 # endif
+# ifdef DIAGNOSTICS_UV
+#  include "diagnostics.h"
+# endif
+# if defined DIAGNOSTICS_VRT
+#  include "diags_vrt.h"
+# endif
+# ifdef DIAGNOSTICS_EK
+#  include "diags_ek.h"
+# endif
+# ifdef DIAGNOSTICS_PV
+#  include "diags_pv.h"
+# endif
 # ifdef MASKING
 #  define SWITCH *
 # else
@@ -1354,10 +1982,17 @@
 # include "work.h"
 # include "private_scratch.h"
 !
+#ifdef DIAGNOSTICS_EDDY
+      real workru(GLOBAL_2D_ARRAY,1:N)
+      common /work3d_r/ workru
+      real workrv(GLOBAL_2D_ARRAY,1:N)
+      common /work3d_r/ workrv
+      real GRho
+#endif
       integer tile
       integer Istr,Iend,Jstr,Jend
       integer i,j,k
-      integer ilc
+      integer ilc, itrc
       character*20 nametrc
       real eps
       parameter (eps=1.D-20)
@@ -1394,8 +2029,8 @@
        if (ilc == 0) ilc=1
        CALL xios_update_calendar(ilc)
 
-!      call xios_send_field("scrum_time",time)
-!      call xios_send_field("time",time)
+!       call xios_send_field("scrum_time",time)
+       call xios_send_field("time",time)
 
 ! static attributes
 # ifdef SOLVE3D
@@ -1410,6 +2045,7 @@
 !
 ! Ugly fix to write scalars until XIOS 2.0
 !
+# if ! defined XIOS2
       do k=1,N
       zz(:,:,k)=Cs_r(k)
       end do
@@ -1436,6 +2072,19 @@
       call xios_send_field("Tcline",zz(:,:,1))
       zz(:,:,1)=REAL(Vtransform)
       call xios_send_field("Vtransform",zz(:,:,1))
+# else
+! Beautiful  way to write scalars with XIOS-2.x
+      call xios_send_field("Cs_r",Cs_r(1:N))
+      call xios_send_field("Cs_w",Cs_w(0:N))
+      call xios_send_field("sc_r",sc_r(1:N))
+      call xios_send_field("sc_w",sc_w(0:N))
+      call xios_send_field("hc",hc)
+      call xios_send_field("theta_s",theta_s)
+      call xios_send_field("theta_b",theta_b)
+      call xios_send_field("Tcline",Tcline)
+      call xios_send_field("Vtransform",REAL(Vtransform))
+# endif
+
       call xios_send_field("levels_rho",z_r(:,:,:))
       call xios_send_field("levels_w"  ,z_w(:,:,:))
       do k=1,N
@@ -1535,6 +2184,10 @@
       call xios_send_field("sustr",work2d)
       work2d=svstr*rho0 
       call xios_send_field("svstr",work2d)
+#ifdef BULK_SM_UPDATE
+      call xios_send_field("uwnd",uwnd)
+      call xios_send_field("vwnd",vwnd)
+#endif
 
 # ifdef WKB_WWAVE
       call xios_send_field("hrm",hrm(:,:,wstp))
@@ -1571,19 +2224,29 @@
 #  ifdef SOLVE3D
       call xios_send_field("u",u(:,:,:,nstp))
       call xios_send_field("v",v(:,:,:,nstp)) 
-#   ifdef NBQ
+      call xios_send_field("u_surf",u(:,:,N,nstp)) 
+      call xios_send_field("v_surf",v(:,:,N,nstp)) 
+# ifdef NBQ
       call xios_send_field("temp",t(:,:,:,nstp,itemp)) 
 #   else
       call xios_send_field("temp",t(:,:,:,nstp,itemp)) 
-#   endif
-#  ifdef SALINITY
+      call xios_send_field("temp_surf",t(:,:,N,nstp,itemp)) 
+# endif
+# ifdef SALINITY
       call xios_send_field("salt",t(:,:,:,nstp,isalt))
-#  endif /* SALINITY */
+      call xios_send_field("salt_surf",t(:,:,N,nstp,isalt))
+# endif /* SALINITY */
 ! WARNING here passive tracers are missing
 ! we could easily add them in using all the vname stuff
 ! but I found it quiet ugly
 
       call xios_send_field("rho",rho)
+
+# if defined ANA_VMIX || defined BVF_MIXING \
+  || defined LMD_MIXING || defined LMD_SKPP || defined LMD_BKPP \
+  || defined GLS_MIXING || defined UV_VIS_SMAGO_3D
+      call xios_send_field("bvf",bvf)
+# endif
 
       do k=0,N
          do j=0,Mm+1
@@ -1608,6 +2271,40 @@
 
       call Wvlcty (tile, workr) 
       call xios_send_field("w",workr)
+
+#  ifdef DIAGNOSTICS_EDDY
+
+         GRho=-1*g/rho0
+
+          do k=1,N
+            do j=JstrR,JendR
+              do i=IstrR,IendR
+
+                  GRho=-1*g/rho0
+
+                  workru = 0.5*(u(i+1,j,k,nstp)+u(i,j,k,nstp))
+                  workrv = 0.5*(v(i,j+1,k,nstp)+v(i,j,k,nstp))
+
+                enddo
+              enddo
+           enddo
+
+          call xios_send_field("uu", workru**2)
+          call xios_send_field("uv", workru*workrv)
+          call xios_send_field("vv", workrv**2)
+          call xios_send_field("ub", workru*GRho*rho)
+          call xios_send_field("vb", workrv*GRho*rho)
+          call xios_send_field("wb", workr *GRho*rho)
+          call xios_send_field("uT", workru*t(:,:,:,nstp,itemp))
+          call xios_send_field("vT", workrv*t(:,:,:,nstp,itemp))
+          call xios_send_field("wT", workr *t(:,:,:,nstp,itemp))
+          call xios_send_field("uS", workru*t(:,:,:,nstp,isalt))
+          call xios_send_field("vS", workrv*t(:,:,:,nstp,isalt))
+          call xios_send_field("wS", workr *t(:,:,:,nstp,isalt))
+
+#  endif
+
+
         
 #  ifdef VIS_COEF_3D
       call xios_send_field("visc3d",visc3d_r)
@@ -1645,23 +2342,26 @@
       call xios_send_field("AKs",work)
 #  endif
 #  ifdef GLS_MIXING
-      call xios_send_field("AKk",Akk)
-      call xios_send_field("AKp",Akp)
+!      call xios_send_field("AKk",Akk)
+!      call xios_send_field("AKp",Akp)
 #  endif
 #  ifdef LMD_SKPP
 #   ifdef LMD_SKPP2005
-      work2d=hbls(:,:,nstp)
+!      work2d=hbls(:,:,nstp)
 #   else
-      work2d=hbl
+!      work2d=hbl
 #   endif
-      call xios_send_field("hbl",work2d)
+!      call xios_send_field("hbl",work2d)
+#  elif defined GLS_MIXING
+!      work2d=hbl
+!      call xios_send_field("hbl",work2d)
 #  endif
 #  ifdef LMD_BKPP
       call xios_send_field("hbbl",work2d)
 #  endif
 #  ifdef GLS_MIXING
-      call xios_send_field("tke",tke(:,:,:,nstp))
-      call xios_send_field("gls",gls(:,:,:,nstp))
+!      call xios_send_field("tke",tke(:,:,:,nstp))
+!      call xios_send_field("gls",gls(:,:,:,nstp))
       call xios_send_field("Lscale",Lscale)
 #  endif
 
@@ -1701,6 +2401,85 @@
       call xios_send_field("sst_skin",sst_skin)
 #  endif
      
+
+#  ifdef DIAGNOSTICS_UV
+
+      itrc = 1
+          call xios_send_field("u_rate", Mrate(:,:,:,itrc))
+          call xios_send_field("u_adv", MXadv(:,:,:,itrc)
+     &           + MYadv(:,:,:,itrc) + MVadv(:,:,:,itrc))
+          call xios_send_field("u_Cor",MCor(:,:,:,itrc))
+          call xios_send_field("u_Prsgrd",MPrsgrd(:,:,:,itrc))
+          call xios_send_field("u_Hmix",MHmix(:,:,:,itrc,nstp))
+          call xios_send_field("u_Hdiff",MHdiff(:,:,:,itrc))
+          call xios_send_field("u_Vmix",MVmix(:,:,:,itrc))
+          call xios_send_field("u_Vmix2",MVmix2(:,:,:,itrc))
+#  ifdef DIAGNOSTICS_BARO
+          call xios_send_field("u_Baro",MBaro(:,:,:,itrc))
+#  endif
+#  ifdef M3FAST
+          call xios_send_field("u_fast",Mfast(:,:,:,itrc))
+#  endif
+      itrc = 2
+          call xios_send_field("v_rate", Mrate(:,:,:,itrc))
+          call xios_send_field("v_adv", MXadv(:,:,:,itrc)
+     &         + MYadv(:,:,:,itrc) + MVadv(:,:,:,itrc))
+          call xios_send_field("v_Cor",MCor(:,:,:,itrc))
+          call xios_send_field("v_Prsgrd",MPrsgrd(:,:,:,itrc))
+          call xios_send_field("v_Hmix",MHmix(:,:,:,itrc,nstp))
+          call xios_send_field("v_Hdiff",MHdiff(:,:,:,itrc))
+          call xios_send_field("v_Vmix",MVmix(:,:,:,itrc))
+          call xios_send_field("v_Vmix2",MVmix2(:,:,:,itrc))
+#  ifdef DIAGNOSTICS_BARO
+          call xios_send_field("v_Baro",MBaro(:,:,:,itrc))
+#  endif
+#  ifdef M3FAST
+          call xios_send_field("v_fast",Mfast(:,:,:,itrc))
+#  endif
+#  endif
+
+
+#  ifdef DIAGNOSTICS_VRT
+          call xios_send_field("vrtrate", vrtrate(:,:))
+          call xios_send_field("vrtadv", vrtXadv(:,:) + vrtYadv(:,:))
+          call xios_send_field("vrtCor",vrtCor(:,:))
+          call xios_send_field("vrtPrsgrd",vrtPrsgrd(:,:))
+          call xios_send_field("vrtHmix",vrtHmix(:,:))
+          call xios_send_field("vrtHdiff",vrtHdiff(:,:))
+!          call xios_send_field("vrtVmix",vrtVmix(:,:))
+          call xios_send_field("vrtVmix2",vrtVmix2(:,:))
+          call xios_send_field("vrtBaro",vrtBaro(:,:))
+          call xios_send_field("vrtDrag",vrtDrag(:,:))
+          call xios_send_field("vrtWind",vrtWind(:,:))
+#  ifdef M3FAST
+          call xios_send_field("vrtfast",vrtfast(:,:))
+#  endif
+#  endif
+
+
+#  ifdef DIAGNOSTICS_EK
+
+          call xios_send_field("ekrate", ekrate(:,:))
+          call xios_send_field("ekadv", ekHadv(:,:) + ekVadv(:,:))
+          call xios_send_field("ekCor",ekCor(:,:))
+          call xios_send_field("ekPrsgrd",ekPrsgrd(:,:))
+          call xios_send_field("ekHmix",ekHmix(:,:))
+          call xios_send_field("ekHdiff",ekHdiff(:,:))
+          call xios_send_field("ekVmix",ekVmix(:,:))
+          call xios_send_field("ekVmix2",ekVmix2(:,:))
+          call xios_send_field("ekBaro",ekBaro(:,:))
+          call xios_send_field("ekvol",ekvol(:,:))
+          call xios_send_field("ekDrag",ekDrag(:,:))
+          call xios_send_field("ekWind",ekWind(:,:))
+#  ifdef M3FAST
+          call xios_send_field("ekfast",ekfast(:,:))
+#  endif
+#  endif
+
+
+
+
+
 
 #  if defined BIOLOGY
 #   if defined PISCES
@@ -1854,8 +2633,3 @@
       end
 
 #endif /* XIOS */
-
-
-
-
-

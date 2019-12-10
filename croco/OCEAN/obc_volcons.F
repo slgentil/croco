@@ -42,7 +42,7 @@
 # include "grid.h"
 # include "ocean2d.h"
 # include "scalars.h"
-# include "mpi_roms.h"
+# include "mpi_cpl.h"
 # ifdef MPI
       include 'mpif.h'
       integer size, step, status(MPI_STATUS_SIZE), ierr

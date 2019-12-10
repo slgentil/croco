@@ -29,7 +29,7 @@
 # include "scalars.h"
 # include "ocean3d.h"
 # include "ocean2d.h"
-# include "mpi_roms.h"
+# include "mpi_cpl.h"
       
       INTEGER    :: sndtime, i, level, ja
       DOUBLE PRECISION, DIMENSION(Lmmpi,Mmmpi)  :: snd_field 

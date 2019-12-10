@@ -57,13 +57,13 @@ module_qsort.F90:
 module_tracetxt_out.F90: cppdefs.h set_global_definitions.h cppdefs_dev.h 
 module_tracetxt_out.F90:
 #
-MPI_setup_nbq.F90: cppdefs.h   mpi_roms.h set_global_definitions.h cppdefs_dev.h 
+MPI_setup_nbq.F90: cppdefs.h   mpi_cpl.h set_global_definitions.h cppdefs_dev.h 
 MPI_setup_nbq.F90:
 #
 biology_pisces.F90: ocean2pisces.F90 p4zbio.F90 p4zche.F90 p4zflx.F90 p4zint.F90 p4zlim.F90 
 biology_pisces.F90: p4zmeso.F90 p4zmicro.F90 p4zmort.F90 p4zopt.F90 p4zprod.F90 p4zrem.F90 
 biology_pisces.F90: p4zsink.F90 par_pisces.F90 sms_pisces.F90 trc.F90 trcsms_pisces.F90 
-biology_pisces.F90: cppdefs.h param_F90.h scalars_F90.h param.h mpi_roms.h ocean3d.h grid.h 
+biology_pisces.F90: cppdefs.h param_F90.h scalars_F90.h param.h mpi_cpl.h ocean3d.h grid.h 
 biology_pisces.F90: forces.h mixing.h diagnostics.h ncscrum_F90.h ocean2pisces.h90 
 biology_pisces.F90:  set_global_definitions.h cppdefs_dev.h 
 biology_pisces.F90:
@@ -120,83 +120,83 @@ module_qsort.F90:
 module_tracetxt_out.F90: cppdefs.h set_global_definitions.h cppdefs_dev.h 
 module_tracetxt_out.F90:
 #
-ocean2pisces.F90: cppdefs.h param_F90.h scalars_F90.h param.h mpi_roms.h ocean3d.h grid.h  
+ocean2pisces.F90: cppdefs.h param_F90.h scalars_F90.h param.h mpi_cpl.h ocean3d.h grid.h  
 ocean2pisces.F90: mixing.h diagnostics.h ncscrum_F90.h set_global_definitions.h 
 ocean2pisces.F90: 
 #
 p4zbio.F90: ocean2pisces.F90 p4zche.F90 p4zint.F90 p4zlim.F90 p4zmeso.F90 p4zmicro.F90 
 p4zbio.F90: p4zopt.F90 p4zprod.F90 p4zrem.F90 p4zsink.F90 par_pisces.F90 sms_pisces.F90 
-p4zbio.F90: cppdefs.h param_F90.h scalars_F90.h param.h mpi_roms.h ocean3d.h grid.h  
+p4zbio.F90: cppdefs.h param_F90.h scalars_F90.h param.h mpi_cpl.h ocean3d.h grid.h  
 p4zbio.F90: mixing.h diagnostics.h ncscrum_F90.h ocean2pisces.h90 top_substitute.h90 
 p4zbio.F90: cppdefs_dev.h 
 p4zbio.F90:
 #
 p4zche.F90: ocean2pisces.F90 par_pisces.F90 sms_pisces.F90 trc.F90 cppdefs.h param_F90.h 
-p4zche.F90: param.h mpi_roms.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
+p4zche.F90: param.h mpi_cpl.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
 p4zche.F90: ocean2pisces.h90 top_substitute.h90 set_global_definitions.h cppdefs_dev.h 
 p4zche.F90:
 #
 p4zflx.F90: ocean2pisces.F90 p4zche.F90 par_pisces.F90 sms_pisces.F90 trc.F90 cppdefs.h 
-p4zflx.F90: scalars_F90.h param.h mpi_roms.h ocean3d.h grid.h  forces.h mixing.h 
+p4zflx.F90: scalars_F90.h param.h mpi_cpl.h ocean3d.h grid.h  forces.h mixing.h 
 p4zflx.F90: ncscrum_F90.h ocean2pisces.h90 top_substitute.h90  set_global_definitions.h 
 p4zflx.F90: 
 #
 p4zint.F90: ocean2pisces.F90 par_pisces.F90 sms_pisces.F90 trc.F90 cppdefs.h param_F90.h 
-p4zint.F90: param.h mpi_roms.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
+p4zint.F90: param.h mpi_cpl.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
 p4zint.F90: ocean2pisces.h90 set_global_definitions.h cppdefs_dev.h 
 p4zint.F90:
 #
 p4zlim.F90: ocean2pisces.F90 par_pisces.F90 sms_pisces.F90 trc.F90 cppdefs.h param_F90.h 
-p4zlim.F90: param.h mpi_roms.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
+p4zlim.F90: param.h mpi_cpl.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
 p4zlim.F90: ocean2pisces.h90 top_substitute.h90 set_global_definitions.h cppdefs_dev.h 
 p4zlim.F90:
 #
 p4zlys.F90: ocean2pisces.F90 par_pisces.F90 sms_pisces.F90 trc.F90 cppdefs.h param_F90.h 
-p4zlys.F90: param.h mpi_roms.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
+p4zlys.F90: param.h mpi_cpl.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
 p4zlys.F90: ocean2pisces.h90 set_global_definitions.h cppdefs_dev.h 
 p4zlys.F90:
 #
 p4zmeso.F90: ocean2pisces.F90 p4zint.F90 p4zsink.F90 par_pisces.F90 sms_pisces.F90 trc.F90 
-p4zmeso.F90: param_F90.h scalars_F90.h param.h mpi_roms.h ocean3d.h grid.h  forces.h 
+p4zmeso.F90: param_F90.h scalars_F90.h param.h mpi_cpl.h ocean3d.h grid.h  forces.h 
 p4zmeso.F90: diagnostics.h ncscrum_F90.h ocean2pisces.h90 top_substitute.h90 
 p4zmeso.F90: cppdefs_dev.h 
 p4zmeso.F90:
 #
 p4zmicro.F90: ocean2pisces.F90 p4zint.F90 par_pisces.F90 sms_pisces.F90 trc.F90 cppdefs.h 
-p4zmicro.F90: scalars_F90.h param.h mpi_roms.h ocean3d.h grid.h  forces.h mixing.h 
+p4zmicro.F90: scalars_F90.h param.h mpi_cpl.h ocean3d.h grid.h  forces.h mixing.h 
 p4zmicro.F90: ncscrum_F90.h ocean2pisces.h90 top_substitute.h90 set_global_definitions.h 
 p4zmicro.F90: 
 #
 p4zmort.F90: ocean2pisces.F90 p4zsink.F90 par_pisces.F90 sms_pisces.F90 trc.F90 cppdefs.h 
-p4zmort.F90: scalars_F90.h param.h mpi_roms.h ocean3d.h grid.h  forces.h mixing.h 
+p4zmort.F90: scalars_F90.h param.h mpi_cpl.h ocean3d.h grid.h  forces.h mixing.h 
 p4zmort.F90: ncscrum_F90.h ocean2pisces.h90 top_substitute.h90 set_global_definitions.h 
 p4zmort.F90: 
 #
 p4zopt.F90: ocean2pisces.F90 par_pisces.F90 sms_pisces.F90 trc.F90 cppdefs.h param_F90.h 
-p4zopt.F90: param.h mpi_roms.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
+p4zopt.F90: param.h mpi_cpl.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
 p4zopt.F90: ocean2pisces.h90 top_substitute.h90 set_global_definitions.h cppdefs_dev.h 
 p4zopt.F90:
 #
 p4zprod.F90: ocean2pisces.F90 p4zint.F90 p4zlim.F90 p4zopt.F90 par_pisces.F90 
-p4zprod.F90: trc.F90 cppdefs.h param_F90.h scalars_F90.h param.h mpi_roms.h ocean3d.h 
+p4zprod.F90: trc.F90 cppdefs.h param_F90.h scalars_F90.h param.h mpi_cpl.h ocean3d.h 
 p4zprod.F90:  forces.h mixing.h diagnostics.h ncscrum_F90.h ocean2pisces.h90 
 p4zprod.F90: set_global_definitions.h cppdefs_dev.h 
 p4zprod.F90:
 #
 p4zrem.F90: ocean2pisces.F90 p4zche.F90 p4zint.F90 p4zlim.F90 p4zmeso.F90 p4zopt.F90 
 p4zrem.F90: p4zsink.F90 par_pisces.F90 sms_pisces.F90 trc.F90 cppdefs.h param_F90.h 
-p4zrem.F90: param.h mpi_roms.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
+p4zrem.F90: param.h mpi_cpl.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
 p4zrem.F90: ocean2pisces.h90 top_substitute.h90 set_global_definitions.h cppdefs_dev.h 
 p4zrem.F90:
 #
 p4zsed.F90: ocean2pisces.F90 p4zche.F90 p4zint.F90 p4zlim.F90 p4zmeso.F90 p4zopt.F90 
 p4zsed.F90: p4zrem.F90 p4zsink.F90 par_pisces.F90 sms_pisces.F90 trc.F90 cppdefs.h 
-p4zsed.F90: scalars_F90.h param.h mpi_roms.h ocean3d.h grid.h  forces.h mixing.h 
+p4zsed.F90: scalars_F90.h param.h mpi_cpl.h ocean3d.h grid.h  forces.h mixing.h 
 p4zsed.F90: ncscrum_F90.h ocean2pisces.h90 top_substitute.h90 set_global_definitions.h 
 p4zsed.F90: 
 #
 p4zsink.F90: ocean2pisces.F90 par_pisces.F90 sms_pisces.F90 trc.F90 cppdefs.h param_F90.h 
-p4zsink.F90: param.h mpi_roms.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
+p4zsink.F90: param.h mpi_cpl.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h 
 p4zsink.F90: ocean2pisces.h90 top_substitute.h90 set_global_definitions.h cppdefs_dev.h 
 p4zsink.F90:
 #
@@ -206,13 +206,13 @@ par_pisces.F90:
 pisces_ini.F90: ocean2pisces.F90 p4zbio.F90 p4zche.F90 p4zflx.F90 p4zint.F90 p4zlim.F90 
 pisces_ini.F90: p4zmeso.F90 p4zmicro.F90 p4zmort.F90 p4zopt.F90 p4zprod.F90 p4zrem.F90 
 pisces_ini.F90: p4zsink.F90 par_pisces.F90 sms_pisces.F90 trc.F90 trcini_pisces.F90 
-pisces_ini.F90: trcwri_pisces.F90 cppdefs.h param_F90.h scalars_F90.h param.h mpi_roms.h 
+pisces_ini.F90: trcwri_pisces.F90 cppdefs.h param_F90.h scalars_F90.h param.h mpi_cpl.h 
 pisces_ini.F90: grid.h  forces.h mixing.h diagnostics.h ncscrum_F90.h ocean2pisces.h90 
 pisces_ini.F90:  compute_tile_bounds.h  set_global_definitions.h cppdefs_dev.h 
 pisces_ini.F90:
 #
 sms_pisces.F90: ocean2pisces.F90 par_pisces.F90 trc.F90 cppdefs.h param_F90.h scalars_F90.h 
-sms_pisces.F90: mpi_roms.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h ncscrum_F90.h 
+sms_pisces.F90: mpi_cpl.h ocean3d.h grid.h  forces.h mixing.h diagnostics.h ncscrum_F90.h 
 sms_pisces.F90: set_global_definitions.h cppdefs_dev.h 
 sms_pisces.F90:
 #
@@ -227,7 +227,7 @@ trc.F90:
 trcini_pisces.F90: ocean2pisces.F90 p4zbio.F90 p4zche.F90 p4zflx.F90 p4zint.F90 p4zlim.F90 
 trcini_pisces.F90: p4zmeso.F90 p4zmicro.F90 p4zmort.F90 p4zopt.F90 p4zprod.F90 p4zrem.F90 
 trcini_pisces.F90: p4zsink.F90 par_pisces.F90 sms_pisces.F90 trc.F90 trcsms_pisces.F90 
-trcini_pisces.F90: cppdefs.h param_F90.h scalars_F90.h param.h mpi_roms.h ocean3d.h grid.h  
+trcini_pisces.F90: cppdefs.h param_F90.h scalars_F90.h param.h mpi_cpl.h ocean3d.h grid.h  
 trcini_pisces.F90: mixing.h diagnostics.h ncscrum_F90.h ocean2pisces.h90 top_substitute.h90 
 trcini_pisces.F90:  set_global_definitions.h cppdefs_dev.h 
 trcini_pisces.F90:
@@ -235,13 +235,13 @@ trcini_pisces.F90:
 trcsms_pisces.F90: ocean2pisces.F90 p4zbio.F90 p4zche.F90 p4zflx.F90 p4zint.F90 p4zlim.F90 
 trcsms_pisces.F90: p4zmeso.F90 p4zmicro.F90 p4zmort.F90 p4zopt.F90 p4zprod.F90 p4zrem.F90 
 trcsms_pisces.F90: p4zsink.F90 par_pisces.F90 sms_pisces.F90 trc.F90 trcwri_pisces.F90 
-trcsms_pisces.F90: param_F90.h scalars_F90.h param.h mpi_roms.h ocean3d.h grid.h  forces.h 
+trcsms_pisces.F90: param_F90.h scalars_F90.h param.h mpi_cpl.h ocean3d.h grid.h  forces.h 
 trcsms_pisces.F90: diagnostics.h ncscrum_F90.h ocean2pisces.h90 top_substitute.h90  
 trcsms_pisces.F90: cppdefs_dev.h 
 trcsms_pisces.F90:
 #
 trcwri_pisces.F90: ocean2pisces.F90 par_pisces.F90 sms_pisces.F90 trc.F90 cppdefs.h 
-trcwri_pisces.F90: scalars_F90.h param.h mpi_roms.h ocean3d.h grid.h  forces.h mixing.h 
+trcwri_pisces.F90: scalars_F90.h param.h mpi_cpl.h ocean3d.h grid.h  forces.h mixing.h 
 trcwri_pisces.F90: ncscrum_F90.h ocean2pisces.h90 set_global_definitions.h cppdefs_dev.h 
 trcwri_pisces.F90:
 #
@@ -255,19 +255,19 @@ var_oa.F90:
 Agrif2Model.o: Agrif2Model.F cppdefs.h         set_global_definitions.h cppdefs_dev.h 
 Agrif2Model.o:
 #
-MPI_Setup.o: MPI_Setup.F cppdefs.h param.h mpi_roms.h compute_tile_bounds.h scalars.h 
+MPI_Setup.o: MPI_Setup.F cppdefs.h param.h mpi_cpl.h compute_tile_bounds.h scalars.h 
 MPI_Setup.o:  compute_extended_bounds.h set_global_definitions.h cppdefs_dev.h 
 MPI_Setup.o:
 #
-MessPass2D.o: MessPass2D.F MessPass2D.F cppdefs.h param.h mpi_roms.h scalars.h 
+MessPass2D.o: MessPass2D.F MessPass2D.F cppdefs.h param.h mpi_cpl.h scalars.h 
 MessPass2D.o: set_global_definitions.h cppdefs_dev.h 
 MessPass2D.o:
 #
-MessPass3D.o: MessPass3D.F MessPass3D.F cppdefs.h param.h mpi_roms.h scalars.h 
+MessPass3D.o: MessPass3D.F MessPass3D.F cppdefs.h param.h mpi_cpl.h scalars.h 
 MessPass3D.o: set_global_definitions.h cppdefs_dev.h 
 MessPass3D.o:
 #
-MessPass3D_nbq.o: MessPass3D_nbq.F MessPass3D_nbq.F cppdefs.h param.h mpi_roms.h scalars.h 
+MessPass3D_nbq.o: MessPass3D_nbq.F MessPass3D_nbq.F cppdefs.h param.h mpi_cpl.h scalars.h 
 MessPass3D_nbq.o: set_global_definitions.h cppdefs_dev.h 
 MessPass3D_nbq.o:
 #
@@ -283,7 +283,7 @@ ana_grid.o: ana_grid.F cppdefs.h param.h grid.h compute_tile_bounds.h scalars.h
 ana_grid.o:  set_global_definitions.h cppdefs_dev.h 
 ana_grid.o:
 #
-ana_initial.o: ana_initial.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h 
+ana_initial.o: ana_initial.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h 
 ana_initial.o: scalars.h compute_auxiliary_bounds.h  sediment.h private_scratch.h climat.h 
 ana_initial.o: cppdefs_dev.h 
 ana_initial.o:
@@ -298,7 +298,7 @@ analytical.o: bbl.h  coupling.h wkb_wwave.h sources.h boundary.h set_global_defi
 analytical.o: wave_maker.h
 analytical.o: 
 #
-autotiling.o: autotiling.F cppdefs.h param.h mpi_roms.h scalars.h ncscrum.h 
+autotiling.o: autotiling.F cppdefs.h param.h mpi_cpl.h scalars.h ncscrum.h 
 autotiling.o: autotiling.h  dynderivparam.h set_global_definitions.h cppdefs_dev.h 
 autotiling.o:
 #
@@ -320,7 +320,7 @@ bio_NChlPZD.o: bio_NChlPZD.F cppdefs.h param.h ocean2d.h ocean3d.h grid.h forces
 bio_NChlPZD.o: scalars.h compute_auxiliary_bounds.h set_global_definitions.h cppdefs_dev.h 
 bio_NChlPZD.o:
 #
-bio_diag.o: bio_diag.F cppdefs.h param.h mpi_roms.h ocean3d.h grid.h compute_tile_bounds.h 
+bio_diag.o: bio_diag.F cppdefs.h param.h mpi_cpl.h ocean3d.h grid.h compute_tile_bounds.h 
 bio_diag.o: set_global_definitions.h cppdefs_dev.h 
 bio_diag.o:
 #
@@ -328,7 +328,7 @@ biology.o: biology.F ocean2pisces.F90 p4zbio.F90 p4zche.F90 p4zflx.F90 p4zint.F9
 biology.o: p4zlys.F90 p4zmeso.F90 p4zmicro.F90 p4zmort.F90 p4zopt.F90 p4zprod.F90 
 biology.o: p4zsed.F90 p4zsink.F90 par_pisces.F90 sms_pisces.F90 trc.F90 trcsms_pisces.F90 
 biology.o: bio_BioEBUS.F bio_N2ChlPZD2.F bio_NChlPZD.F biology_pisces.F cppdefs.h 
-biology.o: scalars_F90.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h  forces.h mixing.h 
+biology.o: scalars_F90.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h  forces.h mixing.h 
 biology.o: ncscrum_F90.h ocean2pisces.h90 top_substitute.h90  scalars.h 
 biology.o: cste_bio_coastal.h set_global_definitions.h cppdefs_dev.h 
 biology.o:
@@ -336,7 +336,7 @@ biology.o:
 biology_pisces.o: biology_pisces.F ocean2pisces.F90 p4zbio.F90 p4zche.F90 p4zflx.F90 
 biology_pisces.o: p4zlim.F90 p4zlys.F90 p4zmeso.F90 p4zmicro.F90 p4zmort.F90 p4zopt.F90 
 biology_pisces.o: p4zrem.F90 p4zsed.F90 p4zsink.F90 par_pisces.F90 sms_pisces.F90 trc.F90 
-biology_pisces.o: trcwri_pisces.F90 cppdefs.h param_F90.h scalars_F90.h param.h mpi_roms.h 
+biology_pisces.o: trcwri_pisces.F90 cppdefs.h param_F90.h scalars_F90.h param.h mpi_cpl.h 
 biology_pisces.o: grid.h  forces.h mixing.h diagnostics.h ncscrum_F90.h ocean2pisces.h90 
 biology_pisces.o:  set_global_definitions.h cppdefs_dev.h 
 biology_pisces.o:
@@ -376,11 +376,11 @@ closecdf.o: closecdf.F cppdefs.h param.h  scalars.h ncscrum.h ncscrum_floats.h n
 closecdf.o: cppdefs_dev.h 
 closecdf.o:
 #
-cpl_prism_define.o: cpl_prism_define.F cppdefs.h param.h mpi_roms.h grid.h  scalars.h 
+cpl_prism_define.o: cpl_prism_define.F cppdefs.h param.h mpi_cpl.h grid.h  scalars.h 
 cpl_prism_define.o:  set_global_definitions.h cppdefs_dev.h 
 cpl_prism_define.o:
 #
-cpl_prism_get.o: cpl_prism_get.F cppdefs.h param.h mpi_roms.h ocean3d.h grid.h forces.h 
+cpl_prism_get.o: cpl_prism_get.F cppdefs.h param.h mpi_cpl.h ocean3d.h grid.h forces.h 
 cpl_prism_get.o:   set_global_definitions.h cppdefs_dev.h 
 cpl_prism_get.o:
 #
@@ -388,14 +388,14 @@ cpl_prism_getvar.o: cpl_prism_getvar.F cppdefs.h param.h scalars.h
 cpl_prism_getvar.o: cppdefs_dev.h 
 cpl_prism_getvar.o:
 #
-cpl_prism_grid.o: cpl_prism_grid.F cppdefs.h param.h mpi_roms.h grid.h scalars.h  
+cpl_prism_grid.o: cpl_prism_grid.F cppdefs.h param.h mpi_cpl.h grid.h scalars.h  
 cpl_prism_grid.o: cppdefs_dev.h 
 cpl_prism_grid.o:
 #
-cpl_prism_init.o: cpl_prism_init.F cppdefs.h param.h mpi_roms.h  set_global_definitions.h  
+cpl_prism_init.o: cpl_prism_init.F cppdefs.h param.h mpi_cpl.h  set_global_definitions.h  
 cpl_prism_init.o: 
 #
-cpl_prism_put.o: cpl_prism_put.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h scalars.h 
+cpl_prism_put.o: cpl_prism_put.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h scalars.h 
 cpl_prism_put.o:  set_global_definitions.h cppdefs_dev.h 
 cpl_prism_put.o:
 #
@@ -405,7 +405,7 @@ cppcheck.o:
 cross_matrix.o: cross_matrix.F 
 cross_matrix.o:
 #
-debug.o: debug.F cppdefs.h param.h mpi_roms.h ocean2d.h scalars.h set_global_definitions.h 
+debug.o: debug.F cppdefs.h param.h mpi_cpl.h ocean2d.h scalars.h set_global_definitions.h 
 debug.o: 
 #
 def_bio_diags.o: def_bio_diags.F def_bio_diags.F cppdefs.h param.h mixing.h  scalars.h 
@@ -442,7 +442,7 @@ def_sta.o: def_sta.F cppdefs.h param.h mixing.h  scalars.h ncscrum.h strings.h n
 def_sta.o: sta.h cppdefs_dev.h 
 def_sta.o:
 #
-diag.o: diag.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h nbq.h 
+diag.o: diag.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h nbq.h 
 diag.o: scalars.h private_scratch.h set_global_definitions.h               etalon_data.h 
 diag.o: 
 #
@@ -478,7 +478,7 @@ get_grid.o: get_grid.F cppdefs.h param.h grid.h  scalars.h ncscrum.h
 get_grid.o: set_global_definitions.h cppdefs_dev.h 
 get_grid.o:
 #
-get_initial.o: get_initial.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h  
+get_initial.o: get_initial.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h  
 get_initial.o: ncscrum.h sediment.h bbl.h set_global_definitions.h cppdefs_dev.h 
 get_initial.o:
 #
@@ -530,7 +530,7 @@ get_uclima.o: get_uclima.F cppdefs.h param.h compute_tile_bounds.h  scalars.h nc
 get_uclima.o: climat.h set_global_definitions.h cppdefs_dev.h 
 get_uclima.o:
 #
-get_vbc.o: get_vbc.F cppdefs.h param.h mpi_roms.h ocean3d.h grid.h forces.h 
+get_vbc.o: get_vbc.F cppdefs.h param.h mpi_cpl.h ocean3d.h grid.h forces.h 
 get_vbc.o: scalars.h compute_auxiliary_bounds.h  private_scratch.h climat.h sources.h 
 get_vbc.o: cppdefs_dev.h 
 get_vbc.o:
@@ -558,7 +558,7 @@ grid_nbq.o: grid_nbq.F cppdefs.h param.h ocean3d.h grid.h nbq.h scalars.h
 grid_nbq.o: private_scratch.h set_global_definitions.h cppdefs_dev.h 
 grid_nbq.o:
 #
-grid_stiffness.o: grid_stiffness.F cppdefs.h param.h mpi_roms.h ocean3d.h grid.h 
+grid_stiffness.o: grid_stiffness.F cppdefs.h param.h mpi_cpl.h ocean3d.h grid.h 
 grid_stiffness.o: scalars.h compute_auxiliary_bounds.h set_global_definitions.h 
 grid_stiffness.o: 
 #
@@ -652,7 +652,7 @@ lmd_wscale.o:
 main.o: main.F ocean2pisces.F90 p4zbio.F90 p4zche.F90 p4zflx.F90 p4zint.F90 p4zlim.F90 
 main.o: p4zmeso.F90 p4zmicro.F90 p4zmort.F90 p4zopt.F90 p4zprod.F90 p4zrem.F90 p4zsed.F90 
 main.o: par_pisces.F90 pisces_ini.F90 sms_pisces.F90 trc.F90 trcini_pisces.F90 
-main.o: trcwri_pisces.F90 cppdefs.h param_F90.h scalars_F90.h param.h mpi_roms.h ocean2d.h 
+main.o: trcwri_pisces.F90 cppdefs.h param_F90.h scalars_F90.h param.h mpi_cpl.h ocean2d.h 
 main.o: grid.h nbq.h  forces.h mixing.h diagnostics.h ncscrum_F90.h ocean2pisces.h90 
 main.o:  compute_tile_bounds.h  scalars.h ncscrum.h private_scratch.h wkb_wwave.h 
 main.o: ncscrum_floats.h nc_sta.h  set_global_definitions.h floats.h sta.h zoom.h 
@@ -709,7 +709,7 @@ nf_read_bry.o:
 o2sato.o: o2sato.F 
 o2sato.o:
 #
-obc_volcons.o: obc_volcons.F cppdefs.h param.h mpi_roms.h ocean2d.h grid.h 
+obc_volcons.o: obc_volcons.F cppdefs.h param.h mpi_cpl.h ocean2d.h grid.h 
 obc_volcons.o: scalars.h compute_auxiliary_bounds.h  set_global_definitions.h cppdefs_dev.h 
 obc_volcons.o:
 #
@@ -761,11 +761,11 @@ random_walk.o: random_walk.F cppdefs.h param.h ocean3d.h grid.h mixing.h scalars
 random_walk.o: floats.h cppdefs_dev.h 
 random_walk.o:
 #
-read_inp.o: read_inp.F cppdefs.h param.h mpi_roms.h nbq.h scalars.h ncscrum.h sediment.h 
+read_inp.o: read_inp.F cppdefs.h param.h mpi_cpl.h nbq.h scalars.h ncscrum.h sediment.h 
 read_inp.o: sources.h ncscrum_floats.h nc_sta.h set_global_definitions.h online.h 
 read_inp.o: 
 #
-rho_eos.o: rho_eos.F cppdefs.h param.h mpi_roms.h ocean3d.h grid.h mixing.h 
+rho_eos.o: rho_eos.F cppdefs.h param.h mpi_cpl.h ocean3d.h grid.h mixing.h 
 rho_eos.o: scalars.h compute_extended_bounds.h private_scratch.h coupling.h 
 rho_eos.o: cppdefs_dev.h 
 rho_eos.o:
@@ -794,7 +794,7 @@ sediment.o: wkb_wwave.h set_global_definitions.h cppdefs_dev.h
 sediment.o:
 #
 send_xios_diags.o: send_xios_diags.F ocean2pisces.F90 par_pisces.F90 sms_pisces.F90 trc.F90 
-send_xios_diags.o: cppdefs.h param_F90.h scalars_F90.h param.h mpi_roms.h ocean2d.h 
+send_xios_diags.o: cppdefs.h param_F90.h scalars_F90.h param.h mpi_cpl.h ocean2d.h 
 send_xios_diags.o: grid.h nbq.h  forces.h mixing.h diagnostics.h ncscrum_F90.h 
 send_xios_diags.o: compute_tile_bounds.h scalars.h ncscrum.h compute_auxiliary_bounds.h 
 send_xios_diags.o: private_scratch.h bbl.h coupling.h wkb_wwave.h set_global_definitions.h 
@@ -829,7 +829,7 @@ set_diags_avg.o: scalars.h ncscrum.h compute_auxiliary_bounds.h set_global_defin
 set_diags_avg.o: cppdefs_dev.h 
 set_diags_avg.o:
 #
-set_nudgcof.o: set_nudgcof.F cppdefs.h param.h mpi_roms.h ocean3d.h grid.h nbq.h mixing.h 
+set_nudgcof.o: set_nudgcof.F cppdefs.h param.h mpi_cpl.h ocean3d.h grid.h nbq.h mixing.h 
 set_nudgcof.o: scalars.h compute_extended_bounds.h private_scratch.h climat.h 
 set_nudgcof.o: cppdefs_dev.h 
 set_nudgcof.o:
@@ -849,7 +849,7 @@ setup_grid1.o: setup_grid1.F cppdefs.h param.h grid.h nbq.h compute_tile_bounds.
 setup_grid1.o: wkb_wwave.h set_global_definitions.h cppdefs_dev.h 
 setup_grid1.o:
 #
-setup_grid2.o: setup_grid2.F cppdefs.h param.h mpi_roms.h grid.h compute_tile_bounds.h 
+setup_grid2.o: setup_grid2.F cppdefs.h param.h mpi_cpl.h grid.h compute_tile_bounds.h 
 setup_grid2.o: compute_auxiliary_bounds.h set_global_definitions.h cppdefs_dev.h 
 setup_grid2.o:
 #
@@ -863,17 +863,17 @@ sstskin.o: sstskin.F cppdefs.h param.h ocean3d.h grid.h forces.h mixing.h
 sstskin.o: scalars.h set_global_definitions.h cppdefs_dev.h 
 sstskin.o:
 #
-step.o: step.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h nbq.h forces.h 
+step.o: step.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h nbq.h forces.h 
 step.o: ncscrum.h  coupling.h wkb_wwave.h autotiling.h set_global_definitions.h floats.h 
 step.o: zoom.h cppdefs_dev.h 
 step.o:
 #
-step2d.o: step2d.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h forces.h 
+step2d.o: step2d.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h forces.h 
 step2d.o: compute_tile_bounds.h scalars.h compute_auxiliary_bounds.h private_scratch.h 
 step2d.o: coupling.h sources.h tides.h set_global_definitions.h zoom.h cppdefs_dev.h 
 step2d.o:
 #
-step3d_fast.o: step3d_fast.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h nbq.h 
+step3d_fast.o: step3d_fast.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h nbq.h 
 step3d_fast.o: mixing.h compute_tile_bounds.h scalars.h compute_auxiliary_bounds.h 
 step3d_fast.o: climat.h coupling.h sources.h set_global_definitions.h zoom.h cppdefs_dev.h 
 step3d_fast.o:
@@ -1020,7 +1020,7 @@ wetdry.o: wetdry.F cppdefs.h param.h ocean2d.h grid.h scalars.h compute_auxiliar
 wetdry.o: set_global_definitions.h zoom.h cppdefs_dev.h 
 wetdry.o:
 #
-wkb_wwave.o: wkb_wwave.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h forces.h 
+wkb_wwave.o: wkb_wwave.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h forces.h 
 wkb_wwave.o: compute_tile_bounds.h scalars.h compute_auxiliary_bounds.h private_scratch.h 
 wkb_wwave.o: wkb_wwave.h boundary.h set_global_definitions.h cppdefs_dev.h 
 wkb_wwave.o:
@@ -1033,40 +1033,40 @@ wnbq_bc.o: wnbq_bc.F wnbq_bc.F cppdefs.h param.h ocean3d.h grid.h nbq.h scalars.
 wnbq_bc.o: climat.h boundary.h set_global_definitions.h zoom.h  set_obc_definitions.h 
 wnbq_bc.o: 
 #
-wrt_avg.o: wrt_avg.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h nbq.h  
+wrt_avg.o: wrt_avg.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h nbq.h  
 wrt_avg.o: ncscrum.h sediment.h set_global_definitions.h averages.h work.h cppdefs_dev.h 
 wrt_avg.o:
 #
-wrt_bio_diags.o: wrt_bio_diags.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h 
+wrt_bio_diags.o: wrt_bio_diags.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h 
 wrt_bio_diags.o: diagnostics.h  scalars.h ncscrum.h set_global_definitions.h work.h 
 wrt_bio_diags.o: 
 #
-wrt_bio_diags_avg.o: wrt_bio_diags_avg.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h 
+wrt_bio_diags_avg.o: wrt_bio_diags_avg.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h 
 wrt_bio_diags_avg.o: forces.h mixing.h diagnostics.h  scalars.h ncscrum.h 
 wrt_bio_diags_avg.o: work.h cppdefs_dev.h 
 wrt_bio_diags_avg.o:
 #
-wrt_diags.o: wrt_diags.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h forces.h 
+wrt_diags.o: wrt_diags.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h forces.h 
 wrt_diags.o: diagnostics.h  scalars.h ncscrum.h sediment.h bbl.h set_global_definitions.h 
 wrt_diags.o: cppdefs_dev.h 
 wrt_diags.o:
 #
-wrt_diagsM.o: wrt_diagsM.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h forces.h 
+wrt_diagsM.o: wrt_diagsM.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h forces.h 
 wrt_diagsM.o: diagnostics.h  scalars.h ncscrum.h sediment.h bbl.h set_global_definitions.h 
 wrt_diagsM.o: cppdefs_dev.h 
 wrt_diagsM.o:
 #
-wrt_diagsM_avg.o: wrt_diagsM_avg.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h 
+wrt_diagsM_avg.o: wrt_diagsM_avg.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h 
 wrt_diagsM_avg.o: mixing.h diagnostics.h  scalars.h ncscrum.h sediment.h bbl.h 
 wrt_diagsM_avg.o: work.h cppdefs_dev.h 
 wrt_diagsM_avg.o:
 #
-wrt_diags_avg.o: wrt_diags_avg.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h 
+wrt_diags_avg.o: wrt_diags_avg.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h 
 wrt_diags_avg.o: mixing.h diagnostics.h  scalars.h ncscrum.h sediment.h bbl.h 
 wrt_diags_avg.o: work.h cppdefs_dev.h 
 wrt_diags_avg.o:
 #
-wrt_floats.o: wrt_floats.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h mixing.h 
+wrt_floats.o: wrt_floats.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h mixing.h 
 wrt_floats.o: scalars.h ncscrum.h  ncscrum_floats.h set_global_definitions.h floats.h 
 wrt_floats.o: 
 #
@@ -1074,16 +1074,16 @@ wrt_grid.o: wrt_grid.F cppdefs.h param.h ocean3d.h grid.h  scalars.h ncscrum.h
 wrt_grid.o: cppdefs_dev.h 
 wrt_grid.o:
 #
-wrt_his.o: wrt_his.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h nbq.h forces.h 
+wrt_his.o: wrt_his.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h nbq.h forces.h 
 wrt_his.o:  scalars.h ncscrum.h sediment.h bbl.h wkb_wwave.h set_global_definitions.h 
 wrt_his.o: cppdefs_dev.h 
 wrt_his.o:
 #
-wrt_rst.o: wrt_rst.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h  scalars.h ncscrum.h  
+wrt_rst.o: wrt_rst.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h  scalars.h ncscrum.h  
 wrt_rst.o: bbl.h ncscrum_floats.h set_global_definitions.h floats.h cppdefs_dev.h 
 wrt_rst.o:
 #
-wrt_sta.o: wrt_sta.F cppdefs.h param.h mpi_roms.h ocean2d.h ocean3d.h grid.h mixing.h  
+wrt_sta.o: wrt_sta.F cppdefs.h param.h mpi_cpl.h ocean2d.h ocean3d.h grid.h mixing.h  
 wrt_sta.o: ncscrum.h  nc_sta.h set_global_definitions.h sta.h cppdefs_dev.h 
 wrt_sta.o:
 #
@@ -1102,7 +1102,7 @@ zonavg.o:
 zoom.o: zoom.F ocean2pisces.F90 p4zbio.F90 p4zche.F90 p4zflx.F90 p4zint.F90 p4zlim.F90 
 zoom.o: p4zmeso.F90 p4zmicro.F90 p4zmort.F90 p4zopt.F90 p4zprod.F90 p4zrem.F90 p4zsed.F90 
 zoom.o: par_pisces.F90 pisces_ini.F90 sms_pisces.F90 trc.F90 trcini_pisces.F90 
-zoom.o: trcwri_pisces.F90 cppdefs.h param_F90.h scalars_F90.h param.h mpi_roms.h ocean2d.h 
+zoom.o: trcwri_pisces.F90 cppdefs.h param_F90.h scalars_F90.h param.h mpi_cpl.h ocean2d.h 
 zoom.o: grid.h nbq.h  forces.h mixing.h diagnostics.h ncscrum_F90.h ocean2pisces.h90 
 zoom.o:  compute_tile_bounds.h  scalars.h ncscrum.h  private_scratch.h coupling.h 
 zoom.o: autotiling.h dynderivparam.h set_global_definitions.h zoom.h dynparam.h   

@@ -40,7 +40,7 @@
 #ifdef NBQ
 # include "nbq.h"
 #endif
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
       integer kwsize, testunit, input
       parameter (kwsize=32, testunit=40, input=15)
       character end_signal*3, keyword*32, fname*64

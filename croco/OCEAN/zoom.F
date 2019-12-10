@@ -63,7 +63,7 @@
 # ifdef AUTOTILING
 #  include "autotiling.h"
 # endif
-# include "mpi_roms.h"
+# include "mpi_cpl.h"
 
       integer size_XI,size_ETA,se,sse, sz,ssz
 !$AGRIF_DO_NOT_TREAT

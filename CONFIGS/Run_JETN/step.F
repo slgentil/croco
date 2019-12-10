@@ -24,7 +24,7 @@
 #include "coupling.h"
 #include "ocean3d.h"
 #include "ocean2d.h"
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
        
 #ifdef AGRIF
       IF (agrif_fixed().NE.sortedint(nbtimes)) return

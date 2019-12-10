@@ -31,7 +31,7 @@
 #include "ocean3d.h"
 #include "mixing.h"
 #include "diagnostics.h"
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
 
 #ifdef SOLVE3D
       integer iflux

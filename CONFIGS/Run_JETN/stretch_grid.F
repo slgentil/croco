@@ -9,7 +9,7 @@
 #include "param.h"
 #include "scalars.h"
 #include "grid.h"
-#include "mpi_roms.h"
+#include "mpi_cpl.h"
 
         integer :: nbpts_L1, nbpts_L2, nbpts_tot,j,ierr
         real :: dymin

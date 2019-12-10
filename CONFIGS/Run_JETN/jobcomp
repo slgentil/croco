@@ -114,11 +114,13 @@ PRISM_ROOT_DIR=../../../oasis3-mct/compile_oa3-mct
 #
 
 if [[ $HOSTNAME == *"datarmor"* ]]; then
-  XIOS_ROOT_DIR='/home1/datahome/slgentil/lib/XIOS'
+  # XIOS_ROOT_DIR='/home1/datahome/slgentil/lib/XIOS'
+  XIOS_ROOT_DIR='/home1/datahome/slgentil/lib/XIOS-2.5'
 elif [[ $HOSTNAME == *"curie"* ]]; then 
   XIOS_ROOT_DIR='$(HOME)/lib/XIOS'
 elif [[ $UNAME == *"Ubuntu"* ]]; then
-  XIOS_ROOT_DIR=/home1/dunree/slgentil/models/XIOS/xios_ubuntu18_LTS
+# XIOS_ROOT_DIR=/home1/dunree/slgentil/models/XIOS/xios_ubuntu18_LTS
+  XIOS_ROOT_DIR=/home1/dunree/slgentil/models/XIOS/XIOS2_ubuntu18_LTS
 else
 # XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_ifort
   XIOS_ROOT_DIR=/home/mulroy/slgentil/models/XIOS/xios_gfortran
@@ -326,7 +328,7 @@ if $($CPP1 testkeys.F | grep -i -q xiosisdefined) ; then
         rm $RUNDIR/xios_server.exe
 #       ln -s $XIOS_ROOT_DIR/bin/xios_server.exe $RUNDIR/.
         cp  $XIOS_ROOT_DIR/bin/xios_server.exe $RUNDIR
-        $CPP1 -P -traditional -imacros cppdefs.h  ../field_def.xml_full ../field_def.xml
+        # $CPP1 -P -traditional -imacros cppdefs.h  ../field_def.xml_full ../field_def.xml
 fi
 #
 # determine if OASIS compilation is required
