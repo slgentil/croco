@@ -42,7 +42,8 @@ echo "OPERATING SYSTEM IS: $OS"
 if [[ $OS == Linux ]] ; then
 
   if [[ $HOSTNAME == *"datarmor"* ]]; then 
-	LINUX_FC=ifort
+  	LINUX_FC=$FC
+#	LINUX_FC=ifort
   elif [[ $HOSTNAME == *"curie"* ]]; then 
 	LINUX_FC=ifort
   elif [[ $UNAME == *"Ubuntu"* ]]; then
@@ -99,9 +100,14 @@ fi
 #
 # set MPI directories if needed
 #
-MPIF90="mpif90"
-MPILIB=""
-MPIINC=""
+MPIF90=$MPIF90
+MPIDIR=$(dirname $(dirname $(which $MPIF90) ))
+MPILIB="-L$MPIDIR/lib -lmpi -limf -lm"
+MPIINC="-I$MPIDIR/include"
+
+#PIF90="mpif90"
+#MPILIB=""
+#MPIINC=""
 
 #
 # set OASIS-MCT (or OASIS3) directories if needed
@@ -115,7 +121,7 @@ PRISM_ROOT_DIR=../../../oasis3-mct/compile_oa3-mct
 
 if [[ $HOSTNAME == *"datarmor"* ]]; then
   # XIOS_ROOT_DIR='/home1/datahome/slgentil/lib/XIOS'
-  XIOS_ROOT_DIR='/home1/datahome/slgentil/lib/XIOS-2.5'
+  XIOS_ROOT_DIR='/home1/datahome/slgentil/lib/XIOS-2.5_mpt'
 elif [[ $HOSTNAME == *"curie"* ]]; then 
   XIOS_ROOT_DIR='$(HOME)/lib/XIOS'
 elif [[ $UNAME == *"Ubuntu"* ]]; then

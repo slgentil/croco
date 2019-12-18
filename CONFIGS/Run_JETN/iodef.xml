@@ -93,7 +93,7 @@
       </file> 
 
       <file id="file_his" name="file_his" output_freq="25d" sync_freq="25d" split_freq="25d"  enabled=".TRUE.">
-          <field_group id="his_fields" operation="instant" freq_op="2d">
+          <field_group id="his_fields" operation="instant" freq_op="1d">
             <field name="ssh_a" grid_ref="rho_2D" > @ssh_a </field>
             <field name="T_a" grid_ref="rho_3D" > @T_a </field>
             <field name="u_a" grid_ref="u_3D" > @u_a </field>
@@ -108,13 +108,13 @@
             <field name="u_t_sin" grid_ref="u_3D" > @u_t_sina </field>
             <field name="v_t_cos" grid_ref="v_3D" > @v_t_cosa </field>
             <field name="v_t_sin" grid_ref="v_3D" > @v_t_sina </field>
-            <field name="w_t_cos" grid_ref="w_3D" > @w_t_cosa </field>
-            <field name="w_t_sin" grid_ref="w_3D" > @w_t_sina </field>
+            <field name="w_t_cos" grid_ref="rho_3D" > @w_t_cosa </field>
+            <field name="w_t_sin" grid_ref="rho_3D" > @w_t_sina </field>
             <field name="ssh_t_dirac" grid_ref="rho_2D" > @ssh_t_diraca </field>
             <field name="T_t_dirac" grid_ref="rho_3D" > @T_t_diraca </field>
             <field name="u_t_dirac" grid_ref="u_3D" > @u_t_diraca </field>
             <field name="v_t_dirac" grid_ref="v_3D" > @v_t_diraca </field>
-            <field name="w_t_dirac" grid_ref="w_3D" > @w_t_diraca </field>
+            <field name="w_t_dirac" grid_ref="rho_3D" > @w_t_diraca </field>
           </field_group>
       </file>
 

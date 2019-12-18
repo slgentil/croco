@@ -2587,7 +2587,7 @@ C 				  endif
       CALL xios_send_field("T_t_sin",workr)
 
 !
-      freq_op = 86400.0D0 * 2.
+      freq_op = 86400.0D0
       freq_offset = freq_op*0.5
       dirac_scaling = freq_op/dt
       if ( abs(mod(time+freq_offset,freq_op)) .le. dt*0.5D0 ) then
@@ -2721,6 +2721,7 @@ C 				  endif
 ! used in pressure gradient computation
       call prsgrd_tile (Istr,Iend,Jstr,Jend, ru,rv, P,
      &                  A2d(1,3,0),A2d(1,4,0), FC,dZx,rx,dRx)
+      workr = 0.
       workr(PRIVATE_2D_SCRATCH_ARRAY,:) = P(PRIVATE_2D_SCRATCH_ARRAY,:)   
       call xios_send_field("P",workr)
 
