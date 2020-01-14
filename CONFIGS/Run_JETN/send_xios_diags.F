@@ -173,6 +173,9 @@
 ! aponte (
 ! config specific definitions
 # ifdef JETN
+!     swath of 152 kms
+C       nbpts_swath = 152.e+3*nx_glo/1024.e+3
+      nbpts_swath = int(50.e+3*nx_glo/1024.e+3)
 # if ! defined XIOS2
       CALL xios_set_domain_attr(TRIM(cdgrd)//"x",
      &           zoom_ibegin=1, zoom_ni=nx_glo,
@@ -190,8 +193,6 @@
      &           zoom_ibegin=nx_glo/2, zoom_ni=1,
      &           zoom_jbegin=ny_glo*3/4, zoom_nj=1)
 !
-!     swath of 152 kms
-      nbpts_swath = 152.e+3*nx_glo/1024.e+3
       CALL xios_set_domain_attr("swath_"//TRIM(cdgrd),
      &           zoom_ibegin=nx_glo/2-nbpts_swath/2, zoom_ni=nbpts_swath,
      &           zoom_jbegin=1, zoom_nj=ny_glo)
@@ -2036,6 +2037,7 @@ C 				  endif
 #if defined BIOLOGY && defined PISCES
           USE trcwri_pisces
 #endif
+
           IMPLICIT NONE
 
 # include "param.h"
@@ -2587,7 +2589,7 @@ C 				  endif
       CALL xios_send_field("T_t_sin",workr)
 
 !
-      freq_op = 86400.0D0
+      freq_op = 86400.0D0 * 2.
       freq_offset = freq_op*0.5
       dirac_scaling = freq_op/dt
       if ( abs(mod(time+freq_offset,freq_op)) .le. dt*0.5D0 ) then

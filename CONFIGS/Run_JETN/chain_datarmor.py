@@ -65,8 +65,8 @@ nb_nodes = int((nb_cores)/28)+1
 
 startdir=os.getcwd()
 USER = os.getenv('USER')
-WORK = os.getenv('DATAWORK')
-#WORK = os.getenv('SCRATCH')
+#WORK = os.getenv('DATAWORK')
+WORK = os.getenv('SCRATCH')
 RPATH = WORK+'/'+workdir
 if os.path.exists(RPATH) :    
     os.system('rm -Rf '+RPATH)
@@ -189,4 +189,5 @@ commande='qrls '+numjob[:-1]
 
 if restart:
     print('Put the restart files in '+RPATH+'/t0')
+print('Change directory: cd '+RPATH+'/t1')
 print('Run commande : '+commande)

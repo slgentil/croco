@@ -390,8 +390,8 @@ CDEBUG      write(*,*)'level',level
         track(iygrd,2,iflt)=Tinfo(iygrd,iflt)
         track(ixgrd,3,iflt)=Tinfo(ixgrd,iflt)
         track(iygrd,3,iflt)=Tinfo(iygrd,iflt)
-        write(*,'(A20,I4,A10,F6.1,A10,I4)') 'release of float ',iflt,' at day ', 
-     &                           tdays ,' on node ',int(trackinfo(2,iflt)) 
+!       write(*,'(A20,I4,A10,F6.1,A10,I4)') 'release of float ',iflt,' at day ', 
+!    &                           tdays ,' on node ',int(trackinfo(2,iflt)) 
        i=0
 
 !     DETERMINATION OF FLOAT SIGMA LEVEL (WITH WEIGHTS) 
