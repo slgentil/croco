@@ -146,19 +146,19 @@
   </grid>
   <grid id="rho_3Dswath" >
     <domain domain_ref="swath_rho" />
-    <axis axis_ref="s_rho_slice0"/>
+    <axis axis_ref="s_rho"/>
   </grid>
   <grid id="u_3Dswath" >
     <domain domain_ref="swath_u" />
-    <axis axis_ref="s_rho_slice0"/>
+    <axis axis_ref="s_rho"/>
   </grid>
   <grid id="v_3Dswath" >
     <domain domain_ref="swath_v" />
-    <axis axis_ref="s_rho_slice0"/>
+    <axis axis_ref="s_rho"/>
   </grid>
   <grid id="w_3Dswath" >
     <domain domain_ref="swath_rho" />
-    <axis axis_ref="s_rho_slice0"/>
+    <axis axis_ref="s_w"/>
   </grid>
 
 </grid_definition>

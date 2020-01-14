@@ -112,8 +112,8 @@
         <domain id="sta2_psi" long_name="station 2 PSI" domain_ref="psi">
           <zoom_domain id="sta2_psi"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
         </domain>
-        <domain id="swath_psi" long_name="swath PSI" domain_ref="PSI">
-          <zoom_domain id="swath_PSI"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        <domain id="swath_psi" long_name="swath PSI" domain_ref="psi">
+          <zoom_domain id="swath_psi"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
         </domain>
      </domain_group>
 

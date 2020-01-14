@@ -100,14 +100,13 @@ fi
 #
 # set MPI directories if needed
 #
-MPIF90=$MPIF90
-MPIDIR=$(dirname $(dirname $(which $MPIF90) ))
-MPILIB="-L$MPIDIR/lib -lmpi -limf -lm"
-MPIINC="-I$MPIDIR/include"
-
-#PIF90="mpif90"
-#MPILIB=""
-#MPIINC=""
+# MPIF90=$MPIF90
+MPIF90=mpif90
+# MPIDIR=$(dirname $(dirname $(which $MPIF90) ))
+# MPILIB="-L$MPIDIR/lib -lmpi -limf -lm"
+# MPIINC="-I$MPIDIR/include"
+MPILIB=""
+MPIINC=""
 
 #
 # set OASIS-MCT (or OASIS3) directories if needed
