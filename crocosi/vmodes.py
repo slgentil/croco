@@ -17,17 +17,19 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
         - N2: BVF at cell faces 
         - nmodes (default:10): number of vertical modes (+ barotropic)
     z levels must be in ascending order (first element is at bottom, last element is at surface)
-    output: xarray dataset with phase speed, pressure-modes (at center) and w-modes (at faces)
+    output: xarray dataset with phase speed, pressure-modes (at center) and b-modes (at faces)
     kwargs:
         - free_surf (bool): use free surface boundary condition (default:True)
         - sigma (scalar or None): for shift-invert in eig (default: 0.1)
     """
     # unpack kwargs
-    kwargs = kwargs.copy().update({"nmodes":nmodes, "stacked":True})
-        
+    kworg = {"nmodes":nmodes, "stacked":True}
+    if kwargs is not None:
+        kworg.update(kwargs)
+    lesdims = tuple([dim for dim in zc.dims if dim!="s_rho"]) # storing extra dims  
     N = zc.s_rho.size
     res = xr.apply_ufunc(compute_vmodes, zc.chunk({"s_rho":-1}), zf.chunk({"s_w":-1}), \
-                    N2.chunk({"s_w":-1}), kwargs=kwargs, input_core_dims=[["s_rho"],["s_w"],["s_w"]], \
+                    N2.chunk({"s_w":-1}), kwargs=kworg, input_core_dims=[["s_rho"],["s_w"],["s_w"]], \
                     dask='parallelized', output_dtypes=[np.float64], \
                     output_core_dims=[["s_stack","mode"]], \
                     output_sizes={"mode":nmodes+1,"s_stack":2*(N+1)})
@@ -40,9 +42,10 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
               .rename('dphidz').rename({'s_stack': 's_w'})
               .assign_coords(z_w=zf))
     #return c, phi, dphidz
-    return xr.merge([c, phi, dphidz]).transpose('mode','s_rho','s_w','y_rho','x_rho')
+    return xr.merge([c, phi, dphidz]).transpose(*('mode','s_rho','s_w')+lesdims)
 
-def compute_vmodes(zc_nd, zf_nd, N2f_nd, nmodes=_nmodes, free_surf=True, g=_g, sigma=_sig, stacked=True):
+def compute_vmodes(zc_nd, zf_nd, N2f_nd, nmodes=_nmodes, free_surf=True, g=_g, 
+                   sigma=_sig, stacked=True, **kwargs):
     """
     wrapper for vectorizing compute_vmodes_1D over elements of axes other than vertical dim
     that's not elegant, nor efficient
@@ -51,6 +54,14 @@ def compute_vmodes(zc_nd, zf_nd, N2f_nd, nmodes=_nmodes, free_surf=True, g=_g, s
     """
     assert zc_nd.ndim==zf_nd.ndim==N2f_nd.ndim
     assert zf_nd.shape==N2f_nd.shape
+    if "nmodes" in kwargs:
+        nmodes = kwarg["nmodes"]
+    if "free_surf" in kwargs:
+        free_surf = kwargs["free_surf"]
+        if "stacked" in kwargs:
+            stacked = kwargs["stacked"]
+    print("compute_vmodes", nmodes, flush=True)
+
     if zc_nd.ndim>1:
         nxy = zc_nd.shape[:-1]
         nn = np.prod(nxy)
@@ -82,6 +93,7 @@ def compute_vmodes_1D(zc, zf, N2f, nmodes=_nmodes, free_surf=True, g=_g, sigma=_
     returns phi at rho points, dphi at w points and c=1/sqrt(k) 
     normalization such that int(phi^2)=H, w-modes=d(phi)/dz
     copy-pasted from M. Dunphy's vmodes_MD.py"""
+    print("computing {0} modes", nmodes)
     # Precompute a few quantities
     assert zc.ndim==zf.ndim==N2f.ndim==1
     assert len(zc)+1==len(N2f)==len(zf)
