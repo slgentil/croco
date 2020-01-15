@@ -60,7 +60,6 @@ def compute_vmodes(zc_nd, zf_nd, N2f_nd, nmodes=_nmodes, free_surf=True, g=_g,
         free_surf = kwargs["free_surf"]
         if "stacked" in kwargs:
             stacked = kwargs["stacked"]
-    print("compute_vmodes", nmodes, flush=True)
 
     if zc_nd.ndim>1:
         nxy = zc_nd.shape[:-1]
