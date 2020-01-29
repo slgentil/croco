@@ -37,7 +37,7 @@ include Makedefs
 #======================================================================
 
  SRCS = \
- 	ana_fsturb.F\
+ 	params_output.F ana_fsturb.F\
  \
  	main.F		step.F		read_inp.F\
 	timers_roms.F	init_scalars.F	init_arrays.F	set_weights.F\

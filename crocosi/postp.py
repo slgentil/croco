@@ -42,7 +42,7 @@ class CROCOrun(object):
         self.dirname = os.path.expanduser(dirname)
         self.verbose = verbose
         self.prefix = prefix
-        self.open_nc = ['his'] + open_nc   # Ensure that we always open 'his'
+        self.open_nc = ['grid'] + open_nc   # Ensure that we always open 'his'
         self.tdir_max = tdir_max # limits the number of t directories
         self._grid_params = grid_params
         if isinstance(chunk_time,dict):
@@ -66,8 +66,14 @@ class CROCOrun(object):
         """
         Load data set by providing suffix
         """
-        assert key in self.open_nc
-        return self.ds[key]
+        # assert key in self.open_nc
+        if key in self.open_nc:
+            return self.ds[key]
+        elif key in self.params_input.keys():
+            return self.params_input[key]
+        elif key in self.params_output.keys():
+            return self.params_output[key]
+
 
     def __setitem__(self, key, item):
         """
@@ -138,22 +144,26 @@ class CROCOrun(object):
         files = [os.path.join(self.dirname, x[0], x[1]) for x in ncset]
         datasets = []
         for f, td in zip(files, tdir):
-            try:
-                # chunks should be an option
-                ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[suffix],
-                                                's_rho': 1})
-            except ValueError:
-                ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[suffix]})
-            t0 = pd.Timestamp(ds.time_counter.time_origin).to_datetime64()
-            _timevars = (t for t in ['time_counter', 'time_center', 'time_instant'] if t in ds)
-            for tvar in _timevars:
-                t = ds[tvar]
-                t = ((t-t0)/np.timedelta64(1, 's') + offsets[td])*second2day
-                ds[tvar] = t
-            # drop coordinates for easier concatenation
-            #ds = ds.drop([k for k in ds.coords \
-            #                if k not in ['time_counter','time_centered']])
-            datasets.append(ds)
+            if 'grid' in f:
+                return(xr.open_dataset(f,drop_variables=["x_rho","y_rho","x_psi","y_psi"]))
+            else:
+                try:
+                    # chunks should be an option
+                    ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[suffix],
+                                                    's_rho': 1})
+                except ValueError:
+                    ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[suffix]})
+
+                t0 = pd.Timestamp(ds.time_counter.time_origin).to_datetime64()
+                _timevars = (t for t in ['time_counter', 'time_center', 'time_instant'] if t in ds)
+                for tvar in _timevars:
+                    t = ds[tvar]
+                    t = ((t-t0)/np.timedelta64(1, 's') + offsets[td])*second2day
+                    ds[tvar] = t
+                # drop coordinates for easier concatenation
+                #ds = ds.drop([k for k in ds.coords \
+                #                if k not in ['time_counter','time_centered']])
+                datasets.append(ds)
         _ds = xr.concat(datasets, dim='time_counter',
                         coords='minimal', compat='override')
         _ds = _ds.rename_dims({'time_counter':'time'})
@@ -204,14 +214,15 @@ class CROCOrun(object):
                         print("Detected y_itide = " + str(params['y_itide']) + " m")
                 pline=line
             f.close()
-            self.params = params
+            self.params_input = params
         else:
             print("File not found: "+romsfile)
-            self.params = None
+            self.params_input = None
 
     def _readstats(self):
         # Now read each output.mpi and get the energy diagnostics
         self.t0 = dict()
+        self.params_output = dict()
         n=0
         nbstats=None
         for ii, cfile in enumerate(self.flog):
@@ -229,6 +240,14 @@ class CROCOrun(object):
                     search = True # Enable conversions
                 if 'MAIN' in line and 'DONE' in line:
                     break # We're done with this file
+                if 'OSI:' in line:
+                    if ('(') in line: # parameter is a vector
+                        varname = line.split()[1].strip()[:-2]
+                        data=np.asfarray(line.split()[2:-1],float)
+                        self.params_output[varname]=data
+                    else:
+                        varname = line.split()[1].strip()[:-1]
+                        self.params_output[varname]=float(line.split()[2])
                 if search and ii==0 and 'STEP' in line:
                     # Found header; save titles and create empty storage array
                     statnames = line.split()
@@ -281,9 +300,25 @@ class CROCOrun(object):
         # fills in grid parameters, f, f0, beta
         if 'f0' in self._grid_params:
             ds = ds.assign_attrs(f0=self._grid_params['f0'])
+        else:
+            try:
+                ds = ds.assign_attrs(f0=self.params_output['f0'])
+            except Exception:
+                print('f0 not defined, you must initialize grid_params in CROCOrun')
+                sys.exit()
         if 'beta' in self._grid_params:
             ds = ds.assign_attrs(beta=self._grid_params['beta'])
+        else:
+            try:
+                ds = ds.assign_attrs(beta=self.params_output['beta'])
+            except Exception:
+                print('beta not defined, you must initialize grid_params in CROCOrun')
+                sys.exit()
+        try: 
+            ds = ds.assign_coords(f=self['grid'].f)
+        except Exception: 
             for c, suff in eta_suff.items():
+                print('c ',c,' suff ',suff)
                 ds = ds.assign_coords(**{'f'+suff: ds.beta*ds[c]+ds.f0})
         return ds
 
@@ -312,7 +347,10 @@ class CROCOrun(object):
                     return Cs
 
         # Store grid sizes
-        ds = self.ds['his']
+        try:
+            ds = self.ds['grid']
+        except Exception:
+            ds = self.ds['his']
         self.L = ds.sizes['x_rho']
         self.M = ds.sizes['y_rho']
         self.Lm = self.L - 1
@@ -328,10 +366,10 @@ class CROCOrun(object):
             sc = (np.arange(self.N + 1, dtype=np.float64) - self.N) / self.N
             ds["sc_w"]=(['s_w'],  sc)
         if 'Cs_r' not in list(ds.data_vars):
-            cs = s_coordinate(ds["sc_r"].values, self.params['theta_s'], self.params['theta_b'])
+            cs = s_coordinate(ds["sc_r"].values, self.params_input['theta_s'], self.params_input['theta_b'])
             ds["Cs_r"]=(['s_rho'],  cs)
         if 'Cs_w' not in list(ds.data_vars):
-            cs = s_coordinate(ds["sc_w"].values, self.params['theta_s'], self.params['theta_b'])
+            cs = s_coordinate(ds["sc_w"].values, self.params_input['theta_s'], self.params_input['theta_b'])
             ds["Cs_w"]=(['s_w'],  cs)
 
         # Add topography in dataset if not in

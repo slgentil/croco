@@ -81,6 +81,7 @@
 
       subroutine init_fsturb
 
+      use params
 
 # include "param.h"
 # include "scalars.h"
@@ -92,6 +93,7 @@
 !  This routine init the forcing for turbulence
 
 
+      character(len=32) :: my_fmt
       integer i,j,k
       real(kind=8) :: kx, ky
 !
@@ -157,6 +159,30 @@
       call comp_fsturb(time)
       nfstnew = 2
       call comp_fsturb(time+dtfst)
+
+!  Output parameters
+
+      call params_output('dtfst',dtfst)
+      call params_output('Nmodefst',Nmodefst)
+      call params_output('afst',afst)
+      call params_output('xfstmid',xfstmid)
+      call params_output('xfstwid',xfstwid)
+      call params_output('yfstmid',yfstmid)
+      call params_output('yfstwid',yfstwid)
+      call params_output('FTfst',FTfst)
+C       if (mynode==0) then
+C          write(*,*)
+C          write(*,'(A,A,E10.3)') OSI, 'dtfst=' , dtfst
+C          write(*,'(A,A,I2)') OSI, 'Nmodefst=' , Nmodefst
+C          write(my_fmt, '(A, i0, A)') '(A,A,1X,', Nmodefst, 'E10.3,1X,A)'
+C          write(*,my_fmt) OSI,'afst=(' ,(afst(i),i=1,Nmodefst),')'
+C          write(*,'(A,A,E10.3)') OSI, 'xfstmid=' , xfstmid
+C          write(*,'(A,A,E10.3)') OSI, 'xfstwid=' , xfstwid
+C          write(*,'(A,A,E10.3)') OSI, 'yfstmid=' , yfstmid
+C          write(*,'(A,A,E10.3)') OSI, 'yfstwid=' , yfstwid
+C          write(*,'(A,A,E10.3)') OSI, 'FTfst=' , FTfst
+C          write(*,*)
+C       endif
 
       end subroutine init_fsturb
 

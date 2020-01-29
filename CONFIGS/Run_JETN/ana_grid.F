@@ -221,6 +221,16 @@ C$    integer omp_get_thread_num
                      f0=???
                      beta=???
 # endif
+
+!  Output (h,f,beta)
+
+      if (mynode==0) then
+         write(*,*)
+         write(*,'(A,A,E10.3)') OSI, 'depth=' , depth
+         write(*,'(A,A,E10.3)') OSI, 'f0=' , f0
+         write(*,'(A,A,E10.3)') OSI, 'beta=' , beta
+         write(*,*)
+      endif
 !
 !----------------------------------------------------------------------
 ! Grid dimensions (Length_XI, Length_ETA)
@@ -474,6 +484,14 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
 #  endif
         enddo
       enddo
+
+!  Output ()
+
+      if (mynode==0) then
+         write(*,*)
+         write(*,'(A,A,E10.3)') OSI, 'yrbeta=' , 0.5*el
+         write(*,*)
+      endif
 
 # if defined UV_COR_NT || defined CROCO_QH
 !

@@ -77,7 +77,7 @@ def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r'):
 
     ds = run['his']
     N = run.N
-    hc = run.params['Hc']
+    hc = run.params_input['Hc']
 
     if zeta is not None:
         _zeta = zeta
@@ -205,7 +205,7 @@ def N2Profile(run, strat, z, g=9.81):
     """
     
     grid = run.ds['his'].attrs['xgcm-Grid']
-    N2 = -g/run.params['rho0'] * grid.diff(strat,'s') / grid.diff(z,'s')
+    N2 = -g/run.params_input['rho0'] * grid.diff(strat,'s') / grid.diff(z,'s')
     N2.isel(s_w=0).values = N2.isel(s_w=1).values
     N2.isel(s_w=-1).values = N2.isel(s_w=-2).values
     # if np.any(N2<0):

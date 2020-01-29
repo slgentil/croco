@@ -52,10 +52,12 @@
 !   Builds on the JET configuration and the roms_ird_fev2011 CANYON_A config.
 !                       ========== === =======
 */
+! to tag OSI parameter in output.mpi file
+# define OSI 'OSI: '
 ! perturbation of the initial jet
 # define JET_PERTURB
 ! resolution (dx in km)
-# define RESOLUTION 4
+# define RESOLUTION 2
 ! stratification profiles
 # define JET_CONFIG 1
 ! narrow channel for internal tide test case
@@ -202,10 +204,6 @@
 #  define M3_FRC_BRY
 #  define T_FRC_BRY
 # endif
-
-                    /* Floats */
-
-# define FLOATS
 
 !                    Diagnostics
 # define TIDAL_DIAGS

@@ -52,6 +52,9 @@ C$    integer omp_get_thread_num
 # ifdef AGRIF
       use Agrif_Util
 # endif
+
+      use params
+
       implicit none
       integer Istr,Iend,Jstr,Jend, i,j
 # include "param.h"
@@ -221,6 +224,19 @@ C$    integer omp_get_thread_num
                      f0=???
                      beta=???
 # endif
+
+!  Output (h,f,beta)
+
+      call params_output('depth',depth)
+      call params_output('f0',f0)
+      call params_output('beta',beta)
+C       if (mynode==0) then
+C          write(*,*)
+C          write(*,'(A,A,E10.3)') OSI, 'depth=' , depth
+C          write(*,'(A,A,E10.3)') OSI, 'f0=' , f0
+C          write(*,'(A,A,E10.3)') OSI, 'beta=' , beta
+C          write(*,*)
+C       endif
 !
 !----------------------------------------------------------------------
 ! Grid dimensions (Length_XI, Length_ETA)
@@ -467,13 +483,22 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
 !
       do j=JstrR,JendR
         do i=IstrR,IendR
-#  ifdef EQUATOR
+# ifdef EQUATOR
           f(i,j)=f0+beta*yr(i,j)
-#  else
+# else
           f(i,j)=f0+beta*(yr(i,j)-(0.5*el))
-#  endif
+# endif
         enddo
       enddo
+
+!  Output ()
+
+      call params_output('yrbeta',0.5*el)
+C       if (mynode==0) then
+C          write(*,*)
+C          write(*,'(A,A,E10.3)') OSI, 'yrbeta=' , 0.5*el
+C          write(*,*)
+C       endif
 
 # if defined UV_COR_NT || defined CROCO_QH
 !

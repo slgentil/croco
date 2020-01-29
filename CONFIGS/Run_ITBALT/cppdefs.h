@@ -52,10 +52,12 @@
 !   Builds on the JET configuration and the roms_ird_fev2011 CANYON_A config.
 !                       ========== === =======
 */
+! to tag OSI parameter in output.mpi file
+# define OSI 'OSI: '
 ! perturbation of the initial jet
 # undef JET_PERTURB
 ! resolution (dx in km)
-# define RESOLUTION 4
+# define RESOLUTION 8
 ! stratification profiles
 # define JET_CONFIG 1
 ! narrow channel for internal tide test case
@@ -63,7 +65,7 @@
 ! type of wavemaker
 # define WMAKER_TEST 5
 ! turn beta on off
-# define BETAON
+# undef BETAON
 ! turn jet_decay on off
 # undef JET_DECAY
 # undef JET_EDDY
@@ -193,8 +195,9 @@
 #   define VMODES
 # endif
 
-# define OBC_SOUTH
-# define OBC_NORTH
+# define NS_PERIODIC
+# undef OBC_SOUTH
+# undef OBC_NORTH
 # define ANA_BRY
 #define ANA_BRY_WKB
 
