@@ -75,18 +75,23 @@ def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r'):
         vertical coordinate should be first
     '''
 
-    ds = run['his']
+    try:
+        ds = run.ds['grid']
+    except Exception:
+        ds = run.ds['his']
     N = run.N
     hc = run.params_input['Hc']
 
-    if zeta is not None:
-        _zeta = zeta
-    else:
-        _zeta = ds.ssh
     if h is not None:
         _h = h
     else:
         _h = ds.h
+
+    if zeta is not None:
+        _zeta = zeta.values
+    else:
+        _zeta = np.zeros(h.shape)
+
     #
     if hgrid is 'u':
         _zeta = rho2u(_zeta, ds)
@@ -95,19 +100,17 @@ def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r'):
         _zeta = rho2v(_zeta, ds)
         _h = rho2v(_h, ds)
     #
-    sc=run['his']['sc_'+vgrid]
-    cs=run['his']['Cs_'+vgrid]
+    sc=ds['sc_'+vgrid]
+    cs=ds['Cs_'+vgrid]
 
     #
     z0 = (hc * sc + _h * cs) / (hc + _h)
-    z = np.squeeze(_zeta + (_zeta + _h) * z0)
+    z = np.squeeze(np.repeat(_zeta[:, :, np.newaxis], sc.shape[0], axis=2) + (_zeta + _h) * z0)
     # manually swap dims, could also perform align with T,S
     if z.ndim ==4:
         z = z.transpose(z.dims[0], z.dims[3], z.dims[1], z.dims[2])
     elif z.ndim == 3:
-        z = z.transpose(sc.dims[0], _zeta.dims[0], _zeta.dims[1])
-    elif z.ndim == 2:
-        z = z.transpose(sc.dims[0], _zeta.dims[0])
+        z = z.transpose(z.dims[2], z.dims[0], z.dims[1])
     return z.rename('z_'+vgrid)
 
 def get_p(rho, zeta, rho0, rho_a=None):

@@ -79,8 +79,12 @@ class CROCOrun(object):
         """
         Load data set by providing suffix
         """
-        assert key in self.open_nc
-        self.ds[key] = item
+        if key in self.open_nc:
+            self.ds[key] = item
+        elif key in self.params_input.keys():
+            self.params_input[key] = item
+        elif key in self.params_output.keys():
+            self.params_output[key] = item
     
     def __iter__(self):
         """ this allows looping over datasets
@@ -135,7 +139,8 @@ class CROCOrun(object):
             print("Opening NC datasets: ", self.open_nc)
         self.ds = {}
         for suffix in self.open_nc:
-            self.ds[suffix] = self._create_xrDataset(self.filename[suffix], suffix)
+            if len(self.filename[suffix]) > 0 :
+                self.ds[suffix] = self._create_xrDataset(self.filename[suffix], suffix)
 
     def _create_xrDataset(self, ncset, suffix):
         # Helper function to synthesise inputs and call xarray
@@ -145,7 +150,9 @@ class CROCOrun(object):
         datasets = []
         for f, td in zip(files, tdir):
             if 'grid' in f:
-                return(xr.open_dataset(f,drop_variables=["x_rho","y_rho","x_psi","y_psi"]))
+                _ds = xr.open_dataset(f,drop_variables=["x_rho","y_rho","x_psi","y_psi"])
+                _ds = self._adjust_grid(_ds)
+                return _ds
             else:
                 try:
                     # chunks should be an option
@@ -290,6 +297,9 @@ class CROCOrun(object):
         _dims = (d for d in ['x_v', 'y_u', 'x_w', 'y_w'] if d in ds.dims)
         for d in _dims:
             ds = ds.rename({d: d[0]+'_rho'})
+        # change nav variables in coordinates
+        _vars = [d for d in [d for d in ds.data_vars.keys()] if "nav_" in d]
+        ds = ds.set_coords(_vars)
         # rename coordinates
         eta_suff={}
         for c in ds.coords:
@@ -318,7 +328,6 @@ class CROCOrun(object):
             ds = ds.assign_coords(f=self['grid'].f)
         except Exception: 
             for c, suff in eta_suff.items():
-                print('c ',c,' suff ',suff)
                 ds = ds.assign_coords(**{'f'+suff: ds.beta*ds[c]+ds.f0})
         return ds
 
