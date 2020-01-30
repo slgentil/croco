@@ -2,18 +2,19 @@
 !
 !======================================================================
 ! CROCO is a branch of ROMS developped at IRD and INRIA, in France
-! The two other branches from UCLA (Shchepetkin et al) 
+! The two other branches from UCLA (Shchepetkin et al)
 ! and Rutgers University (Arango et al) are under MIT/X style license.
 ! CROCO specific routines (nesting) are under CeCILL-C license.
-! 
+!
 ! CROCO website : http://www.croco-ocean.org
 !======================================================================
 !
 #include "cppdefs.h"
                                         ! Read/report model input
-      subroutine read_inp (ierr)        ! parameters  from  startup 
+      subroutine read_inp (ierr)        ! parameters  from  startup
                                         ! script file using keywords
                                         ! to recognize variables.
+      use params
 !     implicit none
 #include "param.h"
 #include "scalars.h"
@@ -604,8 +605,9 @@ c        close(testunit)
       elseif (keyword(1:kwlen).eq.'tidal_diag') then
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) omega_tdiag
-        MPI_master_only write(stdout,'(1x,A,1x,1pe10.3)')
-     &     'omega_tdiag =', omega_tdiag
+        call params_output('tdiag_omega', omega_tdiag)
+!        MPI_master_only write(stdout,'(1x,A,1x,1pe10.3)')
+!     &     'omega_tdiag =', omega_tdiag
 #endif
 ! aponte tidal diags )
 
@@ -2500,18 +2502,24 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) flag_itide, omega_itide, nmode_itide,
      &        Az_itide, y_itide, start_time_itide
-        MPI_master_only write(stdout,
-     &         '(7x,A,1x,L1,A,1x,1pe10.3,A,1x,I1)')
-     &         'Flag itide = ', flag_itide,
-     &         ', omega_itide = ', omega_itide, 
-     &         ', nmode_itide = ', nmode_itide
-        MPI_master_only write(stdout,
-     &         '(7x,A,1x,1pe10.3,1x,A,1x,1pe10.3)')
-     &         ', Azitide = ', Az_itide,
-     &         ', y_itide = ', y_itide
-        MPI_master_only write(stdout,
-     &         '(7x,A,1x,L1)')
-     &         ', start_time_itide = ', start_time_itide
+        call params_output('itide_flag', flag_itide)
+        call params_output('itide_omega', omega_itide)
+        call params_output('itide_nmode', nmode_itide)
+        call params_output('itide_Az', Az_itide)
+        call params_output('itide_y', y_itide)
+        call params_output('itide_start_time', start_time_itide)
+!        MPI_master_only write(stdout,
+!     &         '(7x,A,1x,L1,A,1x,1pe10.3,A,1x,I1)')
+!     &         'Flag itide = ', flag_itide,
+!     &         ', omega_itide = ', omega_itide,
+!     &         ', nmode_itide = ', nmode_itide
+!        MPI_master_only write(stdout,
+!     &         '(7x,A,1x,1pe10.3,1x,A,1x,1pe10.3)')
+!     &         ', Azitide = ', Az_itide,
+!     &         ', y_itide = ', y_itide
+!        MPI_master_only write(stdout,
+!     &         '(7x,A,1x,L1)')
+!     &         ', start_time_itide = ', start_time_itide
         start_time_itide = start_time_itide * day2sec
 #endif
 ! aponte itide )
@@ -2524,25 +2532,32 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
 # ifdef Y_STRETCH_GRID
      &        , jet_domain_width
 #endif
-        MPI_master_only write(stdout,
-     &         '(7x,A,1x,L1)')
-     &         'Flag jet = ', flag_jet
-        MPI_master_only write(stdout,
-     &         '(7x,A,1x,L1)')
-     &         'Flag perturb = ', flag_jet_perturb
-        MPI_master_only write(stdout,
-     &         '(7x,A,1x,1pe10.3,1x,A,1x,1pe10.3)')
-     &         'jet_ywidth = ', jet_ywidth,
-     &         ', jet_weight = ', jet_weight
+        call params_output('jet_flag', flag_jet)
+        call params_output('jet_flag_perturb', flag_jet_perturb)
+        call params_output('jet_ywidth', jet_ywidth)
+        call params_output('jet_weight', jet_weight)
+!        MPI_master_only write(stdout,
+!        MPI_master_only write(stdout,
+!     &         '(7x,A,1x,L1)')
+!     &         'Flag jet = ', flag_jet
+!        MPI_master_only write(stdout,
+!     &         '(7x,A,1x,L1)')
+!     &         'Flag perturb = ', flag_jet_perturb
+!        MPI_master_only write(stdout,
+!     &         '(7x,A,1x,1pe10.3,1x,A,1x,1pe10.3)')
+!     &         'jet_ywidth = ', jet_ywidth,
+!     &         ', jet_weight = ', jet_weight
 # ifdef Y_STRETCH_GRID
-        MPI_master_only write(stdout,
-     &         '(7x,A,1x,1pe10.3)')
-     &         'jet_domain_width = ',jet_domain_width
+        call params_output('jet_domain_width', jet_domain_width)
+!        MPI_master_only write(stdout,
+!     &         '(7x,A,1x,1pe10.3)')
+!     &         'jet_domain_width = ',jet_domain_width
 #endif
 #ifdef JET_DECAY
-        MPI_master_only write(stdout,
-     &         '(7x,A,1x,F10.3,A)')
-     &         'jet_decay_start = ', jet_decay_start, ' days' 
+        call params_output('jet_decay_start', jet_decay_start)
+!        MPI_master_only write(stdout,
+!     &         '(7x,A,1x,F10.3,A)')
+!     &         'jet_decay_start = ', jet_decay_start, ' days'
         jet_decay_start =  jet_decay_start * day2sec
         jet_decay_length = 30.*day2sec/sqrt(-log(0.1))   ! forçage = 0.1 au bout de 30j de decay
 
@@ -2559,23 +2574,33 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
      &   rl_flag_north, rl_dist_north, rl_L_north, 
      &   rl_tau_in_north, rl_tau_out_north
         if (rl_flag_south) then
-           MPI_master_only write(stdout,
-     &         '(7x,A,1x,L1,4(/7x,A,1pe10.3))')   
-     &    'South relaxation = ',rl_flag_south, 
-     &    'Distance from middle of domain = ',rl_dist_south, 
-     &    'Witdh of slope = ',rl_L_south, 
-     &    'inside relaxation in days = ',rl_tau_in_south, 
-     &    'outside ralaxation (in days) = ',rl_tau_out_south    
+           call params_output('relax_flag_south', rl_flag_south)
+           call params_output('relax_dist_south', rl_dist_south)
+           call params_output('relax_L_south', rl_L_south)
+           call params_output('relax_tau_in_south', rl_tau_in_south)
+           call params_output('relax_tau_out_south', rl_tau_out_south)
+!           MPI_master_only write(stdout,
+!     &         '(7x,A,1x,L1,4(/7x,A,1pe10.3))')
+!     &    'South relaxation = ',rl_flag_south,
+!     &    'Distance from middle of domain = ',rl_dist_south,
+!     &    'Witdh of slope = ',rl_L_south,
+!     &    'inside relaxation in days = ',rl_tau_in_south,
+!     &    'outside ralaxation (in days) = ',rl_tau_out_south
         endif
-        if (rl_flag_north) then  
-           MPI_master_only write(stdout,
-     &         '(7x,A,1x,L1,4(/7x,A,1pe10.3))')   
-     &    'North relaxation = ',rl_flag_north, 
-     &    'Distance from middle of domain = ',rl_dist_north, 
-     &    'Witdh of slope = ',rl_L_north, 
-     &    'inside relaxation in days = ',rl_tau_in_north, 
-     &    'outside ralaxation (in days) = ',rl_tau_out_north            
-        endif    
+        if (rl_flag_north) then
+          call params_output('relax_flag_north', rl_flag_north)
+          call params_output('relax_dist_north', rl_dist_north)
+          call params_output('relax_L_north', rl_L_north)
+          call params_output('relax_tau_in_north', rl_tau_in_north)
+          call params_output('relax_tau_out_north', rl_tau_out_north)
+!           MPI_master_only write(stdout,
+!     &         '(7x,A,1x,L1,4(/7x,A,1pe10.3))')
+!     &    'North relaxation = ',rl_flag_north,
+!     &    'Distance from middle of domain = ',rl_dist_north,
+!     &    'Witdh of slope = ',rl_L_north,
+!     &    'inside relaxation in days = ',rl_tau_in_north,
+!     &    'outside ralaxation (in days) = ',rl_tau_out_north
+        endif
 ! real sponge (i.e. with viscosity)
       elseif (keyword(1:kwlen).eq.'damp_sp') then
         call cancel_kwd (keyword(1:kwlen), ierr)
@@ -2591,15 +2616,20 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
      &               dcos_ptb, dsin_ptb,
      &               nmode_ptb,
      &               scale_ptb
-        MPI_master_only write(stdout,
-     &         '(7x,A,1x,1pe10.3,1x,A,1x,1pe10.3)')
-     &         'dcos_ptb = ', dcos_ptb,
-     &         'dsin_ptb = ', dsin_ptb
-        MPI_master_only write(stdout,
-     &         '(7x,A,1x,I1,1x,A,1x,I1,1x,A,1x,1pe10.3)')
-     &         'flag_ptb = ', flag_ptb,
-     &         'nmode_ptb = ', nmode_ptb,
-     &         'scale_ptb = ', scale_ptb
+        call params_output('ptb_flag', flag_ptb)
+        call params_output('ptb_dcos', dcos_ptb)
+        call params_output('ptb_dsin', dsin_ptb)
+        call params_output('ptb_nmode', nmode_ptb)
+        call params_output('ptb_scale', scale_ptb)
+!        MPI_master_only write(stdout,
+!     &         '(7x,A,1x,1pe10.3,1x,A,1x,1pe10.3)')
+!     &         'dcos_ptb = ', dcos_ptb,
+!     &         'dsin_ptb = ', dsin_ptb
+!        MPI_master_only write(stdout,
+!     &         '(7x,A,1x,I1,1x,A,1x,I1,1x,A,1x,1pe10.3)')
+!     &         'flag_ptb = ', flag_ptb,
+!     &         'nmode_ptb = ', nmode_ptb,
+!     &         'scale_ptb = ', scale_ptb
 #endif
 ! aponte tidep )
 
