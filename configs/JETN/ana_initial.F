@@ -32,6 +32,7 @@ C$    integer omp_get_thread_num
 # ifdef AGRIF
       use Agrif_Util
 # endif
+      use params
       implicit none
 # include "param.h"
 # include "grid.h"
@@ -651,25 +652,27 @@ C$    integer omp_get_thread_num
        Atide_sin_mode(nmode) = 0.0
        dAtide_cos_mode(nmode) = 0.0
        dAtide_sin_mode(nmode) = 0.0
-       MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)') 
-     &    'Truth Atide_cos_mode(',nmode,') = ',
-     &    Atide_cos_mode(nmode)
-       MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-     &    'Truth Atide_sin_mode(',nmode,') = ',
-     &    Atide_sin_mode(nmode)
+!       MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)') 
+!     &    'Truth Atide_cos_mode(',nmode,') = ',
+!     &    Atide_cos_mode(nmode)
+!       MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
+!     &    'Truth Atide_sin_mode(',nmode,') = ',
+!     &    Atide_sin_mode(nmode)
 ! higher modes
        do nmode=3,10
         Atide_cos_mode(nmode) = 0.0 
         Atide_sin_mode(nmode) = 0.0
         dAtide_cos_mode(nmode) = 0.0
         dAtide_sin_mode(nmode) = 0.0
-        MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-     &    'Truth Atide_cos_mode(',nmode,') = ',
-     &    Atide_cos_mode(nmode)
-        MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-     &    'Truth Atide_sin_mode(',nmode,') = ',
-     &    Atide_sin_mode(nmode)
-       enddo 
+!        MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
+!     &    'Truth Atide_cos_mode(',nmode,') = ',
+!     &    Atide_cos_mode(nmode)
+!        MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
+!     &    'Truth Atide_sin_mode(',nmode,') = ',
+!     &    Atide_sin_mode(nmode)
+       enddo
+       call params_output('itideptb_truth_Acos_mode', Atide_cos_mode)
+       call params_output('itideptb_truth_Asin_mode', Atide_sin_mode)
 !!
 !! first guess
 !!
@@ -678,30 +681,37 @@ C$    integer omp_get_thread_num
         do nmode=1,10
          Atide_cos_mode(nmode) = 0.0 
          Atide_sin_mode(nmode) = 0.0 
-         MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-     &    'First guess Atide_cos_mode(',nmode,') = ',
-     &    Atide_cos_mode(nmode)
-         MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-     &    'First guess Atide_sin_mode(',nmode,') = ',
-     &    Atide_sin_mode(nmode)
+!         MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
+!     &    'First guess Atide_cos_mode(',nmode,') = ',
+!     &    Atide_cos_mode(nmode)
+!         MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
+!     &    'First guess Atide_sin_mode(',nmode,') = ',
+!     &    Atide_sin_mode(nmode)
         enddo
+        call params_output('itideptb_fguess_Acos_mode', Atide_cos_mode)
+        call params_output('itideptb_fguess_Asin_mode', Atide_sin_mode)        
        endif
 !!
 !! perturbation on first guess
 !! 
        if ( flag_ptb .ge. 2 ) then
 !       nmode_ptb=4
-        MPI_master_only write(*,*) 'nmode_ptb = ', nmode_ptb
-        MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-     &    'Pertubation dcos(',nmode_ptb,') = ', dcos_ptb
-         MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-     &    'Perturbation dsin_ptb(',nmode_ptb,') = ', dsin_ptb
-        Atide_cos_mode(nmode_ptb) = Atide_cos_mode(nmode_ptb) + dcos_ptb
-        Atide_sin_mode(nmode_ptb) = Atide_sin_mode(nmode_ptb) + dsin_ptb
-        MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-     &    'Atide_cos_mode(',nmode_ptb,') = ', Atide_cos_mode(nmode_ptb)
-         MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-     &    'Atide_sin_mode(',nmode_ptb,') = ', Atide_sin_mode(nmode_ptb)
+!        MPI_master_only write(*,*) 'nmode_ptb = ', nmode_ptb
+!        MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
+!     &    'Pertubation dcos(',nmode_ptb,') = ', dcos_ptb
+!         MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
+!     &    'Perturbation dsin_ptb(',nmode_ptb,') = ', dsin_ptb
+!        Atide_cos_mode(nmode_ptb) = Atide_cos_mode(nmode_ptb) + dcos_ptb
+!        Atide_sin_mode(nmode_ptb) = Atide_sin_mode(nmode_ptb) + dsin_ptb
+!        MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
+!     &    'Atide_cos_mode(',nmode_ptb,') = ', Atide_cos_mode(nmode_ptb)
+!         MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
+!     &    'Atide_sin_mode(',nmode_ptb,') = ', Atide_sin_mode(nmode_ptb)
+        call params_output('itideptb_nmode', nmode_ptb)
+        call params_output('itideptb_dcos', dcos_ptb)
+        call params_output('itideptb_dsin', dsin_ptb)
+        call params_output('itideptb_full_Acos_mode', Atide_cos_mode)
+        call params_output('itideptb_full_Asin_mode', Atide_sin_mode)        
        endif
 ! ....
 # endif /* ITIDEP */
@@ -775,6 +785,17 @@ C$    integer omp_get_thread_num
         Awc_itide = 0.0D0
         Aws_itide = 0.0D0
        endif
+       
+       call params_output('itide_Ar_cos', Arc_itide)
+       call params_output('itide_Ar_sin', Ars_itide)       
+       call params_output('itide_Au_cos', Auc_itide)
+       call params_output('itide_Au_sin', Aus_itide)       
+       call params_output('itide_Av_cos', Avc_itide)
+       call params_output('itide_Av_sin', Avs_itide)       
+       call params_output('itide_Az_cos', Azc_itide)
+       call params_output('itide_Az_sin', Azs_itide)       
+       call params_output('itide_Aw_cos', Awc_itide)
+       call params_output('itide_Aw_sin', Aws_itide)
 
 #    endif
 ! aponte jetn )

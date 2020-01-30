@@ -2,16 +2,16 @@
 !
 !======================================================================
 ! CROCO is a branch of ROMS developped at IRD and INRIA, in France
-! The two other branches from UCLA (Shchepetkin et al)
+! The two other branches from UCLA (Shchepetkin et al) 
 ! and Rutgers University (Arango et al) are under MIT/X style license.
 ! CROCO specific routines (nesting) are under CeCILL-C license.
-!
+! 
 ! CROCO website : http://www.croco-ocean.org
 !======================================================================
 !
 #include "cppdefs.h"
                                         ! Read/report model input
-      subroutine read_inp (ierr)        ! parameters  from  startup
+      subroutine read_inp (ierr)        ! parameters  from  startup 
                                         ! script file using keywords
                                         ! to recognize variables.
       use params
@@ -2616,11 +2616,11 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
      &               dcos_ptb, dsin_ptb,
      &               nmode_ptb,
      &               scale_ptb
-        call params_output('ptb_flag', flag_ptb)
-        call params_output('ptb_dcos', dcos_ptb)
-        call params_output('ptb_dsin', dsin_ptb)
-        call params_output('ptb_nmode', nmode_ptb)
-        call params_output('ptb_scale', scale_ptb)
+        call params_output('itideptb_flag', flag_ptb)
+        call params_output('itideptb_dcos', dcos_ptb)
+        call params_output('itideptb_dsin', dsin_ptb)
+        call params_output('itideptb_nmode', nmode_ptb)
+        call params_output('itideptb_scale', scale_ptb)
 !        MPI_master_only write(stdout,
 !     &         '(7x,A,1x,1pe10.3,1x,A,1x,1pe10.3)')
 !     &         'dcos_ptb = ', dcos_ptb,
