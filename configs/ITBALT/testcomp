@@ -1,0 +1,8 @@
+#!/bin/bash
+NETCDFLIB=$(nf-config --flibs) 
+NETCDFINC=-I$(nf-config --includedir)
+MYLIB='-mkl=sequential'
+MYINC="-I$MKLROOT/include/fftw"
+LDFLAGS="$NETCDFLIB $MYLIB"
+CPPFLAGS="$NETCDFINC $MYINC"
+mpif90 -i4 -r8 -extend-source  $CPPFLAGS test.F var2cdf.F $LDFLAGS

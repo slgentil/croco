@@ -1,0 +1,133 @@
+    <domain_definition>
+
+    <domain_group id="rho">
+        <!--   My zoom: example of hand defined zoom   -->
+        <!-- <domain id="myzoom" zoom_ibegin="10" zoom_jbegin="10" zoom_ni="5" zoom_nj="5" /> -->
+        <domain id="rho" long_name="grid Rho"/>
+        <domain id="rhox" long_name="grid RHO x" domain_ref="rho">
+          <zoom_domain id="rhox"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="rhoy" long_name="grid RHO y" domain_ref="rho">
+          <zoom_domain id="rhoy"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="sta1_rho" long_name="station 1 T" domain_ref="rho">
+          <zoom_domain id="sta1_rho"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="sta2_rho" long_name="station 2 T" domain_ref="rho">
+          <zoom_domain id="sta2_rho"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="swath_rho" long_name="swath T" domain_ref="rho">
+          <zoom_domain id="swath_rho"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <!-- <domain id="1point" zoom_ibegin="1" zoom_jbegin="1" zoom_ni="1" zoom_nj="1" /> -->
+     </domain_group>
+
+     <domain_group id="u">
+        <domain id="u" long_name="grid U"/>
+        <domain id="ux" long_name="grid U x" domain_ref="u">
+          <zoom_domain id="ux"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="uy" long_name="grid U y" domain_ref="u">
+          <zoom_domain id="uy"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="sta1_u" long_name="station 1 U" domain_ref="u">
+          <zoom_domain id="sta1_u"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="sta2_u" long_name="station 2 U" domain_ref="u">
+          <zoom_domain id="sta2_u"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="swath_u" long_name="swath U" domain_ref="u">
+          <zoom_domain id="swath_u"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+     </domain_group>
+
+     <domain_group id="v">
+        <domain id="v" long_name="grid V"/>
+        <domain id="vx" long_name="grid V x" domain_ref="v">
+          <zoom_domain id="vx"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="vy" long_name="grid V y" domain_ref="v">
+          <zoom_domain id="vy"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="sta1_v" long_name="station 1 V" domain_ref="v">
+          <zoom_domain id="sta1_v"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="sta2_v" long_name="station 2 V" domain_ref="v">
+          <zoom_domain id="sta2_v"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="swath_v" long_name="swath V" domain_ref="v">
+          <zoom_domain id="swath_v"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+     </domain_group>
+
+     <domain_group id="w">
+        <domain id="w" long_name="grid W"/>
+        <domain id="wx" long_name="grid W x" domain_ref="w">
+          <zoom_domain id="wx"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="wy" long_name="grid W y" domain_ref="w">
+          <zoom_domain id="wy"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="sta1_w" long_name="station 1 W" domain_ref="w">
+          <zoom_domain id="sta1_w"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="sta2_w" long_name="station 2 W" domain_ref="w">
+          <zoom_domain id="sta2_w"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="swath_w" long_name="swath W" domain_ref="w">
+          <zoom_domain id="swath_w"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+     </domain_group>
+
+     <domain_group id="b">
+        <domain id="b" long_name="grid sed"/>
+        <domain id="bx" long_name="grid b x" domain_ref="b">
+          <zoom_domain id="bx"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="by" long_name="grid b y" domain_ref="b">
+          <zoom_domain id="by"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="sta1_b" long_name="station 1 B" domain_ref="b">
+          <zoom_domain id="sta1_b"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="sta2_b" long_name="station 2 B" domain_ref="b">
+          <zoom_domain id="sta2_b"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="swath_b" long_name="swath B" domain_ref="b">
+          <zoom_domain id="swath_b"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+     </domain_group>
+
+     <domain_group id="psi">
+        <domain id="psi" long_name="grid PSI"/>
+        <domain id="psix" long_name="grid PSI x" domain_ref="psi">
+          <zoom_domain id="psix"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="psiy" long_name="grid PSI y" domain_ref="psi">
+          <zoom_domain id="psiy"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="sta1_psi" long_name="station 1 PSI" domain_ref="psi">
+          <zoom_domain id="sta1_psi"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="sta2_psi" long_name="station 2 PSI" domain_ref="psi">
+          <zoom_domain id="sta2_psi"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+        <domain id="swath_psi" long_name="swath PSI" domain_ref="psi">
+          <zoom_domain id="swath_psi"  ibegin="0000" jbegin="0000" ni="0000" nj="0000" />
+        </domain>
+     </domain_group>
+
+
+     <!-- <domain_group id="scalarpoint_1">
+         <domain id="scalarpoint_1" long_name="scalar"/> -->
+         <!-- for mooring
+         <domain id="1point" zoom_ibegin="1" zoom_jbegin="1" zoom_ni="1" zoom_nj="1" />
+         -->
+      <!-- </domain_group> -->
+
+      <!-- <domain_group id="scalarpoint">
+         <domain id="scalarpoint" long_name="scalar"/>
+      </domain_group> -->
+
+
+   </domain_definition>

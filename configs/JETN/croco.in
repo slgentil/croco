@@ -1,0 +1,98 @@
+title:
+        JETN case
+
+time_stepping: NTIMES   dt[sec]  NDTFAST  NINFO
+               28800       300.      35      10
+
+S-coord: THETA_S,   THETA_B,    Hc (m)
+         5.0d0      0.0d0       100.0d0
+
+initial: NRREC  filename
+         1
+                          jetn_rst.nc
+
+restart:    NRST, NRPFRST / filename
+                  28800   -1
+                          jetn_rst.nc
+
+history: LDEFHIS, NWRT, NRPFHIS / filename
+            T     28800    2
+                          jetn_his.nc
+
+primary_history_fields: zeta UBAR VBAR  U  V   wrtT(1:NT)
+                         T    T    T    T  T   T T
+
+auxiliary_history_fields:   rho Omega  W  Akv  Akt  Aks Visc3d Diff3d  HBL HBBL Bostr Wstr Ustr Vstr Shfl Swfl rsw rlw lat sen  HEL
+                             T   F     T   T    T    F    F     F       F   F    F     F    F    F    F    F   10*F             
+
+rho0:
+      1000.d0
+
+bottom_drag:     RDRG(m/s),      RDRG2, Zob [m],  Cdb_min, Cdb_max
+                 4.6e-6              0.     0.        0.       0.
+
+gamma2:
+                 -1.
+
+lin_EOS_cff: R0 (Kg/m^3), T0 (deg C),  S0 (PSU),  TCOEF,  SCOEF
+              0.d0         0.d0         0.d0      -1.0d0    0.d0
+
+vertical_mixing: Akv_bak, Akt_bak [m^2/sec]
+                 1.e-5       1.e-5
+
+sponge:          X_SPONGE [m],    V_SPeuropeONGE [m^2/sec]
+                 0.             0.
+
+nudg_cof:    TauT_in, TauT_out, TauM_in, TauM_out  [days for all]
+              1.      100.0e+0       1.    100.0e+0
+
+lateral_visc:   VISC2,    VISC4    [m^2/sec for all]
+                0.0       0.0e+8
+
+tracer_diff2: TNU2(1:NT)           [m^2/sec for all]
+               0.0   260.
+
+tracer_diff4: TNU4(1:NT)
+              0.0e+8     0.0e+8
+(
+MY_bak_mixing: Akq_bak, q2nu2, q2nu4
+               5.0d-6   0.     0.
+
+diagnostics:   ldefdia   nwrtdia    nrpfdia /filename
+                  F        10         0
+                  diags_ts.out
+diagnosticsM:   ldefdiaM   nwrtdiaM    nrpfdiaM /filename
+                  F          10          0
+                  diags_uv.out
+diagspec:       navgspec nwrtspec spec_nlev /filename /levels
+                5        10       5
+                spec.nc
+                2 4 6 8 16
+
+itide:  flag_itide   omega_itide   nmode_itide   Az_itide  y_itide    start_time_itide 
+            T      1.45444104333e-4     2         2.0e-2   400.0e+3      1500
+
+itidep: flag_ptb   dcos_ptb   dsin_ptb   nmode_ptb    scale_ptb
+            0       -1.0e-6     0.0e-6       2           1.0e0
+
+jet: flag_jet   flag_jet_perturb  jet_ywidth  jet_weight jet_decay_start
+       T              T            800.0e+3      0.75      4000
+
+tidal_diag: omega_tdiag
+            1.45444104333e-4 
+
+damp_rl: rl_flag_south rl_L_south rl_tau_in_south rl_tau_out_south rl_flag_north rl_L_north rl_tau_in_north rl_tau_out_north
+              T        1000.0e+3     350.0e+3      1000.0e+0    1.0e+0           T             1000.0e+3     350.0e+3   1000.0e+0       1.0e+0
+
+
+damp_sp: sp_flag_south sp_L_south sp_tau_in_south sp_tau_out_south sp_flag_north sp_L_north sp_tau_in_north sp_tau_out_north
+              F   350.0e+3    1000.0e+0   2.0e+0    F   350.0e+3    1000.0e+0   2.0e+0
+
+floats: ldefflt  nflt  nrpfflt /fposnam /fname 
+           T     2     0    
+             floats.in
+             floats.nc 
+
+float_fields:  position   temperature  salinity  rho  mean-float-velocity  instant_velocity  acceleration   pressure
+                  T           T            F      F       F                T                 T        T     
+

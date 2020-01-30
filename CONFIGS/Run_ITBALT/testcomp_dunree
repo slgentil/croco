@@ -1,2 +1,0 @@
-mpif90 -O3 -g -fdefault-real-8 -fdefault-double-8 -fbacktrace -fbounds-check -finit-local-zero -I/home/dunree/services/hdf5/include -I/home/dunree/services/netcdf/include -I/usr/include -I/home1/dunree/slgentil/models/XIOS/XIOS2_ubuntu18_LTS/inc  -o a.out test.F var2cdf.F /home1/dunree/slgentil/models/XIOS/XIOS2_ubuntu18_LTS/lib/libxios.a -lstdc++ -L/home/dunree/services/hdf5/lib -L/home/dunree/services/netcdf/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lz -lcurl -llapack -lfftw3 -lfftw3f   
-
