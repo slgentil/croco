@@ -4,9 +4,10 @@ CROCO
 Le répertoire croco contient le code CROCO de base  
 
 Le répertoire CONFIGS contient les différentes configurations:  
-- Run_MEDDY : Meddy dans une configuration idéalisée
-- Run_MOZ   : Tourbillon dans la configuration réaliste du canal du Mozambique
-- [Run_JETN](CONFIGS/Run_JETN/readme.md) : Jet et marée interne dans une configuration idéalisée  
+- MEDDY : Meddy dans une configuration idéalisée
+- MOZ   : Tourbillon dans la configuration réaliste du canal du Mozambique
+- [JETN](configs/JETN/readme.md) : Jet et marée interne dans une configuration idéalisée  
+- [ITBALT](configs/ITBALT/readme.ipynb) : Internal Tide and BALanced Turbulence in an idealized context
 
 Le répertoire util contient des utilitaires python  
 - clean_croco.py : pour supprimer tous les xios_client* et xios_server* (sauf le 0) à partir du niveau de répertoire courant et dans les deux niveaux inférieurs  
