@@ -57,7 +57,7 @@
 ! perturbation of the initial jet
 # define JET_PERTURB
 ! resolution (dx in km)
-# define RESOLUTION 2
+# define RESOLUTION 4
 ! stratification profiles
 # define JET_CONFIG 1
 ! narrow channel for internal tide test case
@@ -74,8 +74,8 @@
 # define XIOS
 # undef FERMI_MEM
 
-# define  FLOATS
-# define  SIGMA_FLOATS
+# undef  FLOATS
+# undef  SIGMA_FLOATS
 # undef DEPTH_FLOATS
 # undef  FLOAT_DEBUG
 
