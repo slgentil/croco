@@ -57,7 +57,7 @@
 ! perturbation of the initial jet
 # undef JET_PERTURB
 ! resolution (dx in km)
-# define RESOLUTION 8
+# define RESOLUTION 4
 ! stratification profiles
 # define JET_CONFIG 1
 ! narrow channel for internal tide test case
