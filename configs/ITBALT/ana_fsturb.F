@@ -170,19 +170,6 @@
       call params_output('yfstmid',yfstmid)
       call params_output('yfstwid',yfstwid)
       call params_output('FTfst',FTfst)
-C       if (mynode==0) then
-C          write(*,*)
-C          write(*,'(A,A,E10.3)') OSI, 'dtfst=' , dtfst
-C          write(*,'(A,A,I2)') OSI, 'Nmodefst=' , Nmodefst
-C          write(my_fmt, '(A, i0, A)') '(A,A,1X,', Nmodefst, 'E10.3,1X,A)'
-C          write(*,my_fmt) OSI,'afst=(' ,(afst(i),i=1,Nmodefst),')'
-C          write(*,'(A,A,E10.3)') OSI, 'xfstmid=' , xfstmid
-C          write(*,'(A,A,E10.3)') OSI, 'xfstwid=' , xfstwid
-C          write(*,'(A,A,E10.3)') OSI, 'yfstmid=' , yfstmid
-C          write(*,'(A,A,E10.3)') OSI, 'yfstwid=' , yfstwid
-C          write(*,'(A,A,E10.3)') OSI, 'FTfst=' , FTfst
-C          write(*,*)
-C       endif
 
       end subroutine init_fsturb
 

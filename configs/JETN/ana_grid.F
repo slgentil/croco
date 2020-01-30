@@ -230,13 +230,6 @@ C$    integer omp_get_thread_num
       call params_output('depth',depth)
       call params_output('f0',f0)
       call params_output('beta',beta)
-C       if (mynode==0) then
-C          write(*,*)
-C          write(*,'(A,A,E10.3)') OSI, 'depth=' , depth
-C          write(*,'(A,A,E10.3)') OSI, 'f0=' , f0
-C          write(*,'(A,A,E10.3)') OSI, 'beta=' , beta
-C          write(*,*)
-C       endif
 !
 !----------------------------------------------------------------------
 ! Grid dimensions (Length_XI, Length_ETA)
