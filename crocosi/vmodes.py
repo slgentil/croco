@@ -91,7 +91,8 @@ def compute_vmodes_1D(zc, zf, N2f, nmodes=_nmodes, free_surf=True, g=_g, sigma=_
     """ compute vertical modes: solution of SL problem (phi'/N^2)'+k*phi=0'
     returns phi at rho points, dphi at w points and c=1/sqrt(k) 
     normalization such that int(phi^2)=H, w-modes=d(phi)/dz
-    copy-pasted from M. Dunphy's vmodes_MD.py"""
+    copy-pasted from M. Dunphy's vmodes_MD.py
+    TODO: correct rigid lid & barotropic mode """
     print("computing {0} modes", nmodes)
     # Precompute a few quantities
     assert zc.ndim==zf.ndim==N2f.ndim==1

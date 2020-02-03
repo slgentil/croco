@@ -74,9 +74,9 @@
 # define XIOS
 # undef FERMI_MEM
 
-# define  FLOATS
-# define  SIGMA_FLOATS
-# undef DEPTH_FLOATS
+# undef  FLOATS
+# undef  SIGMA_FLOATS  /* float stays at fixed sigma levels */
+# undef  DEPTH_FLOATS  /* float stays at fixed depth levels */
 # undef  FLOAT_DEBUG
 
 ! old but necessary options

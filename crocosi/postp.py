@@ -1,6 +1,6 @@
 """
 Module postp
- - CROCOrun class holds metadata about a CROCO run
+ - Run class holds metadata about a CROCO run
 """
 #rom lpolib.grid import CGrid, s_coordinate
 #rom lpolib.utils import tofloat, get_gradp, rho2u, rho2v
@@ -23,12 +23,12 @@ def tofloat(x):
     """
     return float(x.replace('d','e').replace('D','e'))
 
-class CROCOrun(object):
+class Run(object):
     """
-    Class CROCOrun contains several xarray classes for each netCDF file type
+    Class Run contains several xarray classes for each netCDF file type
     (ave, his, etc.), a grid object, and online output diagnostics (e.g. energy, ...).
     """
-    def __init__(self, dirname, verbose=False, prefix=None, open_nc=[],
+    def __init__(self, dirname, verbose=False, prefix='', open_nc=[],
                  tdir_max=0, grid_params={}, chunk_time=1):
         """
         Constructor; we inspect a run directory and assemble scDataset
@@ -36,13 +36,13 @@ class CROCOrun(object):
                      read the energy diagnostics from output.mpi
         Parameters: dirname - directory to search for model output
                     verbose - if True, prints diagnostics as it works
-                    open_nc - a list of nc files to open in addition to 'his',
+                    open_nc - a list of nc files to open in addition to 'grid',
                               which may be an empty list.
         """
         self.dirname = os.path.expanduser(dirname)
         self.verbose = verbose
         self.prefix = prefix
-        self.open_nc = ['grid'] + open_nc   # Ensure that we always open 'his'
+        self.open_nc = ['grid'] + open_nc
         self.tdir_max = tdir_max # limits the number of t directories
         self._grid_params = grid_params
         if isinstance(chunk_time,dict):
@@ -56,24 +56,32 @@ class CROCOrun(object):
         self._openfiles()   # Open the NetCDF files as scDatasets
         self._readgrid()    # Read the horizontal/vertical grid
 
+    def __repr__(self):
+        return ("Run: "+self.dirname+"\n"
+                "  datasets suffixes: "+" / ".join(s for s in self.open_nc)+"\n"
+        )
+        
+    #def _repr_html_(self):
+    #    return ("<b>"+self.dirname+"</b>"
+    #            "<p>"+"".join(self.ds[s].__repr__() for s in self.open_nc)+"</p>"
+    #    )
+        
     def __del__(self):
+        """ Close any files linked to the datasets
         """
-        Destructor: close the netcdf files upon destruction
-        """
-        # self.ds[:].close()
+        for s in suffix:
+            self.ds[s].close()
 
     def __getitem__(self, key):
-        """
-        Load data set by providing suffix
+        """ Load data set by providing suffix
         """
         # assert key in self.open_nc
         if key in self.open_nc:
             return self.ds[key]
-        elif key in self.params_input.keys():
-            return self.params_input[key]
         elif key in self.params_output.keys():
             return self.params_output[key]
-
+        elif key in self.params_input.keys():
+            return self.params_input[key]
 
     def __setitem__(self, key, item):
         """
@@ -205,20 +213,6 @@ class CROCOrun(object):
                     params['rho0']=tofloat(line.split()[0])
                     if self.verbose:
                         print("Detected rho0 = " + str(params['rho0']) + " kg/m^3")
-                elif 'tidal_diag:' in pline:
-                    params['omega']=tofloat(line.split()[0])
-                    if self.verbose:
-                        print("Detected omega = " + str(params['omega']) + " 1/s")
-                elif 'jet_ywidth' in pline:
-                    params['jet_ywidth'] = tofloat(line.split()[2])
-                    params['jet_weight'] = tofloat(line.split()[3])
-                    if self.verbose:
-                        print("Detected jet_ywidth = " + str(params['jet_ywidth']) + " m")
-                        print("Detected jet_weight = " + str(params['jet_weight']))
-                elif 'y_itide' in pline:
-                    params['y_itide'] = tofloat(line.split()[4])
-                    if self.verbose:
-                        print("Detected y_itide = " + str(params['y_itide']) + " m")
                 pline=line
             f.close()
             self.params_input = params
@@ -393,40 +387,3 @@ class CROCOrun(object):
                 'eta':{'center':'y_rho', 'inner':'y_v'}, 
                 's':{'center':'s_rho', 'outer':'s_w'}}
         ds.attrs['xgcm-Grid'] = Grid(ds, coords=coords)
-
-
-    def getZ(self,pt,zeta=None):
-        """ !!! need update !!!
-        getZ: Simple function to return vertical grid at specified level
-              Valid arguments for pt are 'w','rho','u','v','t','s'
-              If zeta is specified, it must be on the rho points
-              and will be interpolated to u or v points as needed
-        """
-        if zeta is None:
-            # We'll just return the nominal grid
-            h=self.H*np.ones([1,1])
-        else:
-            h=self.H*np.ones(zeta.shape)
-        s=s_coordinate(h, self.theta_b, self.theta_s, self.Hc, self.N, zeta=zeta)
-
-        pt=pt.upper()
-        if (pt=='RHO') or (pt=='T') or (pt=='S') or  ((pt=='U') and zeta is None) or ( (pt=='V') and zeta is None) :
-            return s.z_r[:]
-        elif (pt=='U'):
-            # assumes zonal periodicity
-            return rho2u(s.z_r[:])
-        elif (pt=='V'):
-            return rho2v(s.z_r[:])
-        elif (pt=='W'):
-            return s.z_w[:]
-
-    def get_type(self, v):
-        """  !!! old code, update or delete !!!
-        Returns the grid point type. Queries the hgrid class for horizontal
-        point type, and then checks the vertical dimension to identify 'W' arrays.
-        """
-        pt = self.hgrid.get_htype(v)
-        if (pt == 'RHO') and (v.shape[0] == self.Np):
-            return 'W'
-        else:
-            return pt
