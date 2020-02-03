@@ -45,7 +45,7 @@ if resolution==8:
     nbproc_xios=1
 elif resolution==4:
     nbproc_roms=48
-    nbproc_xios=2
+    nbproc_xios=4
 elif resolution==2:
     nbproc_roms=60
     nbproc_xios=2   

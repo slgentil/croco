@@ -74,8 +74,8 @@
 # define XIOS
 # undef FERMI_MEM
 
-# undef  FLOATS
-# undef  SIGMA_FLOATS
+# define  FLOATS
+# define  SIGMA_FLOATS
 # undef DEPTH_FLOATS
 # undef  FLOAT_DEBUG
 
