@@ -75,8 +75,8 @@
 # undef FERMI_MEM
 
 # undef  FLOATS
-# undef  SIGMA_FLOATS
-# undef DEPTH_FLOATS
+# undef  SIGMA_FLOATS  /* float stays at fixed sigma levels */
+# undef  DEPTH_FLOATS  /* float stays at fixed depth levels */
 # undef  FLOAT_DEBUG
 
 ! old but necessary options
