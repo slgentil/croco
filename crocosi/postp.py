@@ -291,6 +291,7 @@ class Run(object):
         # relevant to regular/analytical grid for now
         #
         ds = ds.reset_coords([c for c in ds.coords if 'nav' in c])
+        ds = ds.squeeze()
         # rename redundant dimensions
         _dims = (d for d in ['x_v', 'y_u', 'x_w', 'y_w'] if d in ds.dims)
         for d in _dims:
@@ -313,8 +314,8 @@ class Run(object):
             ds = ds.rename({c:new_c})
             # reset names and units
             ds[new_c] = (ds[new_c].assign_attrs(units='m', 
-                                               standard_name=new_c,
-                                               long_name=new_c)
+                                                standard_name=new_c,
+                                                long_name=new_c)
                         )
         # fills in grid parameters, f, f0, beta
         f0, beta = None, None
