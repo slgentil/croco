@@ -69,7 +69,7 @@ class Run(object):
     def __del__(self):
         """ Close any files linked to the datasets
         """
-        for s in suffix:
+        for s in self.open_nc:
             self.ds[s].close()
 
     def __getitem__(self, key):
@@ -158,9 +158,10 @@ class Run(object):
         datasets = []
         for f, td in zip(files, tdir):
             if 'grid' in f:
-                _ds = xr.open_dataset(f,drop_variables=["x_rho","y_rho","x_psi","y_psi"])
-                _ds = self._adjust_grid(_ds)
-                return _ds
+                ds = xr.open_dataset(f, drop_variables=["x_rho","y_rho", \
+                                                         "x_psi","y_psi"])
+                ds = self._adjust_grid(ds)
+                return ds
             else:
                 try:
                     # chunks should be an option
@@ -179,11 +180,12 @@ class Run(object):
                 #ds = ds.drop([k for k in ds.coords \
                 #                if k not in ['time_counter','time_centered']])
                 datasets.append(ds)
-        _ds = xr.concat(datasets, dim='time_counter',
+        ds = xr.concat(datasets, dim='time_counter',
                         coords='minimal', compat='override')
-        _ds = _ds.rename_dims({'time_counter':'time'})
-        _ds = self._adjust_grid(_ds)
-        return _ds
+        ds = ds.rename_dims({'time_counter':'time'})
+        ds = ds.set_coords([c for c in ds.data_vars if 'time' in c])
+        ds = self._adjust_grid(ds)
+        return ds
 
     def _readparams(self):
         """
@@ -258,7 +260,6 @@ class Run(object):
                         print("Found " + str(len(statnames)) + " columns in output.mpi:")
                         print(statnames)
                 elif search and len(line.split())==nbstats and not 'STEP' in line:
-                    # The 114 condition may be fragile. ToDo: better condition
                     if firstline:
                         # record the model starting offset
                         idx = [i for i, x in enumerate(statnames) if x=="time[DAYS]"][0]
@@ -287,72 +288,81 @@ class Run(object):
         self.stats = pd.DataFrame(statdata, columns=statnames).set_index('time[DAYS]')
 
     def _adjust_grid(self, ds):
-        # rename dimensions
+        # relevant to regular/analytical grid for now
+        #
+        ds = ds.reset_coords([c for c in ds.coords if 'nav' in c])
+        # rename redundant dimensions
         _dims = (d for d in ['x_v', 'y_u', 'x_w', 'y_w'] if d in ds.dims)
         for d in _dims:
             ds = ds.rename({d: d[0]+'_rho'})
-        # change nav variables in coordinates
-        _vars = [d for d in [d for d in ds.data_vars.keys()] if "nav_" in d]
-        ds = ds.set_coords(_vars)
+        #
+        _coords = [d for d in [d for d in ds.data_vars.keys()] if "nav_" in d]
+        # slice nav variables
+        for v in _coords:
+            xy = [d for d in ds[v].dims if d[0]=='y']
+            if 'nav_lat' in v:
+                xy = [d for d in ds[v].dims if d[0]=='x']
+            if len(xy)>0:
+                ds[v] = ds[v].isel({xy[0]: 0}).squeeze()
+        # change nav variables in coordinates        
+        ds = ds.set_coords(_coords)        
         # rename coordinates
         eta_suff={}
         for c in ds.coords:
-            new_c = c.replace('nav_lat','eta').replace('nav_lon','xi')
+            new_c = c.replace('nav_lat','y').replace('nav_lon','x')
             ds = ds.rename({c:new_c})
-            if 'eta_rho' in new_c:
-                eta_suff[new_c] = new_c.lstrip('eta_rho')
+            # reset names and units
+            ds[new_c] = (ds[new_c].assign_attrs(units='m', 
+                                               standard_name=new_c,
+                                               long_name=new_c)
+                        )
         # fills in grid parameters, f, f0, beta
+        f0, beta = None, None
         if 'f0' in self._grid_params:
-            ds = ds.assign_attrs(f0=self._grid_params['f0'])
-        else:
-            try:
-                ds = ds.assign_attrs(f0=self.params_output['f0'])
-            except Exception:
-                print('f0 not defined, you must initialize grid_params in CROCOrun')
-                sys.exit()
+            _f0 = self._grid_params['f0']
+        elif 'f0' in self.params_output:
+            _f0 = self.params_output['f0']
+        #
         if 'beta' in self._grid_params:
-            ds = ds.assign_attrs(beta=self._grid_params['beta'])
-        else:
-            try:
-                ds = ds.assign_attrs(beta=self.params_output['beta'])
-            except Exception:
-                print('beta not defined, you must initialize grid_params in CROCOrun')
-                sys.exit()
-        try: 
-            ds = ds.assign_coords(f=self['grid'].f)
-        except Exception: 
-            for c, suff in eta_suff.items():
-                ds = ds.assign_coords(**{'f'+suff: ds.beta*ds[c]+ds.f0})
+            _beta = self._grid_params['beta']
+        elif 'beta' in self.params_output:
+            _beta = self.params_output['beta']
+        #
+        if _f0 and _beta:
+            y_coords = [c for c in ds.coords if c[0]=='y']
+            for c in y_coords:
+                ds = ds.assign_coords(**{'f_'+c.split('_')[1]: \
+                                            _beta*ds[c]+_f0})
         return ds
 
     def _readgrid(self, check=False):
-        """ !!! old code, update or delete !!!
+        """ !!! to document !!!
         """
         from xgcm import Grid
 
         def s_coordinate(sc, theta_s, theta_b):
-                    '''
-                    Allows use of theta_b > 0 (July 2009)
-                    '''
-                    one64 = np.float64(1)
+            '''
+            Allows use of theta_b > 0 (July 2009)
+            '''
+            one64 = np.float64(1)
 
-                    if theta_s > 0.:
-                        csrf = ((one64 - np.cosh(theta_s * sc)) /
-                                (np.cosh(theta_s) - one64))
-                    else:
-                        csrf = -sc ** 2
-                    sc1 = csrf + one64
-                    if theta_b > 0.:
-                        Cs = ((np.exp(theta_b * sc1) - one64) /
-                              (np.exp(theta_b) - one64) - one64)
-                    else:
-                        Cs = csrf
-                    return Cs
+            if theta_s > 0.:
+                csrf = ((one64 - np.cosh(theta_s * sc)) /
+                        (np.cosh(theta_s) - one64))
+            else:
+                csrf = -sc ** 2
+            sc1 = csrf + one64
+            if theta_b > 0.:
+                Cs = ((np.exp(theta_b * sc1) - one64) /
+                      (np.exp(theta_b) - one64) - one64)
+            else:
+                Cs = csrf
+            return Cs
 
         # Store grid sizes
-        try:
+        if 'grid' in self.open_nc:
             ds = self.ds['grid']
-        except Exception:
+        elif 'his' in self.open_nc: 
             ds = self.ds['his']
         self.L = ds.sizes['x_rho']
         self.M = ds.sizes['y_rho']
