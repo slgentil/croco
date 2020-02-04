@@ -26,6 +26,7 @@
 !
       subroutine set_nudgcof_tile (Istr,Iend,Jstr,Jend, wrk)
 !     implicit none
+      use params
       integer ierr
 # if defined MPI
       include 'mpif.h'
@@ -140,9 +141,6 @@
 # ifdef ITBALT
           wrk(i,j)=1.
 # endif
-# ifdef JET_EDDY
-          wrk(i,j)=0.
-# endif
 ! aponte jet )
 
 # ifdef SPONGE_SED
@@ -223,11 +221,9 @@
 #else /* Y_STRETCH_RELAX */
 
 ! Flag that kills all sponges but not the zonal relaxation (0=no sponges)
-        cff_kill_sponges=1.0
-# ifdef JET_EDDY
-        cff_kill_sponges=0.0
-# endif
-        if (mynode==0)  write(*,*) 'cff_kill_sponges = ', cff_kill_sponges
+        cff_kill_sponges = 0.0
+        call params_output('flag_sponges', cff_kill_sponges)
+!        if (mynode==0) write(*,*) 'cff_kill_sponges = ', cff_kill_sponges
 
         if ( rl_flag_south ) then
 
