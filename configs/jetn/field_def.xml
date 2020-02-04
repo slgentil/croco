@@ -90,10 +90,6 @@
          <field id="ens" long_name="depth averaged enstrophy" unit="1/s^2" />
          <field id="rot" long_name="rotational" unit="1/s" grid_ref="rho_3D" />
 
-         <!-- FSTURB -->
-         <field id="Ffst" long_name="Forcing Turbulence" grid_ref="rho_3D" />
-         <field id="Wfst" long_name="Forme forçage" grid_ref="rho_2D" />
-
      </field_group>
         
         

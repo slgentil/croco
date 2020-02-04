@@ -231,7 +231,6 @@
 #ifdef Y_STRETCH_GRID
       parameter (LLm0=256,  MMm0=640,  N=50)     !  4 km
 #else 
-!      parameter (LLm0=256,  MMm0=780,  N=50)      !  4 km
       parameter (LLm0=256,  MMm0=720,  N=50)      !  4 km
 #endif                    
 #  elif RESOLUTION == 2
@@ -388,9 +387,9 @@
 ! 1920 procs (60 noeuds de 32 procs sur fermi)
 !       parameter (NP_XI=32, NP_ETA=60,  NNODES=NP_XI*NP_ETA)
 ! 3840 procs (120 noeuds de 32 procs sur fermi)
-!      parameter (NP_XI=8, NP_ETA=240,  NNODES=NP_XI*NP_ETA)  ! fermi
-!      parameter (NP_XI=4, NP_ETA=15,  NNODES=NP_XI*NP_ETA)   ! datarmor
-       parameter (NP_XI=8, NP_ETA=120,  NNODES=NP_XI*NP_ETA)  ! curie            
+!      parameter (NP_XI=4, NP_ETA=8,  NNODES=NP_XI*NP_ETA)  ! dunree
+!      parameter (NP_XI=4, NP_ETA=96,  NNODES=NP_XI*NP_ETA)   ! datarmor
+!      parameter (NP_XI=8, NP_ETA=120,  NNODES=NP_XI*NP_ETA)  ! curie            
 # endif          
 !
 !
