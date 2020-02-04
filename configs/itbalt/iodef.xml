@@ -16,7 +16,7 @@
 
     <file_definition type="one_file" output_freq="1800s" output_level="10"> 
 
-      <file id="file_grd" name="grid" output_freq="1ts"  enabled=".FALSE.">
+      <file id="file_grd" name="grid" output_freq="1ts"  enabled=".TRUE.">
           <field_group id="grid_fields" operation="once">
             <field field_ref="hc" />
             <field field_ref="theta_s" />
@@ -92,7 +92,7 @@
           </field_group>
       </file> 
 
-      <file id="file_his" name="his" output_freq="20d" sync_freq="20d" split_freq="20d"  enabled=".FALSE.">
+      <file id="file_his" name="his" output_freq="20d" sync_freq="20d" split_freq="20d"  enabled=".TRUE.">
           <field_group id="his_fields" operation="instant" freq_op="2d">
             <field name="ssh_a" grid_ref="rho_2D" > @ssh_a </field>
             <field name="T_a" grid_ref="rho_3D" > @T_a </field>

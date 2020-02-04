@@ -66,6 +66,6 @@ xios_server.exe
 *.mod*
 
 # dask
-dask-worker-space
+dask-worker*
 
 
