@@ -3,6 +3,7 @@ import xarray as xr
 import numpy as np
 
 # ------------------------------------------------------------------------------------------------
+_g = 9.81
 
 def add_coords(ds, var, coords):
     for co in coords:
@@ -69,10 +70,62 @@ def psi2rho(v, ds):
     var.attrs = v.attrs
     return var.rename(v.name)
 
-def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r'):
+def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r', vtrans=None):
+    ''' compute vertical coordinates
+        zeta should have the size of the final output
+        vertical coordinate is first in output
+    '''
+
+    try:
+        ds = run.ds['grid']
+    except Exception:
+        ds = run.ds['his']
+    N = run.N
+    hc = run.params_input['Hc']
+
+    _h = ds.h if h is None else h
+    _zeta = 0 if zeta is None else zeta
+
+    # swith horizontal grid if needed (should we use grid.interp instead?)
+    if hgrid in ['u','v']:
+        funtr = eval("rho2"+hgrid)
+        if _zeta != 0:
+            _zeta = funtr(_zeta, ds)
+        _h = funtr(_h, ds)
+    
+    # determine what kind of vertical corrdinate we are using (NEW_S_COORD)
+    if vtrans is None:
+        vtrans = ds.Vtransform.values
+    else:
+        if isinstance(vtrans, str):
+            if vtrans.lower()=="old":
+                vtrans = 1
+            elif vtrans.lower()=="new":
+                vtrans = 2
+            else:
+                raise ValueError("unable to understand what is vtransform")
+                
+    sc=ds['sc_'+vgrid]
+    cs=ds['Cs_'+vgrid]
+
+    if vtrans == 2:
+        z0 = (hc * sc + _h * cs) / (hc + _h)
+        z = _zeta + (_zeta + _h) * z0
+    else:
+        z0 = hc*sc + (_h-hc)*cs
+        z = z0 + _zeta*(1+z0/_h)
+        
+    zdim = "s_"+vgrid.replace('r','rho')
+    if z.dims[0] != zdim:
+        z = z.transpose(*(zdim,)+_zeta.dims)
+    return z.rename('z_'+vgrid)
+
+
+def get_z_old(run, zeta=None, h=None, vgrid='r', hgrid='r'):
     ''' compute vertical coordinates
         zeta should have the size of the final output
         vertical coordinate should be first
+        OLD VERSION~: if get_z is OK, remove this one
     '''
 
     try:
@@ -113,8 +166,23 @@ def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r'):
         z = z.transpose(z.dims[2], z.dims[0], z.dims[1])
     return z.rename('z_'+vgrid)
 
-def get_p(rho, zeta, rho0, rho_a=None):
-    #
+def get_p(grid,rho,zw,zr=None,g=_g):
+    """ compute (not reduced) pressure by integration from the surface, 
+    taking rho at rho points and giving results on w points (z grid)
+    with p=0 at the surface. If zr is not None, compute result on rho points """
+    if zr is None:
+        dz = grid.diff(zw, "s")
+        p = grid.cumsum((rho*dz).sortby("s_rho",ascending=False), "s",                             to="outer", boundary="fill").sortby("s_w",ascending=False)
+    else:
+        """ it is assumed that all fields are from bottom to surface"""
+        rna = {"s_w":"s_rho"}
+        dpup = (zr - zw.isel(s_w=slice(0,-1)).drop("s_w").rename(rna))*rho
+        dpdn = (zw.isel(s_w=slice(1,None)).drop("s_w").rename(rna) - zr)*rho
+        p = (dpup.shift(s_rho=-1, fill_value=0) + dpdn).sortby(rho.s_rho, ascending=False)                .cumsum("s_rho").sortby(rho.s_rho, ascending=True).assign_coords(z_r=zr)
+    return _g *p.rename("p")
+
+def get_p_old(rho, zeta, rho0, rho_a=None):
+    """ OLD VERSION, not working (for me, NL) -- if get_p is OK, remove that one """
     if rho_a is None:
         _rho_a = 0.
     else:
@@ -126,6 +194,7 @@ def get_p(rho, zeta, rho0, rho_a=None):
     p = _rho.cumsum('z_r').sortby(_rho.z_r, ascending=True) + p0
     p = p.rename('p')
     return p
+
 
 def get_uv_from_psi(psi, ds):
     # note that u, v are computed at rho points
