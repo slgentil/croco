@@ -7,6 +7,7 @@ import xarray as xr
 _g = 9.81
 _sig = .1
 _nmodes = 10
+### N.B.: norm is H
 
 def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     """ wrapper for calling compute_vmodes with apply_ufunc. Includes unstacking of result
@@ -42,7 +43,8 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
               .rename('dphidz').rename({'s_stack': 's_w'})
               .assign_coords(z_w=zf))
     #return c, phi, dphidz
-    return xr.merge([c, phi, dphidz]).transpose(*('mode','s_rho','s_w')+lesdims)
+    dm = xr.merge([c, phi, dphidz]).transpose(*('mode','s_rho','s_w')+lesdims)
+    return dm.assign_coords(N2=N2, norm = -zf.isel(s_w=0, drop=True))  ### hard-coded norm = H
 
 def compute_vmodes(zc_nd, zf_nd, N2f_nd, nmodes=_nmodes, free_surf=True, g=_g, 
                    sigma=_sig, stacked=True, **kwargs):
