@@ -120,52 +120,6 @@ def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r', vtrans=None):
         z = z.transpose(*(zdim,)+_zeta.dims)
     return z.rename('z_'+vgrid)
 
-
-def get_z_old(run, zeta=None, h=None, vgrid='r', hgrid='r'):
-    ''' compute vertical coordinates
-        zeta should have the size of the final output
-        vertical coordinate should be first
-        OLD VERSION~: if get_z is OK, remove this one
-    '''
-
-    try:
-        ds = run.ds['grid']
-    except Exception:
-        ds = run.ds['his']
-    N = run.N
-    hc = run.params_input['Hc']
-
-    if h is not None:
-        _h = h
-    else:
-        _h = ds.h
-
-    if zeta is not None:
-        _zeta = zeta.values
-    else:
-        _zeta = np.zeros(h.shape)
-
-    #
-    if hgrid is 'u':
-        _zeta = rho2u(_zeta, ds)
-        _h = rho2u(_h, ds)
-    elif hgrid is 'v':
-        _zeta = rho2v(_zeta, ds)
-        _h = rho2v(_h, ds)
-    #
-    sc=ds['sc_'+vgrid]
-    cs=ds['Cs_'+vgrid]
-
-    #
-    z0 = (hc * sc + _h * cs) / (hc + _h)
-    z = np.squeeze(np.repeat(_zeta[:, :, np.newaxis], sc.shape[0], axis=2) + (_zeta + _h) * z0)
-    # manually swap dims, could also perform align with T,S
-    if z.ndim ==4:
-        z = z.transpose(z.dims[0], z.dims[3], z.dims[1], z.dims[2])
-    elif z.ndim == 3:
-        z = z.transpose(z.dims[2], z.dims[0], z.dims[1])
-    return z.rename('z_'+vgrid)
-
 def get_p(grid,rho,zw,zr=None,g=_g):
     """ compute (not reduced) pressure by integration from the surface, 
     taking rho at rho points and giving results on w points (z grid)
@@ -180,20 +134,6 @@ def get_p(grid,rho,zw,zr=None,g=_g):
         dpdn = (zw.isel(s_w=slice(1,None)).drop("s_w").rename(rna) - zr)*rho
         p = (dpup.shift(s_rho=-1, fill_value=0) + dpdn).sortby(rho.s_rho, ascending=False)                .cumsum("s_rho").sortby(rho.s_rho, ascending=True).assign_coords(z_r=zr)
     return _g *p.rename("p")
-
-def get_p_old(rho, zeta, rho0, rho_a=None):
-    """ OLD VERSION, not working (for me, NL) -- if get_p is OK, remove that one """
-    if rho_a is None:
-        _rho_a = 0.
-    else:
-        _rho_a = rho_a
-    #
-    _rho = g*(rho.shift(z_r=1)+rho)*.5*(rho.z_r.shift(z_r=1)-rho.z_r)
-    _rho = _rho.sortby(_rho.z_r, ascending=False).shift(z_r=1).fillna(0.)
-    p0 = g*(rho0+_rho_a.sel(z_r=0,method='nearest')+rho.sel(z_r=0,method='nearest'))*zeta
-    p = _rho.cumsum('z_r').sortby(_rho.z_r, ascending=True) + p0
-    p = p.rename('p')
-    return p
 
 
 def get_uv_from_psi(psi, ds):
