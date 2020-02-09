@@ -2,8 +2,10 @@
 !  for each level k
 !     Ffst(i,j,k,t) = FTfst * Wfst(i,j) * outfst(i,j)
 !  
-!  
+! Doc about fftw:
+!  http://www.fftw.org/fftw3_doc/Multi_002ddimensional-Transforms.html#Multi_002ddimensional-Transforms  
 !
+! ... further details about array sizes in spectral complex space ...
 !
 
 #include "cppdefs.h"
@@ -33,7 +35,7 @@
       real(kind=8), parameter :: xfstmid  = 512.e+3, xfstwid = 200.e+3
       real(kind=8), parameter :: yfstmid  = 1440.e+3, yfstwid = 500.e+3
 !     amplitude of the forcing
-      real(kind=8), parameter :: FTfst = 1.e3
+      real(kind=8), parameter :: FTfst = 1.e1
 !     gaussian form of the forcing
       real(kind=8),dimension(:,:), allocatable :: Wfst
 !     total forcing
@@ -46,7 +48,7 @@
       real(kind=8),dimension(:,:,:), allocatable :: zexchang
 
 ! For the complex part of the forcing
-      integer   :: Lspec, M2
+      integer   :: L2, M2
 !     Radius and width for the horizontal part of the spectral initialization      
       real(kind=8)            :: kFfst, dkFfst
 !     wave length   
@@ -70,12 +72,12 @@
 # include "scalars.h"
       
       integer :: i,j
-      real :: dx,dy
+      real :: dkx,dky
 
-      dx = xl/(LLm)
-      dy = el/(MMm)
-      kxfst = (/ (i*dx, i= 0,Lspec-1) /)               
-      kyfst = (/ (j*dy, j=1,M2/2),(j*dy, j=-M2/2,0) /)  
+      dkx = 1./xl
+      dky = 1./el
+      kxfst = (/ (i*dkx, i=0,L2) /)
+      kyfst = (/ (j*dky, j=0,M2) , (j*dky, j=-M2+1,-1) /)
       
       end subroutine get_kxky
 
@@ -99,9 +101,9 @@
       integer i,j,k
       real(kind=8) :: kx, ky
 !
-      kFfst=xl/16.
-!      dkFfst = xl/16.
-      dkFfst = xl/32.
+      kFfst = 16./xl
+      dkFfst = kFfst/2.
+!      dkFfst = xl/32.
 
       if ( mod(N,NNODES) == 0 ) then
          nint=N/NNODES
@@ -111,18 +113,18 @@
 
 ! allocation dynamique des tableaux
 
-      Lspec = LLm/2+1
-      M2=(MMm/2)*2+1
+      L2 = LLm/2
+      M2 = MMm/2
       allocate(Wfst(GLOBAL_2D_ARRAY))
       allocate(Ffst(GLOBAL_2D_ARRAY,N,2))
       allocate(reqid(0:NNODES-1))
       allocate(zpar(Lm,Mm))
       allocate(zexchang(Lm,Mm,0:NNODES-1))
-      allocate(kxfst(Lspec))
-      allocate(kyfst(M2))
-      allocate(infst(Lspec,MMm))
+      allocate(kxfst(L2+1))
+      allocate(kyfst(MMm))
+      allocate(infst(L2+1,MMm))
       allocate(outfst(LLm,MMm))
-      allocate(psifst(Lspec,MMm))
+      allocate(psifst(L2+1,MMm))
 
 ! Make wave number mask
       call get_kxky  
@@ -147,7 +149,7 @@
       ! compute psi
       do j=1,MMm
         ky = kyfst(j)
-        do i=1,Lspec
+        do i=1,L2+1
             kx = kxfst(i)
             psifst(i,j) = cmplx(exp(-(kx**2 + ky**2 - kFfst**2)
      &                              /(dkFfst**2)),0.)
@@ -367,7 +369,8 @@
       integer :: nbseed
       integer, allocatable :: seed(:)
       integer :: i, j, k
-      real(kind=8),dimension(Lspec,MMm) :: rNoisefst, iNoisefst
+!      real(kind=8),dimension(Lspec,MMm) :: rNoisefst, iNoisefst
+      real(kind=8),dimension(LLm,MMm) :: rNoisefst, iNoisefst
 
       infst = cmplx(0.,0.)
 
