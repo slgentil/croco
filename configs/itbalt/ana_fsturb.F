@@ -18,7 +18,9 @@
 !     indices of the old and new fsturb time step
       integer :: nfstold, nfstnew
 !     time step of the computation of the forcing (second)
-      real(kind=8), parameter :: dtfst = 1.*86400.
+      real(kind=8), parameter :: dtfst = 10.*86400.
+!     time after which forcing is killed
+      real(kind=8), parameter :: fst_tdecay = 900.*86400.
 !     time of computation corresponding to the nfstnew indice
       real(kind=8)            :: timefst
 
@@ -29,7 +31,7 @@
 
 ! For the real form of the forcing
       real(kind=8), parameter :: xfstmid  = 512.e+3, xfstwid = 200.e+3
-      real(kind=8), parameter :: yfstmid  = 1440.e+3, yfstwid = 1000.e+3
+      real(kind=8), parameter :: yfstmid  = 1440.e+3, yfstwid = 500.e+3
 !     amplitude of the forcing
       real(kind=8), parameter :: FTfst = 1.e3
 !     gaussian form of the forcing
@@ -98,7 +100,8 @@
       real(kind=8) :: kx, ky
 !
       kFfst=xl/16.
-      dkFfst = xl/16.
+!      dkFfst = xl/16.
+      dkFfst = xl/32.
 
       if ( mod(N,NNODES) == 0 ) then
          nint=N/NNODES
@@ -162,14 +165,17 @@
 
 !  Output parameters
 
-      call params_output('dtfst',dtfst)
-      call params_output('Nmodefst',Nmodefst)
-      call params_output('afst',afst)
-      call params_output('xfstmid',xfstmid)
-      call params_output('xfstwid',xfstwid)
-      call params_output('yfstmid',yfstmid)
-      call params_output('yfstwid',yfstwid)
-      call params_output('FTfst',FTfst)
+      call params_output('fst_dt',dtfst)
+      call params_output('fst_tdecay',fst_tdecay)
+      call params_output('fst_Nmode',Nmodefst)
+      call params_output('fst_a',afst)
+      call params_output('fst_xmid',xfstmid)
+      call params_output('fst_xwid',xfstwid)
+      call params_output('fst_ymid',yfstmid)
+      call params_output('fst_ywid',yfstwid)
+      call params_output('fst_FT',FTfst)
+      call params_output('fst_k',kFfst)
+      call params_output('fst_dk',dkFfst)
 
       end subroutine init_fsturb
 
@@ -184,18 +190,25 @@
 
       include 'mpif.h'
 
- 
       !local
       integer :: ik,k,kint
       real(kind=8) :: curtime
+      real(kind=8) :: decay
 
       if (mynode==0) print*,"compute turbulence forcing at time=",curtime
       do kint=1,nint  
         call spec_to_phys(kint,curtime)
       enddo
 
+      if ( curtime <= fst_tdecay ) then
+        decay = 1.
+      else
+        decay = 0.
+      endif
+
       do k=1,N 
          Ffst(:,:,k,nfstnew) = Ffst(:,:,k,nfstnew) * FTfst * Wfst(:,:)
+     &                          * decay
       enddo
 
       end subroutine comp_fsturb
@@ -310,7 +323,7 @@
       !local
       integer::i,j,i0,j0,npts,mpierr,i_offset,j_offset
       
-      if(mynode.eq.iproc)then
+      if (mynode.eq.iproc) then
          ! copy directly in the array 
          do j=1,Mm
             do i=1,Lm

@@ -398,3 +398,4 @@ class Run(object):
                 'eta':{'center':'y_rho', 'inner':'y_v'}, 
                 's':{'center':'s_rho', 'outer':'s_w'}}
         ds.attrs['xgcm-Grid'] = Grid(ds, coords=coords)
+        self.xgrid = ds.attrs['xgcm-Grid']
