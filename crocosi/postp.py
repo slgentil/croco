@@ -318,7 +318,7 @@ class Run(object):
                                                 long_name=new_c)
                         )
         # fills in grid parameters, f, f0, beta
-        f0, beta = None, None
+        _f0, _beta = None, None
         if 'f0' in self._grid_params:
             _f0 = self._grid_params['f0']
         elif 'f0' in self.params_output:
@@ -334,6 +334,9 @@ class Run(object):
             for c in y_coords:
                 ds = ds.assign_coords(**{'f_'+c.split('_')[1]: \
                                             _beta*ds[c]+_f0})
+                ds = ds.assign_coords(f=ds.f_rho)
+        elif "grid" in self.ds:
+            ds = ds.assign_coords(f=self.ds['grid'].f)
         return ds
 
     def _readgrid(self, check=False):
