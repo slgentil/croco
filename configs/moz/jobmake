@@ -1,0 +1,41 @@
+#!/bin/bash
+####################################################
+#               COMPILATION JOB                    #
+####################################################
+
+# This script assumes jobcomp already used and directory
+# Compile created for the OS and the configuration
+# If you nedd to compile from scratch, use jobcomp
+
+#
+# set source, compilation and run directories
+#
+
+SCRDIR=./Compile
+RUNDIR=`pwd`
+
+
+# END OF USER'S MODIFICATIONS
+####################################################
+#
+# Use GNU Make command
+#
+MAKE=make
+#
+# cp local files in Compile
+#
+#/bin/cp -p -f *.F90 $SCRDIR
+#/bin/cp -p -f *.h90 $SCRDIR
+/bin/cp -p -f *.F $SCRDIR
+/bin/cp -p -f *.h $SCRDIR
+/bin/cp -p -f Make* $SCRDIR
+#
+# Change directory
+#
+cd $SCRDIR
+#
+# compile croco
+#
+$MAKE 
+mv croco $RUNDIR
+#
