@@ -19,10 +19,10 @@
               class(*), intent(in) :: vardata
               select type(vardata)
               type is (real)
-                  MPI_master_only  write(*,'(A,A,A,1X,E10.3)') OSI, 
+                  MPI_master_only  write(*,'(A,A,A,2X,E17.10)') OSI, 
      &                             trim(varname), '=' , vardata 
               type is (integer)
-                  MPI_master_only  write(*,'(A,A,A,1X,I2)') OSI, 
+                  MPI_master_only  write(*,'(A,A,A,2X,I2)') OSI, 
      &                             trim(varname), '='  , vardata
               end select
           end subroutine params_output_scalar
@@ -41,13 +41,13 @@
               length = size(vardata)
               select type(vardata)
               type is (real)
-                  write(my_format, '(A, i0, A)') '(A,A,A,1X,', length,
-     &                                           'E10.3,1X,A)'
+                  write(my_format, '(A, i0, A)') '(A,A,A,2X,', length,
+     &                                           'E17.10,2X,A)'
                   MPI_master_only write(*,my_format) OSI,trim(varname),
      &                                           '=(' ,vardata,')'
               type is (integer)
-                  write(my_format, '(A, i0, A)') '(A,A,A,1X,', length, 
-     &                                            'I10,1X,A)'
+                  write(my_format, '(A, i0, A)') '(A,A,A,2X,', length, 
+     &                                            'I10,2X,A)'
                   MPI_master_only write(*,my_format) OSI,trim(varname),
      &                                           '=(' ,vardata,')'
               end select

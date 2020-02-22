@@ -122,9 +122,12 @@
 # undef Y_STRETCH_GRID
 # undef Y_STRETCH_RELAX
 
-!                   Horizontal advection for tracer (default UP3)
+!                   Advection for tracer (default: HADV UP3, VADV AKIMA )
 # define  TS_HADV_UP5
-
+# define  TS_VADV_SPLINES
+!                   Avection for momentum (default: HADV UP3, VADV SPLINES)
+# define  UV_HADV_UP5
+# define  UV_VADV_SPLINES
 !                   Surface and bottom fluxes
 # define ANA_STFLUX
 # define ANA_BTFLUX
@@ -156,7 +159,11 @@
 #  define SPONGE
 # endif
 !                   Vertical mixing
-# define ANA_VMIX
+# undef ANA_VMIX
+! GLS broken at the moment
+# undef  GLS_MIXING
+# undef  GLS_KOMEGA
+!
 # define LMD_MIXING
 # ifdef  LMD_MIXING
 #  undef  ANA_VMIX

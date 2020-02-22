@@ -29,13 +29,13 @@
 ! Number of modes to keep, amplitude of each mode
       integer, parameter      :: Nmodefst=5
       real(kind=8), dimension(Nmodefst), parameter :: 
-     &                               afst = (/0.1,0.1,0.1,0.1,0.1/)
+     &                               afst = (/0.0,0.1,0.0,0.0,0.0/)
 
 ! For the real form of the forcing
       real(kind=8), parameter :: xfstmid  = 512.e+3, xfstwid = 200.e+3
       real(kind=8), parameter :: yfstmid  = 1440.e+3, yfstwid = 500.e+3
 !     amplitude of the forcing
-      real(kind=8), parameter :: FTfst = 1.e1
+      real(kind=8), parameter :: FTfst = 1.e-1
 !     gaussian form of the forcing
       real(kind=8),dimension(:,:), allocatable :: Wfst
 !     total forcing
