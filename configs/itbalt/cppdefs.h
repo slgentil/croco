@@ -41,11 +41,9 @@
 #undef  MILES            /* NBQ MILES Applications */ 
 #undef REGIONAL        /* REGIONAL Applications */
 
-! aponte (
-#define  ITBALT             /* Baroclinic Jet Example, new setup */
-! aponte )
+! aponte itbalt (
+#define  ITBALT             /* internal tide balanced turbulence */
 
-! aponte jet (
 #if defined ITBALT
 /*
 !   Baroclinic JET Example, new configuration: sept. 2013
@@ -54,39 +52,30 @@
 */
 ! to tag OSI parameter in output.mpi file
 # define OSI 'OSI: '
-! perturbation of the initial jet
-# undef JET_PERTURB
 ! resolution (dx in km)
 # define RESOLUTION 4
-! stratification profiles
-# define JET_CONFIG 1
 ! narrow channel for internal tide test case
-# undef JET_NARROW
-! type of wavemaker
-# define WMAKER_TEST 5
+# undef NARROW
+
 ! turn beta on off
 # undef BETAON
-! turn jet_decay on off
-# undef JET_DECAY
-# undef JET_EDDY
+
+! type of wavemaker
+# define WMAKER_TEST 5
 # undef ITIDEP
+
 # define FSTURB
 # ifdef FSTURB
 #   define VMODES
 # endif
 
-# define XIOS
-# undef FERMI_MEM
-
 # undef  FLOATS
 # undef  SIGMA_FLOATS
-# undef DEPTH_FLOATS
+# undef  DEPTH_FLOATS
 # undef  FLOAT_DEBUG
 
 ! old but necessary options
-# define  ANA_JET
 # undef ITIDE         /* turns itide on/off*/
-# undef FLAT_OCEAN    /* flattens the stratification on/off*/
 
 /* reads initial profiles from a file, define ANA_INITIAL */
 # define ANA_INITIAL
@@ -111,17 +100,6 @@
 # define UV_COR
 # define UV_ADV
 
-!                   Grid and periodicity, bdy conditions
-# define EW_PERIODIC
-# ifdef ANA_JET
-#  define ANA_GRID
-#  ifdef ANA_GRID
-#    undef ANA_DEPTH_FILE
-#  endif
-# endif
-# undef Y_STRETCH_GRID
-# undef Y_STRETCH_RELAX
-
 !                   Advection for tracer (default: HADV UP3, VADV AKIMA )
 # define  TS_HADV_UP5
 # define  TS_VADV_SPLINES
@@ -145,18 +123,16 @@
 #  define M3CLIMATOLOGY
 #  define TCLIMATOLOGY
 #  define ZCLIMATOLOGY
-#  ifdef ANA_JET
-#   define ANA_M2CLIMA
-#   define ANA_M3CLIMA
-#   define ANA_TCLIMA
-#   define ANA_SSH
-#  endif
+#  define ANA_M2CLIMA
+#  define ANA_M3CLIMA
+#  define ANA_TCLIMA
+#  define ANA_SSH
 #  define M3NUDGING
 #  define M2NUDGING
 #  define TNUDGING
 #  define ZNUDGING
 #  undef ROBUST_DIAG  /* defined in JET */
-#  define SPONGE
+#  undef SPONGE
 # endif
 !                   Vertical mixing
 # undef ANA_VMIX
@@ -187,6 +163,7 @@
 #  define UV_VIS4
 #  define TS_DIF4
 # endif
+!
 # define UV_MIX_S
 # define TS_MIX_S
 # undef SMAGORINSKY
@@ -194,22 +171,21 @@
 #   undef  SMAGORINSKY
 # endif
 
-
-!
-! Itide - Open boundary conditions
+! Itide
 # ifdef ITIDE
 #   define IWMAKER
 #   define VMODES
 # endif
 
+!           Grid and periodicity, bdy conditions
 # define NS_PERIODIC
-# undef OBC_SOUTH
-# undef OBC_NORTH
-# define ANA_BRY
-#define ANA_BRY_WKB
+# define EW_PERIODIC
+# define ANA_GRID
+# undef ANA_DEPTH_FILE
+# undef Y_STRETCH_GRID
+# undef Y_STRETCH_RELAX
 
-
-# define FRC_BRY
+# undef FRC_BRY
 # ifdef FRC_BRY
 #  define Z_FRC_BRY
 #  define M2_FRC_BRY
@@ -218,14 +194,14 @@
 # endif
 
 !                    Diagnostics
+# define XIOS
 # define TIDAL_DIAGS
 # undef DIAGNOSTICS_TS
 # undef DIAGNOSTICS_UV
 # undef DIAGS_UV_SPEC /* not implemented */
 # undef DIAGS_TS_SPEC /* not implemented */
 
-
-! aponte jet )
+! aponte itbalt )
 
 
 

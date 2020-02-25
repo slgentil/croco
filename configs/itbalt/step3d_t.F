@@ -77,9 +77,6 @@
 # endif
       parameter (epsil=1.E-16)
 
-#ifdef JET_DECAY
-      real jet_decay_time, jet_decay_coeff
-#endif
 !
 #ifdef MASKING
 # define SWITCH *
@@ -603,13 +600,6 @@
         endif
 #  endif /* ZONAL_NUDGING */
 
-! aponte jet (
-# ifdef JET_DECAY
-      jet_decay_time=max(time-jet_decay_start,0.)
-      jet_decay_coeff = exp(-(jet_decay_time)**2/(jet_decay_length**2))
-# endif
-! aponte jet )
-
         do k=1,N
           do j=Jstr,Jend
             do i=Istr,Iend
@@ -617,11 +607,6 @@
      &                    +dt*Tnudgcof(i,j,k,itrc)*
 #  ifdef ZONAL_NUDGING
      &                         (tclmzon(j,k,itrc)-tzon(j,k,itrc))
-! aponte jet (
-# ifdef JET_DECAY
-     &                    *jet_decay_coeff
-# endif
-! aponte jet )      
 #  else
      &                         (tclm(i,j,k,itrc)-t(i,j,k,nnew,itrc))
 #  endif /* ZONAL_NUDGING */
@@ -644,11 +629,6 @@
      &                    *(tclm(i,j,k,itrc)
 #   ifdef ZONAL_NUDGING
      &                                           -tzon(j,k,itrc))
-! aponte jet (
-# ifdef JET_DECAY
-     &              *jet_decay_coeff
-# endif
-! aponte jet )      
 #   else
      &                                           -t(i,j,k,nnew,itrc))
 #   endif /* ZONAL_NUDGING */

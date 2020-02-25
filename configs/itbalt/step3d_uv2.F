@@ -107,9 +107,6 @@
 #  endif
 ! aponte iwmaker )
 !
-#ifdef JET_DECAY
-      real jet_decay_time, jet_decay_coeff
-#endif
 # include "compute_auxiliary_bounds.h"
 !
 # ifdef MASKING
@@ -1147,25 +1144,12 @@
       endif
 #  endif /* ZONAL_NUDGING */
 
-! aponte jet (
-# ifdef JET_DECAY
-      jet_decay_time=max(time-jet_decay_start,0.)
-      jet_decay_coeff = exp(-(jet_decay_time)**2/(jet_decay_length**2))
-!     write(100,*) 'time=',time*sec2day,' coeff=',jet_decay_coeff    
-# endif
-! aponte jet )
-
       do k=1,N
         do j=JU_RANGE
           do i=IU_RANGE
             u(i,j,k,nnew)=u(i,j,k,nnew)+dt*M3nudgcof(i,j)*
 #  ifdef ZONAL_NUDGING
      &                           (uclmzon(j,k)-uzon(j,k))   
-! aponte jet (
-# ifdef JET_DECAY
-     &              *jet_decay_coeff
-# endif
-! aponte jet )           
 #  else
      &                           (uclm(i,j,k)-u(i,j,k,nnew))
 #  endif /* ZONAL_NUDGING */
@@ -1198,11 +1182,6 @@
             v(i,j,k,nnew)=v(i,j,k,nnew)+dt*M3nudgcof(i,j)*
 #  ifdef ZONAL_NUDGING
      &                            (vclmzon(j,k)-vzon(j,k))   
-! aponte jet (
-# ifdef JET_DECAY
-     &                         *jet_decay_coeff
-# endif
-! aponte jet )       
 #  else
      &                            (vclm(i,j,k)-v(i,j,k,nnew))
 #  endif

@@ -159,11 +159,6 @@ C$    trd=omp_get_thread_num()
 #ifdef WET_DRY
       real cff1_WD,cff2_WD
 #endif
-#ifdef ITBALT
-# ifdef JET_DECAY
-      real jet_decay_time, jet_decay_coeff
-# endif
-#endif
 !
 #ifdef MASKING
 # define SWITCH *
@@ -445,24 +440,15 @@ C$OMP END MASTER
         endif
       endif
 # endif  /* ZONAL_NUDGING */
-! aponte jet (
-# ifdef JET_DECAY
-      jet_decay_time=max(time-jet_decay_start,0.)
-      jet_decay_coeff = exp(-(jet_decay_time)**2/(jet_decay_length**2))
-# endif /* JET_DECAY */
-! aponte jet )
       do j=JstrV-1,Jend
         do i=IstrU-1,Iend
           zeta_new(i,j)=zeta_new(i,j) + dtfast*Znudgcof(i,j)
 ! aponte jet (
-# ifdef JET_DECAY
-     &              *jet_decay_coeff
-# endif
 # ifdef ZONAL_NUDGING
 ! aponte jet )
      &              *(sshzon(j)-zetazon(j))
 # else
-     &                                 *(ssh(i,j)-zeta_new(i,j))
+     &              *(ssh(i,j)-zeta_new(i,j))
 # endif /* ZONAL_NUDGING */
 ! aponte itide (
 #  ifdef ITIDE
@@ -1469,11 +1455,6 @@ C$OMP END MASTER
         do i=IstrU,Iend
 # ifdef ZONAL_NUDGING        
           DUnew = dtfast*M2nudgcof(i,j)*(ubclmzon(j)-ubzon(j))
-! aponte jet (
-# ifdef JET_DECAY
-     &              *jet_decay_coeff
-# endif
-! aponte jet )          
 # else          
           DUnew = dtfast*M2nudgcof(i,j)*(ubclm(i,j)-ubar(i,j,knew))
 # endif
@@ -1508,15 +1489,9 @@ C$OMP END MASTER
         do i=Istr,Iend
 # if defined ZONAL_NUDGING  
           DVnew = dtfast*M2nudgcof(i,j)*(vbclmzon(j)-vbzon(j)) 
-! aponte jet (
-# ifdef JET_DECAY
-     &              *jet_decay_coeff
-# endif
-! aponte jet )          
 # else
           DVnew = dtfast*M2nudgcof(i,j)*(vbclm(i,j)-vbar(i,j,knew))    
 # endif 
-     
 ! aponte itide (
 #  ifdef ITIDE
 # if !defined ZONAL_NUDGING    

@@ -177,9 +177,9 @@
       parameter (LLm0=94,   MMm0=81,   N=40)
 #  endif
 !---------------------------------------------------------------------------------------
-! aponte jetn (
+! aponte itbalt (
 #elif defined ITBALT
-# ifdef JET_NARROW
+# ifdef NARROW
 ! Smaller domain: 64 km x 2048 km for regular grid
 !                 64 km x 5000 km for stretched grid
 #  if RESOLUTION == 4
@@ -208,7 +208,7 @@
        parameter (LLm0=16,  MMm0=2048,  N=200)   !  1 km
 #endif                    
 #  endif
-# else /* ITBALT_NARROW */
+# else /* ITBALT NARROW */
 ! Smaller domain: 512 km x 2048 km
 !      parameter (LLm0=32,  MMm0=128,  N=20)      ! 16 km
 !      parameter (LLm0=62,  MMm0=256,  N=40)      !  8 km
@@ -256,7 +256,7 @@
       integer obc_nvmodes
       parameter (obc_nvmodes=2)
 ! aponte vmodes )
-! aponte jetn )
+! aponte itbalt )
 !---------------------------------------------------------------------------------------
 #else
       parameter (LLm0=xx, MMm0=xx, N=xx)

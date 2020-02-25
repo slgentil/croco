@@ -1,6 +1,6 @@
 ! 
 !  for each level k
-!     Ffst(i,j,k,t) = FTfst * Wfst(i,j) * outfst(i,j)
+!     fst_F(i,j,k,t) = fst_FT * fst_W(i,j) * fst_out(i,j)
 !  
 ! Doc about fftw:
 !  http://www.fftw.org/fftw3_doc/Multi_002ddimensional-Transforms.html#Multi_002ddimensional-Transforms  
@@ -20,26 +20,26 @@
 !     indices of the old and new fsturb time step
       integer :: nfstold, nfstnew
 !     time step of the computation of the forcing (second)
-      real(kind=8), parameter :: dtfst = 10.*86400.
+      real(kind=8), parameter :: fst_dt = 10.*86400.
 !     time after which forcing is killed
       real(kind=8), parameter :: fst_tdecay = 900.*86400.
 !     time of computation corresponding to the nfstnew indice
-      real(kind=8)            :: timefst
+      real(kind=8)            :: fst_time
 
 ! Number of modes to keep, amplitude of each mode
-      integer, parameter      :: Nmodefst=5
-      real(kind=8), dimension(Nmodefst), parameter :: 
-     &                               afst = (/0.0,0.1,0.0,0.0,0.0/)
+      integer, parameter      :: fst_Nmode=5
+      real(kind=8), dimension(fst_Nmode), parameter :: 
+     &                               fst_a = (/0.0,0.1,0.0,0.0,0.0/)
 
 ! For the real form of the forcing
-      real(kind=8), parameter :: xfstmid  = 512.e+3, xfstwid = 200.e+3
-      real(kind=8), parameter :: yfstmid  = 1440.e+3, yfstwid = 500.e+3
+      real(kind=8), parameter :: fst_xmid  = 512.e+3, fst_xwid = 200.e+3
+      real(kind=8), parameter :: fst_ymid  = 1440.e+3, fst_ywid = 500.e+3
 !     amplitude of the forcing
-      real(kind=8), parameter :: FTfst = 1.e-1
+      real(kind=8), parameter :: fst_FT = 1.e-1
 !     gaussian form of the forcing
-      real(kind=8),dimension(:,:), allocatable :: Wfst
+      real(kind=8),dimension(:,:), allocatable :: fst_W
 !     total forcing
-      real(kind=8),dimension(:,:,:,:), allocatable :: Ffst
+      real(kind=8),dimension(:,:,:,:), allocatable :: fst_F
 
 ! For the exchanges
       integer   :: nint, ktot
@@ -50,17 +50,17 @@
 ! For the complex part of the forcing
       integer   :: L2, M2
 !     Radius and width for the horizontal part of the spectral initialization      
-      real(kind=8)            :: kFfst, dkFfst
+      real(kind=8)            :: fst_kF, fst_dkF
 !     wave length   
-      real(kind=8),dimension(:), allocatable     ::kxfst
-      real(kind=8),dimension(:), allocatable     :: kyfst
+      real(kind=8),dimension(:), allocatable     ::fst_kx
+      real(kind=8),dimension(:), allocatable     :: fst_ky
 !     horizontal part of the spectral initialization   
-      complex(kind=8),dimension(:,:), allocatable   :: psifst
+      complex(kind=8),dimension(:,:), allocatable   :: fst_psi
 
 ! For the FFT
       integer*8 :: plan
-      complex(kind=8),dimension(:,:), allocatable   :: infst 
-      real(kind=8),dimension(:,:), allocatable   :: outfst
+      complex(kind=8),dimension(:,:), allocatable   :: fst_in 
+      real(kind=8),dimension(:,:), allocatable   :: fst_out
 
       contains
 
@@ -76,8 +76,8 @@
 
       dkx = 1./xl
       dky = 1./el
-      kxfst = (/ (i*dkx, i=0,L2) /)
-      kyfst = (/ (j*dky, j=0,M2) , (j*dky, j=-M2+1,-1) /)
+      fst_kx = (/ (i*dkx, i=0,L2) /)
+      fst_ky = (/ (j*dky, j=0,M2) , (j*dky, j=-M2+1,-1) /)
       
       end subroutine get_kxky
 
@@ -101,9 +101,9 @@
       integer i,j,k
       real(kind=8) :: kx, ky
 !
-      kFfst = 16./xl
-      dkFfst = kFfst/2.
-!      dkFfst = xl/32.
+      fst_kF = 16./xl
+      fst_dkF = fst_kF/2.
+!      fst_dkF = xl/32.
 
       if ( mod(N,NNODES) == 0 ) then
          nint=N/NNODES
@@ -115,69 +115,69 @@
 
       L2 = LLm/2
       M2 = MMm/2
-      allocate(Wfst(GLOBAL_2D_ARRAY))
-      allocate(Ffst(GLOBAL_2D_ARRAY,N,2))
+      allocate(fst_W(GLOBAL_2D_ARRAY))
+      allocate(fst_F(GLOBAL_2D_ARRAY,N,2))
       allocate(reqid(0:NNODES-1))
       allocate(zpar(Lm,Mm))
       allocate(zexchang(Lm,Mm,0:NNODES-1))
-      allocate(kxfst(L2+1))
-      allocate(kyfst(MMm))
-      allocate(infst(L2+1,MMm))
-      allocate(outfst(LLm,MMm))
-      allocate(psifst(L2+1,MMm))
+      allocate(fst_kx(L2+1))
+      allocate(fst_ky(MMm))
+      allocate(fst_in(L2+1,MMm))
+      allocate(fst_out(LLm,MMm))
+      allocate(fst_psi(L2+1,MMm))
 
 ! Make wave number mask
       call get_kxky  
 !
 ! Initialization FFT complex to real, out of place:
 !
-      call dfftw_plan_dft_c2r_2d(plan,LLm,MMm,infst,outfst,
+      call dfftw_plan_dft_c2r_2d(plan,LLm,MMm,fst_in,fst_out,
      &                           FFTW_ESTIMATE)   
 
 
      ! Init the form of the forcing
-     ! xfstmid,xfstwid,yfstmid,yfstwid initialized as parameters
+     ! fst_xmid,fst_xwid,yfstmid,fst_ywid initialized as parameters
       do j=1,Mm
         do i=1,Lm
-          Wfst(i,j) = exp(-((yr(i,j)-yfstmid) / (0.25*yfstwid))**2)
-!    &              * exp(-((xr(i,j)-xfstmid) / (0.25*xfstwid))**2)
+          fst_W(i,j) = exp(-((yr(i,j)-fst_ymid) / (0.25*fst_ywid))**2)
+!    &              * exp(-((xr(i,j)-fst_xmid) / (0.25*fst_xwid))**2)
         enddo
       enddo
-      if (mynode==0) call var2cdf(real(Wfst),size(shape(real(Wfst))), 
-     &                 shape(real(Wfst)),'Wfst.nc')
+      if (mynode==0) call var2cdf(real(fst_W),size(shape(real(fst_W))), 
+     &                 shape(real(fst_W)),'fst_W.nc')
   
       ! compute psi
       do j=1,MMm
-        ky = kyfst(j)
+        ky = fst_ky(j)
         do i=1,L2+1
-            kx = kxfst(i)
-            psifst(i,j) = cmplx(exp(-(kx**2 + ky**2 - kFfst**2)
-     &                              /(dkFfst**2)),0.)
+            kx = fst_kx(i)
+            fst_psi(i,j) = cmplx(exp(-(kx**2 + ky**2 - fst_kF**2)
+     &                              /(fst_dkF**2)),0.)
         enddo
       enddo
-      if (mynode==0) call var2cdf(real(psifst),size(shape(real(psifst))), 
-     &                 shape(real(psifst)),'psifst.nc')
+      if (mynode==0) call var2cdf(real(fst_psi),size(shape(real(fst_psi))), 
+     &                 shape(real(fst_psi)),'fst_psi.nc')
 
-      timefst = time
+      fst_time = time
       nfstold = 1
       nfstnew = 1
       call comp_fsturb(time)
       nfstnew = 2
-      call comp_fsturb(time+dtfst)
+      call comp_fsturb(time+fst_dt)
 
 !  Output parameters
 
-      call params_output('fst_dt',dtfst)
+      call params_output('fst_dt',fst_dt)
       call params_output('fst_tdecay',fst_tdecay)
-      call params_output('fst_Nmode',Nmodefst)
-      call params_output('fst_a',afst)
-      call params_output('fst_xmid',xfstmid)
-      call params_output('fst_xwid',xfstwid)
-      call params_output('fst_ymid',yfstmid)
-      call params_output('fst_ywid',yfstwid)
-      call params_output('fst_FT',FTfst)
-      call params_output('fst_k',kFfst)
-      call params_output('fst_dk',dkFfst)
+      call params_output('fst_Nmode',fst_Nmode)
+      call params_output('fst_a',fst_a)
+      call params_output('fst_xmid',fst_xmid)
+      call params_output('fst_xwid',fst_xwid)
+      call params_output('fst_ymid',fst_ymid)
+      call params_output('fst_ywid',fst_ywid)
+      call params_output('fst_FT',fst_FT)
+      call params_output('fst_k',fst_kF)
+      call params_output('fst_dk',fst_dkF)
 
       end subroutine init_fsturb
 
@@ -209,7 +209,7 @@
       endif
 
       do k=1,N 
-         Ffst(:,:,k,nfstnew) = Ffst(:,:,k,nfstnew) * FTfst * Wfst(:,:)
+         fst_F(:,:,k,nfstnew) = fst_F(:,:,k,nfstnew) * fst_FT * fst_W(:,:)
      &                          * decay
       enddo
 
@@ -301,7 +301,7 @@
            call MPI_WAIT(reqid(iproc),istat,mpierr)
            do j=1,Mm
              do i=1,Lm
-               Ffst(i,j,k,nfstnew) = zexchang(i,j,iproc)  
+               fst_F(i,j,k,nfstnew) = zexchang(i,j,iproc)  
              enddo
            enddo 
          endif
@@ -333,7 +333,7 @@
                j_offset=(iproc/NP_XI)*Mm 
                i0 = i + i_offset
                j0 = j + j_offset
-               Ffst(i,j,k,nfstnew)=outfst(i0,j0)
+               fst_F(i,j,k,nfstnew)=fst_out(i0,j0)
             enddo
          enddo            
       else
@@ -345,7 +345,7 @@
                j_offset=(iproc/NP_XI)*Mm 
                i0 = i + i_offset
                j0 = j + j_offset
-               zpar(i,j)=outfst(i0,j0)
+               zpar(i,j)=fst_out(i0,j0)
             enddo
          enddo            
          call MPI_SEND(zpar,npts,MPI_DOUBLE_PRECISION,iproc,mynode,  
@@ -372,7 +372,7 @@
 !      real(kind=8),dimension(Lspec,MMm) :: rNoisefst, iNoisefst
       real(kind=8),dimension(LLm,MMm) :: rNoisefst, iNoisefst
 
-      infst = cmplx(0.,0.)
+      fst_in = cmplx(0.,0.)
 
 !  Get the random noise Noisefst
 
@@ -381,7 +381,7 @@
       allocate(seed(nbseed))
 
 
-      do k=1,Nmodefst
+      do k=1,fst_Nmode
 
          ! compute N
          ! assign information in values to seed
@@ -395,23 +395,23 @@
          call random_number(iNoisefst)
 
 
-         infst = infst + cmplx(rNoisefst,iNoisefst)* afst(k)*psifst
+         fst_in = fst_in + cmplx(rNoisefst,iNoisefst)* fst_a(k)*fst_psi
      &                   *phir(ktot,k)
 
       enddo
 
       if (ktot==N) then
-        call var2cdf(real(infst),size(shape(real(infst))),
-     &               shape(real(infst)),'infst.nc')
+        call var2cdf(real(fst_in),size(shape(real(fst_in))),
+     &               shape(real(fst_in)),'fst_in.nc')
       endif
 
 ! fourierize
       call dfftw_execute(plan)
-      outfst = outfst / LLm / MMm
+      fst_out = fst_out / LLm / MMm
 
       if (ktot==N) then
-        call var2cdf(outfst,size(shape(outfst)),shape(outfst),
-     &              'outfst.nc')
+        call var2cdf(fst_out,size(shape(fst_out)),shape(fst_out),
+     &              'fst_out.nc')
       endif
 
       end subroutine compute_spectral
