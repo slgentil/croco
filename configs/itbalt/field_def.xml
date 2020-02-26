@@ -91,8 +91,8 @@
          <field id="rot" long_name="rotational" unit="1/s" grid_ref="rho_3D" />
 
          <!-- FSTURB -->
-         <field id="Ffst" long_name="Forcing Turbulence" grid_ref="rho_3D" />
-         <field id="Wfst" long_name="Forme forçage" grid_ref="rho_2D" />
+         <field id="fst_F" long_name="Turbulence forcing field" grid_ref="rho_3D" />
+         <field id="fst_W" long_name="Spatial window" grid_ref="rho_2D" />
 
      </field_group>
         

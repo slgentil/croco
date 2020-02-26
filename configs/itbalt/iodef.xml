@@ -140,12 +140,9 @@
           </field_group>
       </file>
 
-      <file id="file_test" name="test" output_freq="10d" sync_freq="10d" enabled=".TRUE.">
+      <file id="file_fst" name="fsturb" output_freq="10d" sync_freq="10d" enabled=".TRUE.">
           <field_group id="fst_fields" operation="instant" >
-            <field field_ref="Ffst" name="Ffst" grid_ref="rho_3D" />
-            <field field_ref="zeta" name="ssh" grid_ref="rho_2D" />
-            <field field_ref="u" name="u" grid_ref="u_3D" />
-            <field field_ref="v" name="v" grid_ref="v_3D" />
+            <field field_ref="fst_F" name="fst_F" grid_ref="rho_3D" />
             <field field_ref="temp" name="T" grid_ref="rho_3D" />
           </field_group>
       </file>

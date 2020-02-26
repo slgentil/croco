@@ -276,10 +276,10 @@ C$OMP BARRIER
 # ifdef ANA_WWAVE
         call ana_wwave (tile)
 # endif
-! compute turbulence forcing every dtfst timestep
+! compute turbulence forcing every fst_dt timestep
 # ifdef FSTURB
-      if (time.gt.(timefst+dtfst)) then
-         timefst = time
+      if (time.gt.(fst_time+fst_dt)) then
+         fst_time = time
          nfstold = nfstnew
          nfstnew = 3 - nfstold
          call comp_fsturb(time)

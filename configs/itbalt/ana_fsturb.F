@@ -102,7 +102,7 @@
       real(kind=8) :: kx, ky
 !
       fst_kF = 16./xl
-      fst_dkF = fst_kF/2.
+      fst_dkF = fst_kF/4.
 !      fst_dkF = xl/32.
 
       if ( mod(N,NNODES) == 0 ) then
@@ -151,10 +151,14 @@
         ky = fst_ky(j)
         do i=1,L2+1
             kx = fst_kx(i)
-            fst_psi(i,j) = cmplx(exp(-(kx**2 + ky**2 - fst_kF**2)
+!            fst_psi(i,j) = cmplx(exp(-(kx**2 + ky**2 - fst_kF**2)
+!     &                              /(fst_dkF**2)),0.)
+            fst_psi(i,j) = cmplx(exp(-(sqrt(kx**2 + ky**2) - fst_kF)**2
      &                              /(fst_dkF**2)),0.)
         enddo
       enddo
+! normalize fst_psi
+      fst_psi = fst_psi/(sum(abs(fst_psi)**2)/LLm/MMm)
       if (mynode==0) call var2cdf(real(fst_psi),size(shape(real(fst_psi))), 
      &                 shape(real(fst_psi)),'fst_psi.nc')
 
@@ -370,7 +374,7 @@
       integer, allocatable :: seed(:)
       integer :: i, j, k
 !      real(kind=8),dimension(Lspec,MMm) :: rNoisefst, iNoisefst
-      real(kind=8),dimension(LLm,MMm) :: rNoisefst, iNoisefst
+      real(kind=8),dimension(L2+1,MMm) :: rNoisefst, iNoisefst
 
       fst_in = cmplx(0.,0.)
 
@@ -393,7 +397,6 @@
          ! seed the random number generator
          call random_seed(put=seed)
          call random_number(iNoisefst)
-
 
          fst_in = fst_in + cmplx(rNoisefst,iNoisefst)* fst_a(k)*fst_psi
      &                   *phir(ktot,k)

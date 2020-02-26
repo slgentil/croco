@@ -2784,8 +2784,8 @@ C 				  endif
 #endif  /* ITBALT */
 
 # ifdef FSTURB
-      CALL xios_send_field("Ffst",Ffst(:,:,:,nfstnew))
-      CALL xios_send_field("Wfst",Wfst)
+      CALL xios_send_field("fst_F",fst_F(:,:,:,nfstnew))
+      CALL xios_send_field("fst_W",fst_W)
 # endif
 
 #  ifdef BULK_FLUX
