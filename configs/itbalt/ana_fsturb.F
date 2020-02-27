@@ -29,13 +29,13 @@
 ! Number of modes to keep, amplitude of each mode
       integer, parameter      :: fst_Nmode=5
       real(kind=8), dimension(fst_Nmode), parameter :: 
-     &                               fst_a = (/0.0,0.1,0.0,0.0,0.0/)
+     &                               fst_a = (/0.0,1.0,0.0,0.0,0.0/)
 
 ! For the real form of the forcing
       real(kind=8), parameter :: fst_xmid  = 512.e+3, fst_xwid = 200.e+3
       real(kind=8), parameter :: fst_ymid  = 1440.e+3, fst_ywid = 500.e+3
 !     amplitude of the forcing
-      real(kind=8), parameter :: fst_FT = 1.e-1
+      real(kind=8), parameter :: fst_FT = 1.e0
 !     gaussian form of the forcing
       real(kind=8),dimension(:,:), allocatable :: fst_W
 !     total forcing
@@ -153,8 +153,10 @@
             kx = fst_kx(i)
 !            fst_psi(i,j) = cmplx(exp(-(kx**2 + ky**2 - fst_kF**2)
 !     &                              /(fst_dkF**2)),0.)
+!            if ( (i==10) .and. (j==10) ) then
             fst_psi(i,j) = cmplx(exp(-(sqrt(kx**2 + ky**2) - fst_kF)**2
      &                              /(fst_dkF**2)),0.)
+!            endif
         enddo
       enddo
 ! normalize fst_psi
@@ -398,8 +400,13 @@
          call random_seed(put=seed)
          call random_number(iNoisefst)
 
-         fst_in = fst_in + cmplx(rNoisefst,iNoisefst)* fst_a(k)*fst_psi
-     &                   *phir(ktot,k)
+         fst_in = fst_in 
+     &             + cmplx(rNoisefst*2.-1.,iNoisefst*2.-1.) 
+     &                     *fst_a(k)*fst_psi
+     &                     *phir(ktot,k)
+         ! reset 0 and Nyquist frequencies to real number
+         fst_in(1,1) = real(fst_in(1,1))
+         fst_in(L2+1,MMm) = real(fst_in(L2+1,MMm))
 
       enddo
 
