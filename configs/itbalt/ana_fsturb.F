@@ -7,6 +7,7 @@
 !
 ! ... further details about array sizes in spectral complex space ...
 !
+! this lines activates copy of the present file to the backup folder: aponte
 
 #include "cppdefs.h"
        
@@ -29,13 +30,14 @@
 ! Number of modes to keep, amplitude of each mode
       integer, parameter      :: fst_Nmode=5
       real(kind=8), dimension(fst_Nmode), parameter :: 
-     &                               fst_a = (/0.0,1.0,0.0,0.0,0.0/)
+     &                               fst_a = (/1.0,0.0,0.0,0.0,0.0/)
 
 ! For the real form of the forcing
       real(kind=8), parameter :: fst_xmid  = 512.e+3, fst_xwid = 200.e+3
       real(kind=8), parameter :: fst_ymid  = 1440.e+3, fst_ywid = 500.e+3
 !     amplitude of the forcing
-      real(kind=8), parameter :: fst_FT = 1.e0
+!      real(kind=8), parameter :: fst_FT = 1.e-1
+      real(kind=8) :: fst_FT
 !     gaussian form of the forcing
       real(kind=8),dimension(:,:), allocatable :: fst_W
 !     total forcing
@@ -99,11 +101,18 @@
 
       character(len=32) :: my_fmt
       integer i,j,k
-      real(kind=8) :: kx, ky
-!
+      real(kind=8) :: kx, ky, uF
+
+      ! forcing wavenumbers
       fst_kF = 16./xl
       fst_dkF = fst_kF/4.
-!      fst_dkF = xl/32.
+      ! forcing amplitude
+      !uF = 0.1
+      !fst_FT = uF*1.0313E-4 /fst_kF/g *rho0/abs(Tcoef) /fst_dt
+      !  ~ 1e-4
+      ! above is not pretty: too many hardcoded parameters:
+      ! f0 = 1.0313E-4
+      fst_FT = 0.1
 
       if ( mod(N,NNODES) == 0 ) then
          nint=N/NNODES
@@ -151,16 +160,14 @@
         ky = fst_ky(j)
         do i=1,L2+1
             kx = fst_kx(i)
-!            fst_psi(i,j) = cmplx(exp(-(kx**2 + ky**2 - fst_kF**2)
-!     &                              /(fst_dkF**2)),0.)
-!            if ( (i==10) .and. (j==10) ) then
             fst_psi(i,j) = cmplx(exp(-(sqrt(kx**2 + ky**2) - fst_kF)**2
      &                              /(fst_dkF**2)),0.)
-!            endif
         enddo
       enddo
-! normalize fst_psi
-      fst_psi = fst_psi/(sum(abs(fst_psi)**2)/LLm/MMm)
+      ! normalize fst_psi
+      fst_psi = fst_psi/sqrt(sum(abs(fst_psi)**2)) /1.42
+      ! 1.42 = std of a (-1,1) uniform random variable
+      !
       if (mynode==0) call var2cdf(real(fst_psi),size(shape(real(fst_psi))), 
      &                 shape(real(fst_psi)),'fst_psi.nc')
 
@@ -215,7 +222,8 @@
       endif
 
       do k=1,N 
-         fst_F(:,:,k,nfstnew) = fst_F(:,:,k,nfstnew) * fst_FT * fst_W(:,:)
+         fst_F(:,:,k,nfstnew) = fst_F(:,:,k,nfstnew) * fst_FT 
+     &                          * fst_W(:,:)
      &                          * decay
       enddo
 
@@ -400,6 +408,7 @@
          call random_seed(put=seed)
          call random_number(iNoisefst)
 
+!         fst_in = cmplx(rNoisefst*2.-1.,iNoisefst*2.-1.)*fst_psi
          fst_in = fst_in 
      &             + cmplx(rNoisefst*2.-1.,iNoisefst*2.-1.) 
      &                     *fst_a(k)*fst_psi
@@ -417,7 +426,6 @@
 
 ! fourierize
       call dfftw_execute(plan)
-      fst_out = fst_out / LLm / MMm
 
       if (ktot==N) then
         call var2cdf(fst_out,size(shape(fst_out)),shape(fst_out),
