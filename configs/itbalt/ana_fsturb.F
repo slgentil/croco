@@ -461,9 +461,7 @@
            fst_in = fst_in + Ftmp*phir(k,m)
          elseif (mynode==0) then
            ! fst_F_zeta
-           to update
-           fst_in = fst_in + Ftmp*phir(k,m)
-!         fst_in = fst_in + Ftmp*phir(k,m)
+           fst_in = fst_in - Ftmp*phiuv(N,m)/g/(-Tcoef)
          endif
       enddo
 

@@ -176,12 +176,17 @@ C$    trd=omp_get_thread_num()
 # define LOCALMM Mm
 #endif
 
+! module for the turbulence forcing
+#ifdef FSTURB
+      use fsturb
+#endif
+
 #ifdef ITBALT  
 ! aponte iwmaker (
 #  ifdef IWMAKER
       real y, yoff, dely, delt
 #  endif
-! aponte iwmaker ) 
+! aponte iwmaker )
 #endif
 
 #include "compute_auxiliary_bounds.h"
@@ -466,6 +471,16 @@ C$OMP END MASTER
         enddo
       enddo
 #endif /* ZNUDGING */
+
+! spectral turbulence forcing 
+# ifdef FSTURB
+      do j=JstrV-1,Jend
+        do i=IstrU-1,Iend
+          zeta_new(i,j)=zeta_new(i,j)
+     &                  + dtfast * fst_F_zeta(i,j)
+        enddo
+      enddo
+#endif /* FSTURB */
 !
 !-----------------------------------------------------------------------
 ! Computes zetarhs to use in mometum equations
