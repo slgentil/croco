@@ -889,9 +889,9 @@
 
         do k=1,N
           do i=Istr,Iend
-             FC(i,k) = fst_F(i,j,k,nfstold) *
+             FC(i,k) = fst_F_t(i,j,k,nfstold) *
      &                 (fst_time+fst_dt-time )/fst_dt +
-     &                 fst_F(i,j,k,nfstnew) *
+     &                 fst_F_t(i,j,k,nfstnew) *
      &                 (time - fst_time)/( fst_dt)  
           enddo
         enddo

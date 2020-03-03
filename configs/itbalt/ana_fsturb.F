@@ -1,6 +1,6 @@
 ! 
 !  for each level k
-!     fst_F(i,j,k,t) = fst_FT * fst_W(i,j) * fst_out(i,j)
+!     fst_F_t(i,j,k,t) = fst_FT * fst_W(i,j) * fst_out(i,j)
 !  
 ! Doc about fftw:
 !  http://www.fftw.org/fftw3_doc/Multi_002ddimensional-Transforms.html#Multi_002ddimensional-Transforms  
@@ -41,10 +41,11 @@
 !     gaussian form of the forcing
       real(kind=8),dimension(:,:), allocatable :: fst_W
 !     total forcing
-      real(kind=8),dimension(:,:,:,:), allocatable :: fst_F
+      real(kind=8),dimension(:,:,:,:), allocatable :: fst_F_t
+      real(kind=8),dimension(:,:,:), allocatable :: fst_F_zeta
 
 ! For the exchanges
-      integer   :: nint, ktot
+      integer   :: nint
       integer*8,dimension(:), allocatable        ::reqid
       real(kind=8),dimension(:,:), allocatable   :: zpar
       real(kind=8),dimension(:,:,:), allocatable :: zexchang
@@ -98,7 +99,6 @@
 
 !  This routine init the forcing for turbulence
 
-
       character(len=32) :: my_fmt
       integer i,j,k
       real(kind=8) :: kx, ky, uF
@@ -114,6 +114,7 @@
       ! f0 = 1.0313E-4
       fst_FT = 0.1
 
+      ! nint = number of vertical levels per procs
       if ( mod(N,NNODES) == 0 ) then
          nint=N/NNODES
       else
@@ -125,7 +126,8 @@
       L2 = LLm/2
       M2 = MMm/2
       allocate(fst_W(GLOBAL_2D_ARRAY))
-      allocate(fst_F(GLOBAL_2D_ARRAY,N,2))
+      allocate(fst_F_t(GLOBAL_2D_ARRAY,N,2))
+      allocate(fst_F_zeta(GLOBAL_2D_ARRAY,2))
       allocate(reqid(0:NNODES-1))
       allocate(zpar(Lm,Mm))
       allocate(zexchang(Lm,Mm,0:NNODES-1))
@@ -143,7 +145,6 @@
       call dfftw_plan_dft_c2r_2d(plan,LLm,MMm,fst_in,fst_out,
      &                           FFTW_ESTIMATE)   
 
-
      ! Init the form of the forcing
      ! fst_xmid,fst_xwid,yfstmid,fst_ywid initialized as parameters
       do j=1,Mm
@@ -154,7 +155,7 @@
       enddo
       if (mynode==0) call var2cdf(real(fst_W),size(shape(real(fst_W))), 
      &                 shape(real(fst_W)),'fst_W.nc')
-  
+
       ! compute psi
       do j=1,MMm
         ky = fst_ky(j)
@@ -198,8 +199,6 @@
 
       subroutine comp_fsturb(curtime)
       
-       
-
 # include "param.h"
 # include "scalars.h"
 
@@ -211,9 +210,15 @@
       real(kind=8) :: decay
 
       if (mynode==0) print*,"compute turbulence forcing at time=",curtime
-      do kint=1,nint  
-        call spec_to_phys(kint,curtime)
+      
+      ! loop around vertical levels for this proc, fill fst_F_t
+      do kint=1,nint
+        call spec_to_phys(kint, curtime)
       enddo
+      ! for zeta, fill fst_F_zeta
+      if (mynode==0) then
+        call spec_to_phys(0, curtime)
+      endif
 
       if ( curtime <= fst_tdecay ) then
         decay = 1.
@@ -221,25 +226,29 @@
         decay = 0.
       endif
 
-      do k=1,N 
-         fst_F(:,:,k,nfstnew) = fst_F(:,:,k,nfstnew) * fst_FT 
+      do k=1,N
+         fst_F_t(:,:,k,nfstnew) = fst_F_t(:,:,k,nfstnew) * fst_FT 
      &                          * fst_W(:,:)
      &                          * decay
       enddo
+
+      fst_F_zeta(:,:,nfstnew) = fst_F_zeta(:,:,nfstnew) * fst_FT 
+     &                          * fst_W(:,:)
+     &                          * decay
 
       end subroutine comp_fsturb
 
 !----------------------------------------------------------------------
 
-      subroutine spec_to_phys(kint,curtime)
- 
+      subroutine spec_to_phys(kint, curtime)
+
 # include "param.h" 
 # include "scalars.h"
-     
-      integer::kv,kint   
-      real(kind=8) :: rho_mean, curtime
-        
-      
+
+      integer :: kv,kint   
+      !real(kind=8) :: rho_mean, curtime
+      real(kind=8) :: curtime
+              
       ! compute complex amplitude for variable kv and level kint
 
       include 'mpif.h'
@@ -247,20 +256,25 @@
 
       !local
       integer::iproc,i,j,k
-      real :: mean
+      !real :: mean
 
-      k=(mynode*nint)+kint
-      if (k <= N) then
-        call compute_spectral(k,curtime)
+      ! computes the true vertical level k corresponding to kint
+      if ( kint > 0 ) then
+        k = (mynode*nint)+kint
+      else
+        k = 0
       endif
+      if (k <= N) then
+        call compute_spectral(k, curtime)
+      endif
+      
       call launch_rcv_fst(kint)
       if (k <= N) then
-        do iproc=0,NNODES-1    
-            call launch_send_fst(iproc,k)
+        do iproc=0,NNODES-1
+            call launch_send_fst(iproc, k)
         enddo
       endif
-      call launch_wait_fst(kint)  
-
+      call launch_wait_fst(kint)
 
       end subroutine spec_to_phys
 
@@ -274,22 +288,26 @@
 
       include 'mpif.h'
 
-    
-
       integer::iproc,i0,j0,npts,mpierr,k,kint
       
 !     launch all the nonblocking receive requests
       npts = Lm*Mm
       zexchang = 0.
-      do iproc=0,NNODES-1
-         k=(iproc*nint)+kint
-         if(mynode.ne.iproc .and. k <= N) then
-            call MPI_IRECV(zexchang(:,:,iproc),npts,  
-     &            MPI_DOUBLE_PRECISION,iproc,iproc,MPI_COMM_WORLD,
-     &            reqid(iproc),mpierr)
-         endif
-      enddo
-
+      if (kint >0) then
+        do iproc=0,NNODES-1
+             k = (iproc*nint)+kint
+             if( mynode.ne.iproc .and. k <= N) then
+                call MPI_IRECV(zexchang(:,:,iproc),npts,  
+         &            MPI_DOUBLE_PRECISION,iproc,iproc,MPI_COMM_WORLD,
+         &            reqid(iproc),mpierr)
+             endif
+        enddo
+      elseif ( mynode>0 ) then
+        iproc = 0
+        call MPI_IRECV(zexchang(:,:,iproc),npts,  
+       &            MPI_DOUBLE_PRECISION,iproc,iproc,MPI_COMM_WORLD,
+       &            reqid(iproc),mpierr)
+      endif
       
       end subroutine launch_rcv_fst
 
@@ -304,22 +322,31 @@
 
       include 'mpif.h'
 
-
       integer::iproc,i0,j0,i,j,k,mpierr,i_offset,j_offset
       integer,dimension(MPI_STATUS_SIZE):: istat
       
 !     launch all the wait
-      do iproc=0,NNODES-1
-         k=(iproc*nint)+kint
-         if (mynode.ne.iproc .and. k <= N) then
-           call MPI_WAIT(reqid(iproc),istat,mpierr)
-           do j=1,Mm
-             do i=1,Lm
-               fst_F(i,j,k,nfstnew) = zexchang(i,j,iproc)  
-             enddo
-           enddo 
-         endif
-      enddo
+      if ( kint>0 ) then
+        do iproc=0,NNODES-1
+           k=(iproc*nint)+kint
+           if (mynode.ne.iproc .and. k <= N) then
+             call MPI_WAIT(reqid(iproc),istat,mpierr)
+             do j=1,Mm
+               do i=1,Lm
+                 fst_F_t(i,j,k,nfstnew) = zexchang(i,j,iproc)  
+               enddo
+             enddo 
+           endif
+        enddo
+      elseif ( mynode>0 ) then
+        iproc = 0
+        call MPI_WAIT(reqid(iproc),istat,mpierr)
+        do j=1,Mm
+          do i=1,Lm
+            fst_F_zeta(i,j,nfstnew) = zexchang(i,j,iproc)  
+          enddo
+        enddo         
+      endif
       
       end subroutine launch_wait_fst
 
@@ -335,91 +362,112 @@
 
       include 'mpif.h'
 
-
       !local
       integer::i,j,i0,j0,npts,mpierr,i_offset,j_offset
       
-      if (mynode.eq.iproc) then
-         ! copy directly in the array 
-         do j=1,Mm
-            do i=1,Lm
-               i_offset=mod(iproc,NP_XI)*Lm
-               j_offset=(iproc/NP_XI)*Mm 
-               i0 = i + i_offset
-               j0 = j + j_offset
-               fst_F(i,j,k,nfstnew)=fst_out(i0,j0)
-            enddo
-         enddo            
-      else
-         ! send to iproc
-         npts = Lm*Mm
-         do j=1,Mm
-            do i=1,Lm
-               i_offset=mod(iproc,NP_XI)*Lm
-               j_offset=(iproc/NP_XI)*Mm 
-               i0 = i + i_offset
-               j0 = j + j_offset
-               zpar(i,j)=fst_out(i0,j0)
-            enddo
-         enddo            
-         call MPI_SEND(zpar,npts,MPI_DOUBLE_PRECISION,iproc,mynode,  
-     &                  MPI_COMM_WORLD,mpierr)
+      npts = Lm*Mm
+      
+      ! fst_F_t        
+      if ( k>0 ) then
+        if (mynode.eq.iproc) then
+           ! copy directly in the array 
+           do j=1,Mm
+              do i=1,Lm
+                 i_offset=mod(iproc,NP_XI)*Lm
+                 j_offset=(iproc/NP_XI)*Mm 
+                 i0 = i + i_offset
+                 j0 = j + j_offset
+                 fst_F_t(i,j,k,nfstnew) = fst_out(i0,j0)
+              enddo
+           enddo            
+        else
+           ! send to iproc
+           do j=1,Mm
+              do i=1,Lm
+                 i_offset=mod(iproc,NP_XI)*Lm
+                 j_offset=(iproc/NP_XI)*Mm 
+                 i0 = i + i_offset
+                 j0 = j + j_offset
+                 zpar(i,j) = fst_out(i0,j0)
+              enddo
+           enddo            
+        endif
+      ! fst_F_zeta
+      elseif ( mynode==0 )
+        do j=1,Mm
+           do i=1,Lm
+              i_offset=mod(iproc,NP_XI)*Lm
+              j_offset=(iproc/NP_XI)*Mm 
+              i0 = i + i_offset
+              j0 = j + j_offset
+              zpar(i,j) = fst_out(i0,j0)
+           enddo
+        enddo
       endif
-     
+
+      call MPI_SEND(zpar,npts,MPI_DOUBLE_PRECISION,iproc,mynode,  
+     &                  MPI_COMM_WORLD,mpierr)
 
       end subroutine launch_send_fst
 
 !----------------------------------------------------------------------
 
-      subroutine compute_spectral(ktot,curtime)
+      subroutine compute_spectral(k, curtime)
 !
 # include "param.h"
 # include "scalars.h"
 
-      integer :: ktot
+      ! k
+      integer :: k
       real(kind=8) :: curtime
 
       ! local
       integer :: nbseed
       integer, allocatable :: seed(:)
-      integer :: i, j, k
-!      real(kind=8),dimension(Lspec,MMm) :: rNoisefst, iNoisefst
-      real(kind=8),dimension(L2+1,MMm) :: rNoisefst, iNoisefst
+      integer :: i, j, m
+      real(kind=8),dimension(L2+1,MMm) :: rNoise, iNoise
+      real(kind=8),dimension(L2+1,MMm) :: Ftmp
 
       fst_in = cmplx(0.,0.)
 
-!  Get the random noise Noisefst
+      !  Get the random noise Noisefst
 
       ! restart the state of the pseudorandom number generator
       call random_seed(size=nbseed)
       allocate(seed(nbseed))
 
-
-      do k=1,fst_Nmode
+      do m=1,fst_Nmode
 
          ! compute N
          ! assign information in values to seed
-         seed = int(curtime*k)
+         seed = int(curtime*m)
          ! seed the random number generator
          call random_seed(put=seed)
-         call random_number(rNoisefst)
-         seed = int(curtime*k+1)
+         call random_number(rNoise)
+         seed = int(curtime*m+1)
          ! seed the random number generator
          call random_seed(put=seed)
-         call random_number(iNoisefst)
-
+         call random_number(iNoise)
+         
 !         fst_in = cmplx(rNoisefst*2.-1.,iNoisefst*2.-1.)*fst_psi
-         fst_in = fst_in 
-     &             + cmplx(rNoisefst*2.-1.,iNoisefst*2.-1.) 
+         Ftmp = cmplx(rNoise*2.-1.,iNoise*2.-1.) 
      &                     *fst_a(k)*fst_psi
-     &                     *phir(ktot,k)
          ! reset 0 and Nyquist frequencies to real number
-         fst_in(1,1) = real(fst_in(1,1))
-         fst_in(L2+1,MMm) = real(fst_in(L2+1,MMm))
+         Ftmp(1,1) = real(Ftmp(1,1))
+         Ftmp(L2+1,MMm) = real(Ftmp(L2+1,MMm))
 
+         if (k>0) then
+           ! fst_F_t
+           fst_in = fst_in + Ftmp*phir(k,m)
+         elseif (mynode==0) then
+           ! fst_F_zeta
+           to update
+           fst_in = fst_in + Ftmp*phir(k,m)
+!         fst_in = fst_in + Ftmp*phir(k,m)
+         endif
       enddo
 
-      if (ktot==N) then
+      if (k==N) then
         call var2cdf(real(fst_in),size(shape(real(fst_in))),
      &               shape(real(fst_in)),'fst_in.nc')
       endif
@@ -427,7 +475,7 @@
 ! fourierize
       call dfftw_execute(plan)
 
-      if (ktot==N) then
+      if (k==N) then
         call var2cdf(fst_out,size(shape(fst_out)),shape(fst_out),
      &              'fst_out.nc')
       endif
