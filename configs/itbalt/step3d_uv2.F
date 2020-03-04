@@ -58,6 +58,10 @@
 ! using implicit backward time step.
 !-------------------------------------------------------------------- 
 !
+! module for the turbulence forcing
+#ifdef FSTURB
+        use fsturb
+#endif
       implicit none
 # include "param.h"
 # include "grid.h"
@@ -1263,7 +1267,7 @@
 !             FCn(i,k,nmode) = Atide_mode(nmode) * (
              FCn(i,k,nmode) = (
      &              phiuv(k,nmode)
-     &             + (phiuv(k-1,nmode)-phiuv(k-1,nmode))
+     &             + (phiuv(k,nmode)-phiuv(k-1,nmode))
      &               /(zr_vmodes(k)-zr_vmodes(k-1))
      &               *(z_r(i,j,k)-zr_vmodes(k)) )
           enddo
@@ -1343,6 +1347,173 @@
 #   endif
 # endif
 ! aponte wmaker )
+
+! spectral turbulence forcing 
+# ifdef FSTURB
+      !
+      ! u
+      !
+      do j=JV_RANGE
+        ! Interpolate forcing in time 
+        do k=1,N
+          do i=Istr,Iend
+             FCn(i,k, 0) = 
+     &                 (fst_F_uv(i,j,k,nfstold)-fst_F_uv(i-1,j,k,nfstold))
+     &                 *pn_u(i,j)
+     &                 *(fst_time+fst_dt-time )/fst_dt +
+     &                 (fst_F_uv(i,j,k,nfstnew)-fst_F_uv(i-1,j,k,nfstnew))
+     &                 *pn_u(i,j)
+     &                 (time - fst_time)/fst_dt
+          enddo
+        enddo
+        ! interpolate forcing on actual grid
+        ! there is some degree of inaccuracy due to the fact that v points are
+        ! not on z_r, could be improved
+        do k=2,N-1
+          do i=Istr,Iend
+            FCn(i,k,1) = (
+     &           FCn(i,k, 0)
+     &             + 0.5*( (FCn(i,k+1, 0)-FCn(i,k, 0))
+     &                     /(zr_vmodes(k+1)-zr_vmodes(k))
+     &                    +(FCn(i,k, 0)-FCn(i,k-1, 0))
+     &                     /(zr_vmodes(k)-zr_vmodes(k-1)) )
+     &                  *(z_u(i,j,k)-zr_vmodes(k)) )
+          enddo
+        enddo
+        do i=Istr,Iend
+          k=1
+          FCn(i,k,1) = (
+     &              FCn(i,k, 0)
+     &             + (FCn(i,k+1, 0)-FCn(i,k, 0))
+     &               /(zr_vmodes(k+1)-zr_vmodes(k))
+     &               *(z_u(i,j,k)-zr_vmodes(k)) )
+  !
+          k=N
+          FCn(i,k,1) = (
+     &              FCn(i,k, 0)
+     &             +(FCn(i,k, 0)-FCn(i,k-1, 0))     
+     &               /(zr_vmodes(k)-zr_vmodes(k-1))
+     &               *(z_u(i,j,k)-zr_vmodes(k)) )
+        enddo
+        !
+        ! correct barotropicity here
+        !
+        ! init variables
+        do i=IV_RANGE
+          DC(i,0)=0.
+          CF(i,0)=0.
+          FC(i,0)=0.
+        enddo
+        ! compute local depth and forcing integral
+        do k=1,N,+1
+          do i=IV_RANGE
+            DC(i,k)=0.5*(Hz(i,j,k)+Hz(i-1,j,k))
+            DC(i,0)=DC(i,0)+DC(i,k)
+            CF(i,0)=CF(i,0)+DC(i,k)*FCn(i,k,1)
+          enddo
+        enddo
+        ! average
+        do i=IV_RANGE
+          DC(i,0)=1./DC(i,0)
+          CF(i,0)=DC(i,0)*CF(i,0)
+        enddo
+        ! substract average
+        do k=1,N
+          do i=IV_RANGE
+            FCn(i,k,1)=FCn(i,k,1)-CF(i,0)
+          enddo
+        enddo
+        !
+        ! update u
+        !
+        do k=1,N
+          do i=IV_RANGE
+            u(i,j,k,nnew)=u(i,j,k,nnew) + dt*FCn(i,k,1)
+          enddo
+        enddo
+      enddo
+      do j=JV_RANGE
+        ! Interpolate forcing in time 
+        do k=1,N
+          do i=Istr,Iend
+             FCn(i,k, 0) = 
+     &                 (fst_F_uv(i,j,k,nfstold)-fst_F_uv(i,j-1,k,nfstold))
+     &                 *pn_v(i,j)
+     &                 *(fst_time+fst_dt-time )/fst_dt +
+     &                 (fst_F_uv(i,j,k,nfstnew)-fst_F_uv(i,j-1,k,nfstnew))
+     &                 *pn_v(i,j)
+     &                 (time - fst_time)/fst_dt
+          enddo
+        enddo
+        ! interpolate forcing on actual grid
+        ! there is some degree of inaccuracy due to the fact that v points are
+        ! not on z_r, could be improved
+        do k=2,N-1
+          do i=Istr,Iend
+            FCn(i,k,1) = (
+     &           FCn(i,k, 0)
+     &             + 0.5*( (FCn(i,k+1, 0)-FCn(i,k, 0))
+     &                     /(zr_vmodes(k+1)-zr_vmodes(k))
+     &                    +(FCn(i,k, 0)-FCn(i,k-1, 0))
+     &                     /(zr_vmodes(k)-zr_vmodes(k-1)) )
+     &                  *(z_v(i,j,k)-zr_vmodes(k)) )
+          enddo
+        enddo
+        do i=Istr,Iend
+          k=1
+          FCn(i,k,1) = (
+     &              FCn(i,k, 0)
+     &             + (FCn(i,k+1, 0)-FCn(i,k, 0))
+     &               /(zr_vmodes(k+1)-zr_vmodes(k))
+     &               *(z_v(i,j,k)-zr_vmodes(k)) )
+  !
+          k=N
+          FCn(i,k,1) = (
+     &              FCn(i,k, 0)
+     &             +(FCn(i,k, 0)-FCn(i,k-1, 0))     
+     &               /(zr_vmodes(k)-zr_vmodes(k-1))
+     &               *(z_v(i,j,k)-zr_vmodes(k)) )
+        enddo
+        !
+        ! correct barotropicity here
+        !
+        ! init variables
+        do i=IV_RANGE
+          DC(i,0)=0.
+          CF(i,0)=0.
+          FC(i,0)=0.
+        enddo
+        ! compute local depth and forcing integral
+        do k=1,N,+1
+          do i=IV_RANGE
+            DC(i,k)=0.5*(Hz(i,j,k)+Hz(i,j-1,k))
+            DC(i,0)=DC(i,0)+DC(i,k)
+            CF(i,0)=CF(i,0)+DC(i,k)*FCn(i,k,1)
+          enddo
+        enddo
+        ! average
+        do i=IV_RANGE
+          DC(i,0)=1./DC(i,0)
+          CF(i,0)=DC(i,0)*CF(i,0)
+        enddo
+        ! substract average
+        do k=1,N
+          do i=IV_RANGE
+            FCn(i,k,1)=FCn(i,k,1)-CF(i,0)
+          enddo
+        enddo
+        !
+        ! update v
+        !
+        do k=1,N
+          do i=IV_RANGE
+            v(i,j,k,nnew)=v(i,j,k,nnew) + dt*FCn(i,k,1)
+          enddo
+        enddo
+      enddo
+# endif
+
+
 
 ! aponte mem (
 #ifdef FERMI_MEM

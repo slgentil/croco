@@ -43,6 +43,8 @@
 !     total forcing
       real(kind=8),dimension(:,:,:,:), allocatable :: fst_F_t
       real(kind=8),dimension(:,:,:), allocatable :: fst_F_zeta
+      real(kind=8),dimension(:,:,:,:), allocatable :: fst_F_uv
+      real(kind=8),dimension(:,:,:), allocatable :: fst_F_uvbt
 
 ! For the exchanges
       integer   :: nint
@@ -121,13 +123,16 @@
          nint=N/NNODES + 1
       endif
 
-! allocation dynamique des tableaux
+      ! dynamical array allocation
 
       L2 = LLm/2
       M2 = MMm/2
       allocate(fst_W(GLOBAL_2D_ARRAY))
       allocate(fst_F_t(GLOBAL_2D_ARRAY,N,2))
       allocate(fst_F_zeta(GLOBAL_2D_ARRAY,2))
+      allocate(fst_F_uv(GLOBAL_2D_ARRAY,N,2))
+      allocate(fst_F_uvbt(GLOBAL_2D_ARRAY,2))
+      !
       allocate(reqid(0:NNODES-1))
       allocate(zpar(Lm,Mm))
       allocate(zexchang(Lm,Mm,0:NNODES-1))
@@ -137,11 +142,11 @@
       allocate(fst_out(LLm,MMm))
       allocate(fst_psi(L2+1,MMm))
 
-! Make wave number mask
+      ! Make wave number mask
       call get_kxky  
-!
-! Initialization FFT complex to real, out of place:
-!
+      !
+      ! Initialization FFT complex to real, out of place:
+      !
       call dfftw_plan_dft_c2r_2d(plan,LLm,MMm,fst_in,fst_out,
      &                           FFTW_ESTIMATE)   
 
@@ -213,10 +218,16 @@
       
       ! loop around vertical levels for this proc, fill fst_F_t
       do kint=1,nint
-        call spec_to_phys(kint, curtime)
+        call spec_to_phys(kint, curtime, 0)
       enddo
-      ! for zeta, fill fst_F_zeta
-      call spec_to_phys(0, curtime)
+      ! fill fst_F_zeta
+      call spec_to_phys(0, curtime, 1)
+      ! loop around vertical levels for this proc, fill fst_F_uv
+      do kint=1,nint
+        call spec_to_phys(kint, curtime, 2)
+      enddo
+      ! fill fst_F_uvbt
+      call spec_to_phys(0, curtime, 3)
 
       if ( curtime <= fst_tdecay ) then
         decay = 1.
@@ -228,9 +239,21 @@
          fst_F_t(:,:,k,nfstnew) = fst_F_t(:,:,k,nfstnew) * fst_FT 
      &                          * fst_W(:,:)
      &                          * decay
+     &                          * 0.
       enddo
 
       fst_F_zeta(:,:,nfstnew) = fst_F_zeta(:,:,nfstnew) * fst_FT 
+     &                          * fst_W(:,:)
+     &                          * decay
+     &                          * 0.
+
+      do k=1,N
+        fst_F_uv(:,:,k,nfstnew) = fst_F_uv(:,:,k,nfstnew) * fst_FT 
+     &                          * fst_W(:,:)
+     &                          * decay
+      enddo
+
+      fst_F_uvbt(:,:,nfstnew) = fst_F_uvbt(:,:,nfstnew) * fst_FT 
      &                          * fst_W(:,:)
      &                          * decay
 
@@ -238,12 +261,12 @@
 
 !----------------------------------------------------------------------
 
-      subroutine spec_to_phys(kint, curtime)
+      subroutine spec_to_phys(kint, curtime, nvar)
 
 # include "param.h" 
 # include "scalars.h"
 
-      integer :: kv,kint   
+      integer :: kv,kint, nvar
       !real(kind=8) :: rho_mean, curtime
       real(kind=8) :: curtime
               
@@ -263,13 +286,13 @@
         k = 0
       endif
       if (k <= N) then
-        call compute_spectral(k, curtime)
+        call compute_spectral(k, curtime, nvar)
       endif
       
       call launch_rcv_fst(kint)
       if (k <= N) then
         do iproc=0,NNODES-1
-            call launch_send_fst(iproc, k)
+            call launch_send_fst(iproc, k, nvar)
         enddo
       endif
       call launch_wait_fst(kint)
@@ -278,13 +301,13 @@
 
 !----------------------------------------------------------------------
 
-      subroutine compute_spectral(k, curtime)
+      subroutine compute_spectral(k, curtime, nvar)
 
 # include "param.h"
 # include "scalars.h"
 
-      ! k
-      integer :: k
+      ! input variables
+      integer :: k, nvar
       real(kind=8) :: curtime
 
       ! local
@@ -322,16 +345,22 @@
          Ftmp(1,1) = real(Ftmp(1,1))
          Ftmp(L2+1,MMm) = real(Ftmp(L2+1,MMm))
 
-         if (k>0) then
+         if (nvar==0) then
            ! fst_F_t
            fst_in = fst_in + Ftmp*phir(k,m)
-         elseif (mynode==0) then
+         elseif (nvar==1) then
            ! fst_F_zeta
            fst_in = fst_in - Ftmp*phiuv(N,m)/g/(-Tcoef)
+         elseif (nvar==2) then
+           ! fst_F_uv
+           fst_in = fst_in - Ftmp*phiuv(N,m)
+         elseif (nvar==3 .and. m==1) then
+           ! fst_F_uvbt
+           fst_in = fst_in - Ftmp*phiuv(k,m)
          endif
       enddo
 
-      if (k==N) then
+      if (k==N .and. nvar==0) then
         call var2cdf(real(fst_in),size(shape(real(fst_in))),
      &               shape(real(fst_in)),'fst_in.nc')
       endif
@@ -339,7 +368,7 @@
       ! inverse fourier transform
       call dfftw_execute(plan)
 
-      if (k==N) then
+      if (k==N .and. nvar==0) then
         call var2cdf(fst_out,size(shape(fst_out)),shape(fst_out),
      &              'fst_out.nc')
       endif
@@ -356,7 +385,10 @@
 
       include 'mpif.h'
 
-      integer::iproc,i0,j0,npts,mpierr,k,kint
+      ! input variables
+      integer :: kint
+
+      integer :: iproc,i0,j0,npts,mpierr,k
       
 !     launch all the nonblocking receive requests
       npts = Lm*Mm
@@ -381,15 +413,16 @@
 
 !----------------------------------------------------------------------
 
-      subroutine launch_send_fst(iproc,k)
-
-      integer::iproc,k
+      subroutine launch_send_fst(iproc, k, nvar)
       
 # include "param.h"
 # include "scalars.h"
 # include "mpi_cpl.h"
 
       include 'mpif.h'
+
+      ! input variables
+      integer :: iproc, k, nvar
 
       !local
       integer::i,j,i0,j0,npts,mpierr,i_offset,j_offset
@@ -398,19 +431,23 @@
               
       if ( k>0 .and. mynode==iproc ) then
        ! copy directly in the array 
-       ! fst_F_t
+       ! fst_F_t, fst_F_uv
        do j=1,Mm
           do i=1,Lm
              i_offset=mod(iproc,NP_XI)*Lm
              j_offset=(iproc/NP_XI)*Mm 
              i0 = i + i_offset
              j0 = j + j_offset
-             fst_F_t(i,j,k,nfstnew) = fst_out(i0,j0)
+             if (nvar==0) then
+               fst_F_t(i,j,k,nfstnew) = fst_out(i0,j0)
+             elseif (nvar==2) then
+               fst_F_uv(i,j,k,nfstnew) = fst_out(i0,j0)
+             endif
           enddo
        enddo            
       elseif ( k>0 .or. (k==0 .and. mynode==0) ) then
        ! send to iproc
-       ! fst_F_t and fst_F_zeta
+       ! fst_F_t, fst_F_zeta, fst_F_uv, fst_F_uvbt
        do j=1,Mm
           do i=1,Lm
              i_offset=mod(iproc,NP_XI)*Lm
@@ -428,15 +465,17 @@
 
 !----------------------------------------------------------------------
 
-      subroutine launch_wait_fst(kint)
+      subroutine launch_wait_fst(kint, nvar)
               
-      integer :: kint
-
 # include "param.h"
 # include "scalars.h"
 
       include 'mpif.h'
 
+      ! input variables
+      integer :: kint, nvar
+
+      ! local variables
       integer::iproc,i0,j0,i,j,k,mpierr,i_offset,j_offset
       integer,dimension(MPI_STATUS_SIZE):: istat
       
@@ -447,9 +486,13 @@
            if (mynode.ne.iproc .and. k <= N) then
              call MPI_WAIT(reqid(iproc),istat,mpierr)
              do j=1,Mm
-               do i=1,Lm
-                 fst_F_t(i,j,k,nfstnew) = zexchang(i,j,iproc)  
-               enddo
+              do i=1,Lm
+               if (nvar==0) then
+                 fst_F_t(i,j,k,nfstnew) = zexchang(i,j,iproc)
+               elseif (nvar==2) then
+                 fst_F_uv(i,j,k,nfstnew) = zexchang(i,j,iproc)                 
+               endif
+              enddo
              enddo 
            endif
         enddo
@@ -458,7 +501,11 @@
         call MPI_WAIT(reqid(iproc),istat,mpierr)
         do j=1,Mm
           do i=1,Lm
-            fst_F_zeta(i,j,nfstnew) = zexchang(i,j,iproc)  
+            if (nvar==1) then
+             fst_F_zeta(i,j,nfstnew) = zexchang(i,j,iproc)
+            elseif (nvar==3) then
+              fst_F_uvbt(i,j,nfstnew) = zexchang(i,j,iproc)
+            endif
           enddo
         enddo         
       endif

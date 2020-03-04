@@ -661,6 +661,10 @@ C$OMP END MASTER
      &                  + ( h(i-1,j)+h(i,j)+rzeta(i-1,j)+rzeta(i,j) )
      &                                   *( Ptide(i,j)-Ptide(i-1,j) )
 #endif
+#ifdef FSTURB
+     &                  + ( h(i-1,j)+h(i,j)+rzeta(i-1,j)+rzeta(i,j) )
+     &                        *( fst_F_uvbt(i,j)-fst_F_uvbt(i,j)(i-1,j) )
+#endif
      &                                                              )
 ! 
           rvbar(i,j)=cff*om_v(i,j)*( (h(i,j-1)+h(i,j))*(rzeta(i,j-1)
@@ -678,6 +682,10 @@ C$OMP END MASTER
      &                  + ( h(i,j-1)+h(i,j)+rzeta(i,j-1)+rzeta(i,j) )
      &                                   *( Ptide(i,j)-Ptide(i,j-1) )
 #endif
+#ifdef FSTURB
+     &                  + ( h(i,j-1)+h(i,j)+rzeta(i,j-1)+rzeta(i,j) )
+     &                        *( fst_F_uvbt(i,j)-fst_F_uvbt(i,j)(i,j-1) )
+#endif 
      &                                                              )
         enddo
       enddo            !--> discard  zwrk, rzeta, rzeta2, rzetaSA

@@ -144,7 +144,8 @@
           <field_group id="fst_fields" operation="instant" >
             <field field_ref="fst_F_t" name="fst_F_t" grid_ref="rho_3D" />
             <field field_ref="fst_F_zeta" name="fst_F_zeta" grid_ref="rho_2D" />
-            <field field_ref="temp" name="T" grid_ref="rho_3D" />
+            <field field_ref="fst_F_uv" name="fst_F_uv" grid_ref="rho_3D" />
+            <field field_ref="fst_F_uvbt" name="fst_F_uvbt" grid_ref="rho_2D" />
           </field_group>
       </file>
 

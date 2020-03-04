@@ -93,6 +93,8 @@
          <!-- FSTURB -->
          <field id="fst_F_t" long_name="Turbulence forcing field rho" grid_ref="rho_3D" />
          <field id="fst_F_zeta" long_name="Turbulence forcing field zeta" grid_ref="rho_2D" />
+         <field id="fst_F_uv" long_name="Turbulence forcing field uv" grid_ref="rho_3D" />
+         <field id="fst_F_uvbt" long_name="Turbulence forcing field uv bt" grid_ref="rho_2D" />
          <field id="fst_W" long_name="Spatial window" grid_ref="rho_2D" />
 
      </field_group>
