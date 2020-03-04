@@ -280,6 +280,76 @@
 
 !----------------------------------------------------------------------
 
+      subroutine compute_spectral(k, curtime)
+  !
+  # include "param.h"
+  # include "scalars.h"
+
+      ! k
+      integer :: k
+      real(kind=8) :: curtime
+
+      ! local
+      integer :: nbseed
+      integer, allocatable :: seed(:)
+      integer :: i, j, m
+      real(kind=8),dimension(L2+1,MMm) :: rNoise, iNoise
+      real(kind=8),dimension(L2+1,MMm) :: Ftmp
+
+      fst_in = cmplx(0.,0.)
+
+      !  Get the random noise Noisefst
+
+      ! restart the state of the pseudorandom number generator
+      call random_seed(size=nbseed)
+      allocate(seed(nbseed))
+
+      do m=1,fst_Nmode
+
+         ! compute N
+         ! assign information in values to seed
+         seed = int(curtime*m)
+         ! seed the random number generator
+         call random_seed(put=seed)
+         call random_number(rNoise)
+         seed = int(curtime*m+1)
+         ! seed the random number generator
+         call random_seed(put=seed)
+         call random_number(iNoise)
+         
+  !         fst_in = cmplx(rNoisefst*2.-1.,iNoisefst*2.-1.)*fst_psi
+         Ftmp = cmplx(rNoise*2.-1.,iNoise*2.-1.) 
+     &                     *fst_a(k)*fst_psi
+         ! reset 0 and Nyquist frequencies to real number
+         Ftmp(1,1) = real(Ftmp(1,1))
+         Ftmp(L2+1,MMm) = real(Ftmp(L2+1,MMm))
+
+         if (k>0) then
+           ! fst_F_t
+           fst_in = fst_in + Ftmp*phir(k,m)
+         elseif (mynode==0) then
+           ! fst_F_zeta
+           fst_in = fst_in - Ftmp*phiuv(N,m)/g/(-Tcoef)
+         endif
+      enddo
+
+      if (k==N) then
+        call var2cdf(real(fst_in),size(shape(real(fst_in))),
+     &               shape(real(fst_in)),'fst_in.nc')
+      endif
+
+  ! inverse fourier transform
+      call dfftw_execute(plan)
+
+      if (k==N) then
+        call var2cdf(fst_out,size(shape(fst_out)),shape(fst_out),
+     &              'fst_out.nc')
+      endif
+
+      end subroutine compute_spectral
+
+!----------------------------------------------------------------------
+
       subroutine launch_rcv_fst(kint)
                  
 # include "param.h"
@@ -293,7 +363,7 @@
 !     launch all the nonblocking receive requests
       npts = Lm*Mm
       zexchang = 0.
-      if (kint >0) then
+      if ( kint>0 ) then
         do iproc=0,NNODES-1
              k = (iproc*nint)+kint
              if( mynode.ne.iproc .and. k <= N) then
@@ -310,6 +380,53 @@
       endif
       
       end subroutine launch_rcv_fst
+
+!----------------------------------------------------------------------
+
+      subroutine launch_send_fst(iproc,k)
+
+      integer::iproc,k
+      
+# include "param.h"
+# include "scalars.h"
+# include "mpi_cpl.h"
+
+      include 'mpif.h'
+
+      !local
+      integer::i,j,i0,j0,npts,mpierr,i_offset,j_offset
+      
+      npts = Lm*Mm
+              
+      if ( k>0 .and. mynode==iproc ) then
+       ! copy directly in the array 
+       ! fst_F_t
+       do j=1,Mm
+          do i=1,Lm
+             i_offset=mod(iproc,NP_XI)*Lm
+             j_offset=(iproc/NP_XI)*Mm 
+             i0 = i + i_offset
+             j0 = j + j_offset
+             fst_F_t(i,j,k,nfstnew) = fst_out(i0,j0)
+          enddo
+       enddo            
+      elseif ( k>0 .or. (k==0 .and. mynode==0) ) then
+       ! send to iproc
+       ! fst_F_t and fst_F_zeta
+       do j=1,Mm
+          do i=1,Lm
+             i_offset=mod(iproc,NP_XI)*Lm
+             j_offset=(iproc/NP_XI)*Mm 
+             i0 = i + i_offset
+             j0 = j + j_offset
+             zpar(i,j) = fst_out(i0,j0)
+          enddo
+       enddo            
+       call MPI_SEND(zpar,npts,MPI_DOUBLE_PRECISION,iproc,mynode,  
+      &                  MPI_COMM_WORLD,mpierr)
+      endif
+
+      end subroutine launch_send_fst
 
 !----------------------------------------------------------------------
 
@@ -349,136 +466,6 @@
       endif
       
       end subroutine launch_wait_fst
-
-!----------------------------------------------------------------------
-
-      subroutine launch_send_fst(iproc,k)
-
-      integer::iproc,k
-      
-# include "param.h"
-# include "scalars.h"
-# include "mpi_cpl.h"
-
-      include 'mpif.h'
-
-      !local
-      integer::i,j,i0,j0,npts,mpierr,i_offset,j_offset
-      
-      npts = Lm*Mm
-      
-      ! fst_F_t        
-      if ( k>0 ) then
-        if (mynode.eq.iproc) then
-           ! copy directly in the array 
-           do j=1,Mm
-              do i=1,Lm
-                 i_offset=mod(iproc,NP_XI)*Lm
-                 j_offset=(iproc/NP_XI)*Mm 
-                 i0 = i + i_offset
-                 j0 = j + j_offset
-                 fst_F_t(i,j,k,nfstnew) = fst_out(i0,j0)
-              enddo
-           enddo            
-        else
-           ! send to iproc
-           do j=1,Mm
-              do i=1,Lm
-                 i_offset=mod(iproc,NP_XI)*Lm
-                 j_offset=(iproc/NP_XI)*Mm 
-                 i0 = i + i_offset
-                 j0 = j + j_offset
-                 zpar(i,j) = fst_out(i0,j0)
-              enddo
-           enddo            
-        endif
-      ! fst_F_zeta
-      elseif ( mynode==0 ) then
-        do j=1,Mm
-           do i=1,Lm
-              i_offset=mod(iproc,NP_XI)*Lm
-              j_offset=(iproc/NP_XI)*Mm 
-              i0 = i + i_offset
-              j0 = j + j_offset
-              zpar(i,j) = fst_out(i0,j0)
-           enddo
-        enddo
-      endif
-
-      call MPI_SEND(zpar,npts,MPI_DOUBLE_PRECISION,iproc,mynode,  
-     &                  MPI_COMM_WORLD,mpierr)
-
-      end subroutine launch_send_fst
-
-!----------------------------------------------------------------------
-
-      subroutine compute_spectral(k, curtime)
-!
-# include "param.h"
-# include "scalars.h"
-
-      ! k
-      integer :: k
-      real(kind=8) :: curtime
-
-      ! local
-      integer :: nbseed
-      integer, allocatable :: seed(:)
-      integer :: i, j, m
-      real(kind=8),dimension(L2+1,MMm) :: rNoise, iNoise
-      real(kind=8),dimension(L2+1,MMm) :: Ftmp
-
-      fst_in = cmplx(0.,0.)
-
-      !  Get the random noise Noisefst
-
-      ! restart the state of the pseudorandom number generator
-      call random_seed(size=nbseed)
-      allocate(seed(nbseed))
-
-      do m=1,fst_Nmode
-
-         ! compute N
-         ! assign information in values to seed
-         seed = int(curtime*m)
-         ! seed the random number generator
-         call random_seed(put=seed)
-         call random_number(rNoise)
-         seed = int(curtime*m+1)
-         ! seed the random number generator
-         call random_seed(put=seed)
-         call random_number(iNoise)
-         
-!         fst_in = cmplx(rNoisefst*2.-1.,iNoisefst*2.-1.)*fst_psi
-         Ftmp = cmplx(rNoise*2.-1.,iNoise*2.-1.) 
-     &                     *fst_a(k)*fst_psi
-         ! reset 0 and Nyquist frequencies to real number
-         Ftmp(1,1) = real(Ftmp(1,1))
-         Ftmp(L2+1,MMm) = real(Ftmp(L2+1,MMm))
-
-         if (k>0) then
-           ! fst_F_t
-           fst_in = fst_in + Ftmp*phir(k,m)
-         elseif (mynode==0) then
-           ! fst_F_zeta
-           fst_in = fst_in - Ftmp*phiuv(N,m)/g/(-Tcoef)
-         endif
-      enddo
-
-      if (k==N) then
-        call var2cdf(real(fst_in),size(shape(real(fst_in))),
-     &               shape(real(fst_in)),'fst_in.nc')
-      endif
-
-! fourierize
-      call dfftw_execute(plan)
-
-      if (k==N) then
-        call var2cdf(fst_out,size(shape(fst_out)),shape(fst_out),
-     &              'fst_out.nc')
-      endif
-
-      end subroutine compute_spectral
 
 #endif /* FSTURB */
 
