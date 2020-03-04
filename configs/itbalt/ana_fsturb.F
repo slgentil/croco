@@ -298,15 +298,15 @@
              k = (iproc*nint)+kint
              if( mynode.ne.iproc .and. k <= N) then
                 call MPI_IRECV(zexchang(:,:,iproc),npts,  
-         &            MPI_DOUBLE_PRECISION,iproc,iproc,MPI_COMM_WORLD,
-         &            reqid(iproc),mpierr)
+     &            MPI_DOUBLE_PRECISION,iproc,iproc,MPI_COMM_WORLD,
+     &            reqid(iproc),mpierr)
              endif
         enddo
       elseif ( mynode>0 ) then
         iproc = 0
         call MPI_IRECV(zexchang(:,:,iproc),npts,  
-       &            MPI_DOUBLE_PRECISION,iproc,iproc,MPI_COMM_WORLD,
-       &            reqid(iproc),mpierr)
+     &            MPI_DOUBLE_PRECISION,iproc,iproc,MPI_COMM_WORLD,
+     &            reqid(iproc),mpierr)
       endif
       
       end subroutine launch_rcv_fst
@@ -393,7 +393,7 @@
            enddo            
         endif
       ! fst_F_zeta
-      elseif ( mynode==0 )
+      elseif ( mynode==0 ) then
         do j=1,Mm
            do i=1,Lm
               i_offset=mod(iproc,NP_XI)*Lm

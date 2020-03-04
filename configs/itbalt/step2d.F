@@ -99,6 +99,10 @@ C$    trd=omp_get_thread_num()
 !
 !======================================================================
 !
+! module for the turbulence forcing
+#ifdef FSTURB
+      use fsturb
+#endif
       implicit none
 #include "param.h"
       integer Istr,Iend,Jstr,Jend, i,j, kbak, kold,
@@ -174,11 +178,6 @@ C$    trd=omp_get_thread_num()
 #else
 # define LOCALLM Lm
 # define LOCALMM Mm
-#endif
-
-! module for the turbulence forcing
-#ifdef FSTURB
-      use fsturb
 #endif
 
 #ifdef ITBALT  
@@ -477,7 +476,10 @@ C$OMP END MASTER
       do j=JstrV-1,Jend
         do i=IstrU-1,Iend
           zeta_new(i,j)=zeta_new(i,j)
-     &                  + dtfast * fst_F_zeta(i,j)
+     &                  + dtfast * ( fst_F_zeta(i,j,nfstold) *
+     &                 (fst_time+fst_dt-time )/fst_dt +
+     &                 fst_F_zeta(i,j,nfstnew) *
+     &                 (time - fst_time)/fst_dt )
         enddo
       enddo
 #endif /* FSTURB */
