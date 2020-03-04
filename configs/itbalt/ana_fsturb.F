@@ -209,16 +209,14 @@
       real(kind=8) :: curtime
       real(kind=8) :: decay
 
-      if (mynode==0) print*,"compute turbulence forcing at time=",curtime
+      if (mynode==0) print*,"compute turbulence forcing at time=", curtime
       
       ! loop around vertical levels for this proc, fill fst_F_t
       do kint=1,nint
         call spec_to_phys(kint, curtime)
       enddo
       ! for zeta, fill fst_F_zeta
-      if (mynode==0) then
-        call spec_to_phys(0, curtime)
-      endif
+      call spec_to_phys(0, curtime)
 
       if ( curtime <= fst_tdecay ) then
         decay = 1.
