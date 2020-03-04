@@ -145,8 +145,8 @@
       call dfftw_plan_dft_c2r_2d(plan,LLm,MMm,fst_in,fst_out,
      &                           FFTW_ESTIMATE)   
 
-     ! Init the form of the forcing
-     ! fst_xmid,fst_xwid,yfstmid,fst_ywid initialized as parameters
+      ! Init the form of the forcing
+      ! fst_xmid,fst_xwid,yfstmid,fst_ywid initialized as parameters
       do j=1,Mm
         do i=1,Lm
           fst_W(i,j) = exp(-((yr(i,j)-fst_ymid) / (0.25*fst_ywid))**2)
@@ -279,9 +279,9 @@
 !----------------------------------------------------------------------
 
       subroutine compute_spectral(k, curtime)
-  !
-  # include "param.h"
-  # include "scalars.h"
+
+# include "param.h"
+# include "scalars.h"
 
       ! k
       integer :: k
@@ -315,7 +315,7 @@
          call random_seed(put=seed)
          call random_number(iNoise)
          
-  !         fst_in = cmplx(rNoisefst*2.-1.,iNoisefst*2.-1.)*fst_psi
+         !Ftmp = cmplx(rNoisefst*2.-1.,iNoisefst*2.-1.)*fst_psi
          Ftmp = cmplx(rNoise*2.-1.,iNoise*2.-1.) 
      &                     *fst_a(k)*fst_psi
          ! reset 0 and Nyquist frequencies to real number
@@ -336,7 +336,7 @@
      &               shape(real(fst_in)),'fst_in.nc')
       endif
 
-  ! inverse fourier transform
+      ! inverse fourier transform
       call dfftw_execute(plan)
 
       if (k==N) then
@@ -421,7 +421,7 @@
           enddo
        enddo            
        call MPI_SEND(zpar,npts,MPI_DOUBLE_PRECISION,iproc,mynode,  
-      &                  MPI_COMM_WORLD,mpierr)
+     &               MPI_COMM_WORLD,mpierr)
       endif
 
       end subroutine launch_send_fst
