@@ -1,0 +1,55 @@
+Compile/
+CROCO_FILES/
+
+clean~
+clean
+*.swp
+.nfs*
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# eclipse related files 
+.project
+.pydevproject
+.settings/
+
+# pycharm files
+.idea/
+
+# data files
+*.nc
+fort.*
+
+# fig and movies
+*.jpg
+*.pdf
+*.mp4
+
+# openoffice
+*.odp
+
+# Prerequisites
+*.d
+
+# Object files
+*.o
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Executables
+*.out
+*.err
+*.app
+xios_server.exe
+croco
+
+# Kernel Module Compile Results
+*.mod*
+
+

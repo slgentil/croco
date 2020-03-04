@@ -84,12 +84,12 @@ def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r', vtrans=None):
     hc = run.params_input['Hc']
 
     _h = ds.h if h is None else h
-    _zeta = 0 if zeta is None else zeta
+    _zeta = 0*ds.h if zeta is None else zeta
 
     # swith horizontal grid if needed (should we use grid.interp instead?)
     if hgrid in ['u','v']:
         funtr = eval("rho2"+hgrid)
-        if _zeta != 0:
+        if zeta is None:
             _zeta = funtr(_zeta, ds)
         _h = funtr(_h, ds)
     

@@ -156,57 +156,6 @@
 # endif
          <!-- END WKB_WWAVE -->
 #endif
-
-# ifdef ITBALT
-		 <!-- ITBALT -->
-         <field id="P" long_name="Pressure" unit=" " grid_ref="rho_3D"/>
-         <field id="P_a" field_ref="P" grid_ref="rho_3D" operation="average" />
-         <field id="ssh_t_cos" long_name="ssh x cos" unit="m" />
-         <field id="ssh_t_sin" long_name="ssh x sin" unit="m" />
-         <field id="T_t_cos" long_name="T x cos" unit="degC" grid_ref="rho_3D" />
-         <field id="T_t_sin" long_name="T x sin" unit="degC" grid_ref="rho_3D" />
-
-         <field id="ssh_t_dirac" long_name="ssh x dirac" unit="m" />
-         <field id="T_t_dirac" long_name="T x dirac" unit="degC" grid_ref="rho_3D" />
-
-         <field id="ssh_a" field_ref="zeta" operation="average" />
-         <field id="T_a" field_ref="temp" grid_ref="rho_3D" operation="average" />
-         <field id="ssh_t_cosa" field_ref="ssh_t_cos" operation="average" />
-         <field id="ssh_t_sina" field_ref="ssh_t_sin" operation="average" />
-         <field id="T_t_cosa" field_ref="T_t_cos" grid_ref="rho_3D" operation="average" />
-         <field id="T_t_sina" field_ref="T_t_sin" grid_ref="rho_3D" operation="average" />
-         <field id="ssh_t_diraca" field_ref="ssh_t_dirac" operation="average" />
-         <field id="T_t_diraca" field_ref="T_t_dirac" grid_ref="rho_3D" operation="average" />
-         <field id="w_t_cos" long_name="w x cos" unit="m/s" grid_ref="rho_3D"/>
-         <field id="w_t_sin" long_name="w x sin" unit="m/s" grid_ref="rho_3D"/>
-         <field id="w_t_dirac" long_name="w x dirac" unit="m/s" grid_ref="rho_3D"/>
-
-         <field id="w_a" field_ref="w" operation="average" grid_ref="rho_3D" />
-         <field id="w_t_cosa" field_ref="w_t_cos" operation="average" grid_ref="rho_3D" />
-         <field id="w_t_sina" field_ref="w_t_sin" operation="average" grid_ref="rho_3D" />
-         <field id="w_t_diraca" field_ref="w_t_dirac" operation="average" grid_ref="rho_3D" />
-
-         <field id="T_vmodes" long_name="temperature modal projection" unit="degC" grid_ref="rho_vm" />
-         <field id="p_vmodes" long_name="p modal projection" unit="Pa" grid_ref="rho_vm" />
-
-         <field id="T_vmodes_t_cos" long_name="temperature modal projection x cos" unit="degC" grid_ref="rho_vm" />
-         <field id="T_vmodes_t_sin" long_name="temperature modal projection x sin" unit="degC" grid_ref="rho_vm" />
-         <field id="p_vmodes_t_cos" long_name="p modal projection x cos" unit="Pa" grid_ref="rho_vm" />
-         <field id="p_vmodes_t_sin" long_name="p modal projection x sin" unit="Pa" grid_ref="rho_vm" />
-
-         <field id="ke" long_name="depth averaged kinetic energy" unit="m^2/s^2" />
-         <field id="ens" long_name="depth averaged enstrophy" unit="1/s^2" />
-         <field id="rot" long_name="rotational" unit="1/s" grid_ref="rho_3D" />
-		 <!-- END ITBALT -->
-# endif
-
-#ifdef FSTURB
-         <!-- FSTURB -->
-         <field id="Ffst" long_name="Forcing Turbulence" grid_ref="rho_3D" />
-         <field id="Wfst" long_name="Forme forçage" grid_ref="rho_2D" />
-         <!-- END FSTURB -->
-# endif
-
 #if defined BIOLOGY 
          <!-- BIOLOGY  -->
 # if defined PISCES
@@ -329,23 +278,6 @@
          <field id="ust" long_name="u Stokes drift velocity" unit="meter second-1" grid_ref="u_3D"/>
          <!-- END MRL_WCI -->
 #endif
-# ifdef ITBALT
-         <!-- ITBALT -->
-         <field id="u_t_cos" long_name="u x cos" unit="m/s" grid_ref="u_3D"/>
-         <field id="u_t_sin" long_name="u x sin" unit="m/s" grid_ref="u_3D"/>
-         <field id="u_t_dirac" long_name="u x dirac" unit="m/s" grid_ref="u_3D"/>
-
-         <field id="u_a" field_ref="u" operation="average" grid_ref="u_3D"/>
-         <field id="u_t_cosa" field_ref="u_t_cos" operation="average" grid_ref="u_3D"/>
-         <field id="u_t_sina" field_ref="u_t_sin" operation="average" grid_ref="u_3D"/>
-         <field id="u_t_diraca" field_ref="u_t_dirac" operation="average" grid_ref="u_3D"/>
-
-         <field id="u_vmodes" long_name="u modal projection" unit="m/s" grid_ref="u_vm"/>
-
-         <field id="u_vmodes_t_cos" long_name="u modal projection x cos" unit="m/s" grid_ref="u_vm"/>
-         <field id="u_vmodes_t_sin" long_name="u modal projection x sin" unit="m/s" grid_ref="u_vm"/>
-         <!-- END ITBALT -->
-#endif
 #ifdef SEDIMENT
          <!-- SEDIMENT -->
          <field id="bdlu_sand_1" long_name="Bedload flux in x direction for Sand No 1" unit="kg/m/s"  />
@@ -374,23 +306,6 @@
          <field id="vst" long_name="v Stokes drift velocity" unit="meter second-1" grid_ref="v_3D"/>
          <!-- MRL_WCI END -->
 #endif
-# ifdef ITBALT
-         <!-- ITBALT -->
-         <field id="v_t_cos" long_name="v x cos" unit="m/s" grid_ref="v_3D"/>
-         <field id="v_t_sin" long_name="v x sin" unit="m/s" grid_ref="v_3D"/>
-         <field id="v_t_dirac" long_name="v x dirac" unit="m/s" grid_ref="v_3D"/>
-
-         <field id="v_a" field_ref="v" operation="average" grid_ref="v_3D" />
-         <field id="v_t_cosa" field_ref="v_t_cos" operation="average" grid_ref="v_3D" />
-         <field id="v_t_sina" field_ref="v_t_sin" operation="average" grid_ref="v_3D" />
-         <field id="v_t_diraca" field_ref="v_t_dirac" operation="average" grid_ref="v_3D" />
-
-         <field id="v_vmodes" long_name="v modal projection" unit="m/s" grid_ref="v_vm"/>
-
-         <field id="v_vmodes_t_cos" long_name="v modal projection x cos" unit="m/s" grid_ref="v_vm"/>
-         <field id="v_vmodes_t_sin" long_name="v modal projection x sin" unit="m/s" grid_ref="v_vm"/>
-         <!-- END ITBALT -->
-# endif
 #ifdef SEDIMENT
          <!-- SEDIMENT -->
          <field id="bdlv_sand_1" long_name="Bedload flux in y direction for Sand No 1" unit="kg/m/s" />
@@ -429,11 +344,6 @@
 #endif
      </field_group>
 
-     <!-- PSI grid -->
-     <field_group id="psi" grid_ref="psi_2D">
-         <field id="x_psi" long_name="x-locations of PSI-points" unit="meters"/>
-         <field id="y_psi" long_name="y-locations of PSI-points" unit="meters"/>
-     </field_group>
 
 #ifdef DIAGNOSTICS_UV
      <field_group id="u_diaM" grid_ref="u_3D">

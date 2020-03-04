@@ -1,0 +1,27 @@
+moz 512:
+resources_used.cpupercent=50992
+resources_used.cput=1318:53:34
+resources_used.mem=371825736kb
+resources_used.ncpus=532
+resources_used.vmem=3847432424kb
+resources_used.walltime=02:34:30
+
+
+moz 512x240: (512x512x240 sur 16*32 procs)
+mem = 372Go
+sur 512 procs -> 0.72Go/proc 
+
+moz 768x360: (786x768x320 sur 12*64 procs)
+mem = 372Go * 3.375 = 1255.5
+sur 768 procs -> 1.63Go/proc
+
+
+moz 1024x480:(1024*1024*480 sur 16*32 procs)
+mem = 372Go * 8 = 2976Go
+sur 512 procs -> 5,8Go/proc trop gros (max 4Go par proc)
+sur 1024 procs -> trop gros pour datarmor (max 1008 procs)
+
+moz 1152x480: (1152*1152*480 sur 12*64 procs)
+mem = 372Go*10.12 = 3766 Go
+sur 768 procs -> 4.9 Go/procs  trop gros (max 4Go par proc)
+

@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<simulation> 
+
+  <context id="roms">
+    <calendar_type="Gregorian" start_date="2000-01-01 00:00:00" time_origin="2000-01-01 00:00:00" />    
+
+
+    <!-- ========================================================================== -->
+    <!-- ========================================================================== -->
+
+    <field_definition src="./field_def.xml"/>
+
+    <!-- ========================================================================== -->
+    <!-- ========================================================================== -->
+
+
+    <file_definition type="one_file" output_freq="1d" sync_freq="1d" > 
+
+      <file id="file_grd" name="grid" output_freq="1ts"  enabled=".TRUE.">
+          <field_group id="grid_fields" operation="once">
+            <field field_ref="hc" />
+            <field field_ref="theta_s" />
+            <field field_ref="theta_b" />
+            <field field_ref="Tcline" />
+            <field field_ref="Vtransform" />
+            <field field_ref="h" />
+            <field field_ref="f" />
+            <field field_ref="pm" />
+            <field field_ref="pn" />
+            <field field_ref="angle" />
+            <field field_ref="mask_rho" />
+            <field field_ref="Cs_r" />
+            <field field_ref="sc_r" />
+            <field field_ref="Cs_w" />
+            <field field_ref="sc_w" />
+          </field_group>
+      </file>
+
+      <file id="file_his" name="his" output_freq="1d" sync_freq="1d" enabled=".TRUE.">
+        <field_group id="his_fields" operation="instant">
+          <field field_ref="zeta" name="ssh" />
+          <field field_ref="u" name="u" />
+          <field field_ref="v" name="v" />
+          <field field_ref="w" name="w" />
+          <field field_ref="temp" name="temp" />
+          <field field_ref="salt" name="salt" />
+          <field field_ref="rho" name="rho" />
+       </field_group>
+      </file>
+
+
+   </file_definition>
+
+    <!-- ========================================================================== -->
+    <!-- ========================================================================== -->
+
+    <scalar_definition>
+      <scalar id="scalar"/>
+    </scalar_definition>
+
+    <domain_definition src="./domain_def.xml"/>
+
+    <axis_definition src="./axis_def.xml"/>
+
+    <grid_definition src="./grid_def.xml"/>
+  
+  </context>
+
+  <!-- ========================================================================== -->
+  <!-- ========================================================================== -->
+
+  
+  <context id="xios">
+    <variable_definition>
+      <variable_group id="buffer">
+        <variable id="optimal_buffer_size" type="string">performance</variable>
+        <variable id="buffer_size_factor" type="double">1.0</variable>
+      </variable_group>
+
+      <variable_group id="parameters" >
+        <variable id="using_server" type="bool">true</variable>
+        <variable id="info_level" type="int">0</variable>
+        <variable id="print_file" type="bool">true</variable>
+      </variable_group>
+    </variable_definition>
+  </context>
+
+</simulation>
