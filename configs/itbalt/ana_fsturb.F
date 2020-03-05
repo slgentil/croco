@@ -23,14 +23,14 @@
 !     time step of the computation of the forcing (second)
       real(kind=8), parameter :: fst_dt = 10.*86400.
 !     time after which forcing is killed
-      real(kind=8), parameter :: fst_tdecay = 900.*86400.
+      real(kind=8), parameter :: fst_tdecay = 800.*86400.
 !     time of computation corresponding to the nfstnew indice
       real(kind=8)            :: fst_time
 
 ! Number of modes to keep, amplitude of each mode
       integer, parameter      :: fst_Nmode=5
       real(kind=8), dimension(fst_Nmode), parameter :: 
-     &                               fst_a = (/1.0,0.0,0.0,0.0,0.0/)
+     &                               fst_a = (/0.0,1.0,0.0,0.0,0.0/)
 
 ! For the real form of the forcing
       real(kind=8), parameter :: fst_xmid  = 512.e+3, fst_xwid = 200.e+3
@@ -108,13 +108,16 @@
       ! forcing wavenumbers
       fst_kF = 16./xl
       fst_dkF = fst_kF/4.
-      ! forcing amplitude
-      !uF = 0.1
-      !fst_FT = uF*1.0313E-4 /fst_kF/g *rho0/abs(Tcoef) /fst_dt
+      ! forcing amplitude, forcing on density
+      ! uF = 0.1
+      ! fst_FT = uF*1.0313E-4 /fst_kF/g *rho0/abs(Tcoef) /fst_dt
       !  ~ 1e-4
       ! above is not pretty: too many hardcoded parameters:
       ! f0 = 1.0313E-4
-      fst_FT = 0.1
+      !
+      ! for velocity forcing:
+      ! fst_FT = uF /fst_kF /fst_dt
+      fst_FT = 0.01
 
       ! nint = number of vertical levels per procs
       if ( mod(N,NNODES) == 0 ) then
@@ -177,6 +180,12 @@
       if (mynode==0) call var2cdf(real(fst_psi),size(shape(real(fst_psi))), 
      &                 shape(real(fst_psi)),'fst_psi.nc')
 
+      ! init variables to 0
+      fst_F_t = 0.
+      fst_F_zeta = 0.
+      fst_F_uv = 0.
+      fst_F_uvbt = 0.
+
       fst_time = time
       nfstold = 1
       nfstnew = 1
@@ -184,7 +193,7 @@
       nfstnew = 2
       call comp_fsturb(time+fst_dt)
 
-!  Output parameters
+      !  Output parameters
 
       call params_output('fst_dt',fst_dt)
       call params_output('fst_tdecay',fst_tdecay)
@@ -198,21 +207,26 @@
       call params_output('fst_k',fst_kF)
       call params_output('fst_dk',fst_dkF)
 
+      !if (mynode==0) print*,"init_fsturb nint=", nint
+
       end subroutine init_fsturb
 
 !----------------------------------------------------------------------
 
       subroutine comp_fsturb(curtime)
-      
+
+!      include 'mpif.h'
+
+      integer, parameter :: tile=0
 # include "param.h"
 # include "scalars.h"
-
-      include 'mpif.h'
 
       !local
       integer :: ik,k,kint
       real(kind=8) :: curtime
       real(kind=8) :: decay
+
+# include "compute_tile_bounds.h"
 
       if (mynode==0) print*,"compute turbulence forcing at time=", curtime
       
@@ -239,13 +253,11 @@
          fst_F_t(:,:,k,nfstnew) = fst_F_t(:,:,k,nfstnew) * fst_FT 
      &                          * fst_W(:,:)
      &                          * decay
-     &                          * 0.
       enddo
 
       fst_F_zeta(:,:,nfstnew) = fst_F_zeta(:,:,nfstnew) * fst_FT 
      &                          * fst_W(:,:)
      &                          * decay
-     &                          * 0.
 
       do k=1,N
         fst_F_uv(:,:,k,nfstnew) = fst_F_uv(:,:,k,nfstnew) * fst_FT 
@@ -256,6 +268,12 @@
       fst_F_uvbt(:,:,nfstnew) = fst_F_uvbt(:,:,nfstnew) * fst_FT 
      &                          * fst_W(:,:)
      &                          * decay
+
+      call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
+     &                       fst_F_uv(START_2D_ARRAY,1,nfstnew))
+
+      call exchange_r2d_tile (Istr,Iend,Jstr,Jend,
+     &                        fst_F_uvbt(START_2D_ARRAY,nfstnew))
 
       end subroutine comp_fsturb
 
@@ -272,7 +290,7 @@
               
       ! compute complex amplitude for variable kv and level kint
 
-      include 'mpif.h'
+      !include 'mpif.h'
       include 'fftw3.f'
 
       !local
@@ -295,7 +313,7 @@
             call launch_send_fst(iproc, k, nvar)
         enddo
       endif
-      call launch_wait_fst(kint)
+      call launch_wait_fst(kint, nvar)
 
       end subroutine spec_to_phys
 
@@ -340,7 +358,7 @@
          
          !Ftmp = cmplx(rNoisefst*2.-1.,iNoisefst*2.-1.)*fst_psi
          Ftmp = cmplx(rNoise*2.-1.,iNoise*2.-1.) 
-     &                     *fst_a(k)*fst_psi
+     &                     *fst_a(m)*fst_psi
          ! reset 0 and Nyquist frequencies to real number
          Ftmp(1,1) = real(Ftmp(1,1))
          Ftmp(L2+1,MMm) = real(Ftmp(L2+1,MMm))
@@ -353,14 +371,20 @@
            fst_in = fst_in - Ftmp*phiuv(N,m)/g/(-Tcoef)
          elseif (nvar==2) then
            ! fst_F_uv
-           fst_in = fst_in - Ftmp*phiuv(N,m)
+           fst_in = fst_in - Ftmp*phiuv(k,m)
          elseif (nvar==3 .and. m==1) then
            ! fst_F_uvbt
-           fst_in = fst_in - Ftmp*phiuv(k,m)
+           fst_in = fst_in - Ftmp*phiuv(N,m)
          endif
       enddo
 
-      if (k==N .and. nvar==0) then
+!      if (mynode==0) print*,"nvar, k, max Ftmp = ", nvar, k, 
+!     &               maxval(abs(Ftmp))
+!      if (mynode==0) print*,"nvar, k, max fst_in = ", nvar, k, 
+!     &               maxval(abs(fst_in))
+!      if (mynode==0) print*,"nvar, k, max fst_psi = ", nvar, k,
+!     &               maxval(abs(fst_psi))
+      if (k==N .and. nvar==2) then
         call var2cdf(real(fst_in),size(shape(real(fst_in))),
      &               shape(real(fst_in)),'fst_in.nc')
       endif
@@ -368,7 +392,7 @@
       ! inverse fourier transform
       call dfftw_execute(plan)
 
-      if (k==N .and. nvar==0) then
+      if (k==N .and. nvar==2) then
         call var2cdf(fst_out,size(shape(fst_out)),shape(fst_out),
      &              'fst_out.nc')
       endif
@@ -445,6 +469,8 @@
              endif
           enddo
        enddo            
+!       if (mynode==0) print*,"nvar, k, max fst_F_uv = ", nvar, k,
+!     &               maxval(abs(fst_F_uv))
       elseif ( k>0 .or. (k==0 .and. mynode==0) ) then
        ! send to iproc
        ! fst_F_t, fst_F_zeta, fst_F_uv, fst_F_uvbt
@@ -457,6 +483,8 @@
              zpar(i,j) = fst_out(i0,j0)
           enddo
        enddo            
+!       if (mynode==0) print*,"nvar, k, max fst_F_uv = ", nvar, k,
+!     &               maxval(abs(fst_F_uv))
        call MPI_SEND(zpar,npts,MPI_DOUBLE_PRECISION,iproc,mynode,  
      &               MPI_COMM_WORLD,mpierr)
       endif
@@ -490,7 +518,7 @@
                if (nvar==0) then
                  fst_F_t(i,j,k,nfstnew) = zexchang(i,j,iproc)
                elseif (nvar==2) then
-                 fst_F_uv(i,j,k,nfstnew) = zexchang(i,j,iproc)                 
+                 fst_F_uv(i,j,k,nfstnew) = zexchang(i,j,iproc) 
                endif
               enddo
              enddo 
@@ -504,10 +532,10 @@
             if (nvar==1) then
              fst_F_zeta(i,j,nfstnew) = zexchang(i,j,iproc)
             elseif (nvar==3) then
-              fst_F_uvbt(i,j,nfstnew) = zexchang(i,j,iproc)
+             fst_F_uvbt(i,j,nfstnew) = zexchang(i,j,iproc)
             endif
           enddo
-        enddo         
+        enddo
       endif
       
       end subroutine launch_wait_fst

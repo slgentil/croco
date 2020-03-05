@@ -210,7 +210,8 @@ if [[ $OS == Linux ]] ; then           # ===== LINUX =====
 		CPP1="cpp -traditional -DLinux -DIfort"
 		CFT1=ifort
 #		FFLAGS1="-O3 -72 -fno-alias -i4 -r8 -fp-model precise $CPPFLAGS1"
- 		FFLAGS1="-xCORE-AVX2 -O3 -i4 -r8 -ftz -align all -assume byterecl -extend-source -fno-alias -no-prec-div -no-prec-sqrt -ip -g -w -traceback $CPPFLAGS1"
+ 		FFLAGS1="-xCORE-AVX2 -O3 -i4 -r8 -ftz -align all -assume byterecl -extend-source -fno-alias -no-prec-div -no-prec-sqrt -ip -g -w -traceback $CPPFLAGS1 "
+# -check bounds
 		# FFLAGS1="-xCORE-AVX2 -O3 -i4 -r8 -align all -assume byterecl -extend-source -fno-alias -no-prec-div -no-prec-sqrt -ip -w $CPPFLAGS1"
 		LDFLAGS1="$LDFLAGS1"
 	elif [[ $LINUX_FC == gfortran ]] ; then

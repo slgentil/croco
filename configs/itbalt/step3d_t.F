@@ -929,7 +929,7 @@
 !
         do k=1,N
           do i=Istr,Iend
-            t(i,j,k,nnew,itrc)=t(i,j,k,nnew,itrc)+FC(i,k)
+            t(i,j,k,nnew,itrc)=t(i,j,k,nnew,itrc)+FC(i,k)*0.
           enddo
         enddo
 

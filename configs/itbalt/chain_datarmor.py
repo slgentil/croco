@@ -190,4 +190,4 @@ commande='qrls '+numjob[:-1]
 if restart:
     print('Put the restart files in '+RPATH+'/t0')
 print('Change directory: cd '+RPATH+'/t1')
-print('Run commande : '+commande)
+print('Run command : '+commande)

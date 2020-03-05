@@ -480,6 +480,7 @@ C$OMP END MASTER
      &                 (fst_time+fst_dt-time )/fst_dt +
      &                 fst_F_zeta(i,j,nfstnew) *
      &                 (time - fst_time)/fst_dt )
+     &                 *0.
         enddo
       enddo
 #endif /* FSTURB */
@@ -662,8 +663,13 @@ C$OMP END MASTER
      &                                   *( Ptide(i,j)-Ptide(i-1,j) )
 #endif
 #ifdef FSTURB
+         ! note: Ptide is in m
      &                  + ( h(i-1,j)+h(i,j)+rzeta(i-1,j)+rzeta(i,j) )
-     &                        *( fst_F_uvbt(i,j)-fst_F_uvbt(i,j)(i-1,j) )
+     &       *( (fst_F_uvbt(i,j,nfstold)-fst_F_uvbt(i-1,j, nfstold))
+     &          *(fst_time+fst_dt-time )/fst_dt
+     &         +(fst_F_uvbt(i,j,nfstnew)-fst_F_uvbt(i-1,j, nfstnew))
+     &          *(time - fst_time)/fst_dt
+     &         )/cff 
 #endif
      &                                                              )
 ! 
@@ -683,8 +689,13 @@ C$OMP END MASTER
      &                                   *( Ptide(i,j)-Ptide(i,j-1) )
 #endif
 #ifdef FSTURB
+         ! note: Ptide is in m
      &                  + ( h(i,j-1)+h(i,j)+rzeta(i,j-1)+rzeta(i,j) )
-     &                        *( fst_F_uvbt(i,j)-fst_F_uvbt(i,j)(i,j-1) )
+     &       *( (fst_F_uvbt(i,j,nfstold)-fst_F_uvbt(i,j-1, nfstold))
+     &          *(fst_time+fst_dt-time )/fst_dt
+     &         +(fst_F_uvbt(i,j,nfstnew)-fst_F_uvbt(i,j-1, nfstnew))
+     &          *(time - fst_time)/fst_dt
+     &         )/cff
 #endif 
      &                                                              )
         enddo
