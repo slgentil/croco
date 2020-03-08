@@ -69,6 +69,7 @@
 ! turn jet_decay on off
 # define JET_DECAY
 # undef JET_EDDY
+! perturbed internal tide formulation
 # define ITIDEP
 
 # define XIOS

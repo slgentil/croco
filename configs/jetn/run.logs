@@ -1,0 +1,31 @@
+
+# 100 d simulations, high res outputs
+
+python chain_datarmor_itidep.py jet_wp5_ptb_m1 1 03:00:00 4 m1p /home1/scratch/aponte/jet_cfg1_wp5_4km_1500a2000j_notide/t5/
+
+python chain_datarmor_itidep.py jet_wp5_ptb_m2 1 03:00:00 4 m2p /home1/scratch/aponte/jet_cfg1_wp5_4km_1500a2000j_notide/t5/
+
+
+
+# truth: mode 1
+python chain_datarmor.py jet_wp5_ptb_m1_truth 1 03:00:00 4 m1tr 1
+itide:  flag_itide   omega_itide   nmode_itide   Az_itide  y_itide    start_time_itide
+            T      1.45444104333e-4     2         2.0e-2   400.0e+3      2000
+itidep: flag_ptb   dcos_ptb   dsin_ptb   nmode_ptb    scale_ptb
+            0       0.0e-6     0.0e-6       2           1.0e0
+
+# first guess: no tide
+# 
+python chain_datarmor.py jet_wp5_ptb_m1_fguess 1 03:00:00 4 m1fg 1
+
+
+# base case: mode 1 internal tide
+
+# perturbations: 
+python chain_datarmor.py jet_wp5_ptb_m1_p0 1 03:00:00 4 m1p0 1
+python chain_datarmor.py jet_wp5_ptb_m1_p1 1 03:00:00 4 m1p1 1
+python chain_datarmor.py jet_wp5_ptb_m1_p2 1 03:00:00 4 m1p2 1
+
+#
+
+
