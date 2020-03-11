@@ -9,14 +9,18 @@ def add_coords(ds, var, coords):
     for co in coords:
         var.coords[co] = ds.coords[co]
 
-def rho2u(v, ds):
+def x2u(v, grid):
+    """ Interpolate from any grid to u grid
+    """
+    return v
+
+def rho2u(v, grid):
     """
     interpolate horizontally variable from rho to u point
     """
-    grid = ds.attrs['xgcm-Grid']
     var = grid.interp(v,'xi')
-    add_coords(ds, var, ['xi_u','eta_u'])
-    var.attrs = v.attrs
+    #add_coords(ds, var, ['xi_u','eta_u'])
+    var.attrs = v.attrs # dangerous should use assign_attrs instead
     return var.rename(v.name)
 
 def u2rho(v, ds):
@@ -113,7 +117,7 @@ def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r', vtrans=None):
         z = _zeta + (_zeta + _h) * z0
     else:
         z0 = hc*sc + (_h-hc)*cs
-        z = z0 + _zeta*(1+z0/_h)
+        z = z0 + _zeta*(1+z0/_h) # order should be updated here
         
     zdim = "s_"+vgrid.replace('r','rho')
     if z.dims[0] != zdim:

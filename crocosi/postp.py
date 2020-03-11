@@ -15,7 +15,8 @@ from glob import glob
 
 second2day = 1./86400.
 
-from crocosi.gridop import *
+#from crocosi.gridop import *    # bad form
+import crocosi.gridop as gop
 
 def tofloat(x):
     """
@@ -352,7 +353,7 @@ class Run(object):
             '''
             Allows use of theta_b > 0 (July 2009)
             '''
-            one64 = np.float64(1)
+            one64 = np.float64(1) # weird
 
             if theta_s > 0.:
                 csrf = ((one64 - np.cosh(theta_s * sc)) /
@@ -370,7 +371,7 @@ class Run(object):
         # Store grid sizes
         if 'grid' in self.open_nc:
             ds = self.ds['grid']
-        elif 'his' in self.open_nc: 
+        elif 'his' in self.open_nc:   # croco outputs backward compatibility, should be deleted eventually
             ds = self.ds['his']
         self.L = ds.sizes['x_rho']
         self.M = ds.sizes['y_rho']
@@ -404,5 +405,13 @@ class Run(object):
         coords={'xi':{'center':'x_rho', 'inner':'x_u'}, 
                 'eta':{'center':'y_rho', 'inner':'y_v'}, 
                 's':{'center':'s_rho', 'outer':'s_w'}}
-        ds.attrs['xgcm-Grid'] = Grid(ds, coords=coords)
+        ds.attrs['xgcm-Grid'] = Grid(ds, coords=coords) # add metrics terms here?
         self.xgrid = ds.attrs['xgcm-Grid']
+        
+    def x2u(v):
+        """ Interpolate from any grid to u grid
+        """
+        # wrapps around gridop methods
+        # should copy coords here or in gop.x2u directly
+        return gop.x2u(v, self.xgrid)
+        
