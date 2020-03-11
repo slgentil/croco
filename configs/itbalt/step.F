@@ -278,7 +278,7 @@ C$OMP BARRIER
 # endif
 ! compute turbulence forcing every fst_dt timestep
 # ifdef FSTURB
-      if (time.gt.(fst_time+fst_dt)) then
+      if (time.ge.(fst_time+fst_dt)) then
          fst_time = time
          nfstold = nfstnew
          nfstnew = 3 - nfstold

@@ -1360,10 +1360,10 @@
           do i=Istr,Iend
              FCn(i,k, 1) = 
      &               (fst_F_uv(i,j,k,nfstold)-fst_F_uv(i-1,j,k,nfstold))
-     &                 *pn_u(i,j)
+     &                 *pm_u(i,j)
      &                 *(fst_time+fst_dt-time )/fst_dt +
      &               (fst_F_uv(i,j,k,nfstnew)-fst_F_uv(i-1,j,k,nfstnew))
-     &                 *pn_u(i,j)
+     &                 *pm_u(i,j)
      &                 *(time - fst_time)/fst_dt
           enddo
         enddo

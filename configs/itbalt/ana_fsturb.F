@@ -147,14 +147,12 @@
 
       ! Make wave number mask
       call get_kxky  
-      !
+      
       ! Initialization FFT complex to real, out of place:
-      !
       call dfftw_plan_dft_c2r_2d(plan,LLm,MMm,fst_in,fst_out,
      &                           FFTW_ESTIMATE)   
 
       ! Init the form of the forcing
-      ! fst_xmid,fst_xwid,yfstmid,fst_ywid initialized as parameters
       do j=1,Mm
         do i=1,Lm
           fst_W(i,j) = exp(-((yr(i,j)-fst_ymid) / (0.25*fst_ywid))**2)
@@ -164,7 +162,7 @@
       if (mynode==0) call var2cdf(real(fst_W),size(shape(real(fst_W))), 
      &                 shape(real(fst_W)),'fst_W.nc')
 
-      ! compute psi
+      ! compute psi: forcing weights in spectral space
       do j=1,MMm
         ky = fst_ky(j)
         do i=1,L2+1
@@ -186,6 +184,7 @@
       fst_F_uv = 0.
       fst_F_uvbt = 0.
 
+      ! compute first forcing fields
       fst_time = time
       nfstold = 1
       nfstnew = 1
@@ -194,7 +193,6 @@
       call comp_fsturb(time+fst_dt)
 
       !  Output parameters
-
       call params_output('fst_dt',fst_dt)
       call params_output('fst_tdecay',fst_tdecay)
       call params_output('fst_Nmode',fst_Nmode)
@@ -206,8 +204,6 @@
       call params_output('fst_FT',fst_FT)
       call params_output('fst_k',fst_kF)
       call params_output('fst_dk',fst_dkF)
-
-      !if (mynode==0) print*,"init_fsturb nint=", nint
 
       end subroutine init_fsturb
 
@@ -295,7 +291,6 @@
 
       !local
       integer::iproc,i,j,k
-      !real :: mean
 
       ! computes the true vertical level k corresponding to kint
       if ( kint > 0 ) then
@@ -356,7 +351,6 @@
          call random_seed(put=seed)
          call random_number(iNoise)
          
-         !Ftmp = cmplx(rNoisefst*2.-1.,iNoisefst*2.-1.)*fst_psi
          Ftmp = cmplx(rNoise*2.-1.,iNoise*2.-1.) 
      &                     *fst_a(m)*fst_psi
          ! reset 0 and Nyquist frequencies to real number
@@ -371,19 +365,13 @@
            fst_in = fst_in - Ftmp*phiuv(N,m)/g/(-Tcoef)
          elseif (nvar==2) then
            ! fst_F_uv
-           fst_in = fst_in - Ftmp*phiuv(k,m)
+           fst_in = fst_in + Ftmp*phiuv(k,m)
          elseif (nvar==3 .and. m==1) then
            ! fst_F_uvbt
-           fst_in = fst_in - Ftmp*phiuv(N,m)
+           fst_in = fst_in + Ftmp*phiuv(N,m)
          endif
       enddo
 
-!      if (mynode==0) print*,"nvar, k, max Ftmp = ", nvar, k, 
-!     &               maxval(abs(Ftmp))
-!      if (mynode==0) print*,"nvar, k, max fst_in = ", nvar, k, 
-!     &               maxval(abs(fst_in))
-!      if (mynode==0) print*,"nvar, k, max fst_psi = ", nvar, k,
-!     &               maxval(abs(fst_psi))
       if (k==N .and. nvar==2) then
         call var2cdf(real(fst_in),size(shape(real(fst_in))),
      &               shape(real(fst_in)),'fst_in.nc')
@@ -469,8 +457,6 @@
              endif
           enddo
        enddo            
-!       if (mynode==0) print*,"nvar, k, max fst_F_uv = ", nvar, k,
-!     &               maxval(abs(fst_F_uv))
       elseif ( k>0 .or. (k==0 .and. mynode==0) ) then
        ! send to iproc
        ! fst_F_t, fst_F_zeta, fst_F_uv, fst_F_uvbt
@@ -483,8 +469,6 @@
              zpar(i,j) = fst_out(i0,j0)
           enddo
        enddo            
-!       if (mynode==0) print*,"nvar, k, max fst_F_uv = ", nvar, k,
-!     &               maxval(abs(fst_F_uv))
        call MPI_SEND(zpar,npts,MPI_DOUBLE_PRECISION,iproc,mynode,  
      &               MPI_COMM_WORLD,mpierr)
       endif
