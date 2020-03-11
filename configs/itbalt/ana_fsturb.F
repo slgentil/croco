@@ -19,12 +19,13 @@
 
 ! For the time stepping
 !     indices of the old and new fsturb time step
-      integer :: nfstold, nfstnew
+      integer :: fst_nold, fst_nnew
 !     time step of the computation of the forcing (second)
       real(kind=8), parameter :: fst_dt = 10.*86400.
 !     time after which forcing is killed
+      real(kind=8), parameter :: fst_tstart = 0.
       real(kind=8), parameter :: fst_tdecay = 800.*86400.
-!     time of computation corresponding to the nfstnew indice
+!     time of computation corresponding to the fst_nnew indice
       real(kind=8)            :: fst_time
 
 ! Number of modes to keep, amplitude of each mode
@@ -186,10 +187,10 @@
 
       ! compute first forcing fields
       fst_time = time
-      nfstold = 1
-      nfstnew = 1
+      fst_nold = 1
+      fst_nnew = 1
       call comp_fsturb(time)
-      nfstnew = 2
+      fst_nnew = 2
       call comp_fsturb(time+fst_dt)
 
       !  Output parameters
@@ -220,7 +221,7 @@
       !local
       integer :: ik,k,kint
       real(kind=8) :: curtime
-      real(kind=8) :: decay
+      real(kind=8) :: start_decay
 
 # include "compute_tile_bounds.h"
 
@@ -239,37 +240,37 @@
       ! fill fst_F_uvbt
       call spec_to_phys(0, curtime, 3)
 
-      if ( curtime <= fst_tdecay ) then
-        decay = 1.
+      if ( (curtime>fst_tstart) .and. (curtime<=fst_tdecay) ) then
+        start_decay = 1.
       else
-        decay = 0.
+        start_decay = 0.
       endif
 
       do k=1,N
-         fst_F_t(:,:,k,nfstnew) = fst_F_t(:,:,k,nfstnew) * fst_FT 
+         fst_F_t(:,:,k,fst_nnew) = fst_F_t(:,:,k,fst_nnew) * fst_FT 
      &                          * fst_W(:,:)
-     &                          * decay
+     &                          * start_decay
       enddo
 
-      fst_F_zeta(:,:,nfstnew) = fst_F_zeta(:,:,nfstnew) * fst_FT 
+      fst_F_zeta(:,:,fst_nnew) = fst_F_zeta(:,:,fst_nnew) * fst_FT 
      &                          * fst_W(:,:)
-     &                          * decay
+     &                          * start_decay
 
       do k=1,N
-        fst_F_uv(:,:,k,nfstnew) = fst_F_uv(:,:,k,nfstnew) * fst_FT 
+        fst_F_uv(:,:,k,fst_nnew) = fst_F_uv(:,:,k,fst_nnew) * fst_FT 
      &                          * fst_W(:,:)
-     &                          * decay
+     &                          * start_decay
       enddo
 
-      fst_F_uvbt(:,:,nfstnew) = fst_F_uvbt(:,:,nfstnew) * fst_FT 
+      fst_F_uvbt(:,:,fst_nnew) = fst_F_uvbt(:,:,fst_nnew) * fst_FT 
      &                          * fst_W(:,:)
-     &                          * decay
+     &                          * start_decay
 
       call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
-     &                       fst_F_uv(START_2D_ARRAY,1,nfstnew))
+     &                       fst_F_uv(START_2D_ARRAY,1,fst_nnew))
 
       call exchange_r2d_tile (Istr,Iend,Jstr,Jend,
-     &                        fst_F_uvbt(START_2D_ARRAY,nfstnew))
+     &                        fst_F_uvbt(START_2D_ARRAY,fst_nnew))
 
       end subroutine comp_fsturb
 
@@ -451,9 +452,9 @@
              i0 = i + i_offset
              j0 = j + j_offset
              if (nvar==0) then
-               fst_F_t(i,j,k,nfstnew) = fst_out(i0,j0)
+               fst_F_t(i,j,k,fst_nnew) = fst_out(i0,j0)
              elseif (nvar==2) then
-               fst_F_uv(i,j,k,nfstnew) = fst_out(i0,j0)
+               fst_F_uv(i,j,k,fst_nnew) = fst_out(i0,j0)
              endif
           enddo
        enddo            
@@ -500,9 +501,9 @@
              do j=1,Mm
               do i=1,Lm
                if (nvar==0) then
-                 fst_F_t(i,j,k,nfstnew) = zexchang(i,j,iproc)
+                 fst_F_t(i,j,k,fst_nnew) = zexchang(i,j,iproc)
                elseif (nvar==2) then
-                 fst_F_uv(i,j,k,nfstnew) = zexchang(i,j,iproc) 
+                 fst_F_uv(i,j,k,fst_nnew) = zexchang(i,j,iproc) 
                endif
               enddo
              enddo 
@@ -514,9 +515,9 @@
         do j=1,Mm
           do i=1,Lm
             if (nvar==1) then
-             fst_F_zeta(i,j,nfstnew) = zexchang(i,j,iproc)
+             fst_F_zeta(i,j,fst_nnew) = zexchang(i,j,iproc)
             elseif (nvar==3) then
-             fst_F_uvbt(i,j,nfstnew) = zexchang(i,j,iproc)
+             fst_F_uvbt(i,j,fst_nnew) = zexchang(i,j,iproc)
             endif
           enddo
         enddo

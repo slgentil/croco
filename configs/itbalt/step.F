@@ -280,8 +280,8 @@ C$OMP BARRIER
 # ifdef FSTURB
       if (time.ge.(fst_time+fst_dt)) then
          fst_time = time
-         nfstold = nfstnew
-         nfstnew = 3 - nfstold
+         fst_nold = fst_nnew
+         fst_nnew = 3 - fst_nold
          call comp_fsturb(time)
       endif
 # endif
