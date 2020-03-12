@@ -142,12 +142,12 @@
      &                 shape(zw_vmodes),'vmodes_zw.nc')
         call var2cdf(c_vmodes,size(shape(c_vmodes)), 
      &                 shape(c_vmodes),'vmodes_c.nc')
-        call var2cdf(phiuv_vmodes,size(shape(phiuv_vmodes)), 
-     &                 shape(phiuv_vmodes),'vmodes_phiuv.nc')
-        call var2cdf(phir_vmodes,size(shape(phir_vmodes)), 
-     &                 shape(phir_vmodes),'vmodes_phir.nc')
-        call var2cdf(phiw_vmodes,size(shape(phiw_vmodes)), 
-     &                 shape(phiw_vmodes),'vmodes_phiw.nc')
+        call var2cdf(phiuv,size(shape(phiuv)), 
+     &                 shape(phiuv),'vmodes_phiuv.nc')
+        call var2cdf(phir,size(shape(phir)), 
+     &                 shape(phir),'vmodes_phir.nc')
+        call var2cdf(phiw,size(shape(phiw)), 
+     &                 shape(phiw),'vmodes_phiw.nc')
         call var2cdf(N2_vmodes,size(shape(N2_vmodes)), 
      &                 shape(N2_vmodes),'vmodes_N2.nc')
         call var2cdf(T0_vmodes,size(shape(T0_vmodes)), 
