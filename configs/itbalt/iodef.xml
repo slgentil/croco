@@ -16,6 +16,20 @@
 
     <file_definition type="one_file" output_freq="1800s" output_level="10"> 
 
+    <!--
+      <file id="file_vmodes" name="vmodes" output_freq="1ts"  enabled=".TRUE.">
+          <field_group id="vmodes_fields" operation="once">
+            <field field_ref="c_vmodes" />
+            <field field_ref="phiuv_vmodes" />
+            <field field_ref="phir_vmodes" />
+            <field field_ref="phiw_vmodes" />
+            <field field_ref="N2_vmodes" />
+            <field field_ref="zr_vmodes" />
+            <field field_ref="zw_vmodes" />
+          </field_group>
+      </file>
+      -->
+
       <file id="file_grd" name="grid" output_freq="1ts"  enabled=".TRUE.">
           <field_group id="grid_fields" operation="once">
             <field field_ref="hc" />

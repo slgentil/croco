@@ -1891,8 +1891,13 @@ C 				  endif
       CALL iom_set_axis_attr( "s_b",(/ (REAL(ji), ji=1,1) /))
 # endif
 
-
 ! aponte (
+!# ifdef vmodes
+!      ! quasi 1D horizontal grid to be complemented with vertical direction
+!      CALL set_grid("vmodes", (/ (REAL(ji), ji=1,n_vmodes) /), 
+!     &                        (/ (REAL(ji), ji=1,2) /))
+!# endif
+
 ! config specific axis
 # ifdef ITBALT
 # if ! defined XIOS2
@@ -1907,6 +1912,7 @@ C 				  endif
       CALL xios_solve_inheritance()
 
 # ifdef VMODES
+      ! vertical mode axis will be used as a substitute for the vertical one
       do im=1,nvmodes
        n_vmodes(im)=real(im)
       enddo
@@ -2644,7 +2650,7 @@ C 				  endif
 
 
 ! aponte vmodes (
-# ifdef VMODES
+# ifdef VMODES_TURNED_OFF
 ! project and stores
 ! need to create a new vertical grid that goes from 1 to 5
 
