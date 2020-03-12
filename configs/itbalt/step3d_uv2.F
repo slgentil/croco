@@ -1361,8 +1361,8 @@
              FCn(i,k, 1) = 
      &               -(fst_F_uv(i,j,k,fst_nold)-fst_F_uv(i,j-1,k,fst_nold))
      &                 *pn_u(i,j)
-     &                 *(fst_time+fst_dt-time )/fst_dt +
-     &               (fst_F_uv(i,j,k,fst_nnew)-fst_F_uv(i,j-1,k,fst_nnew))
+     &                 *(fst_time+fst_dt-time )/fst_dt
+     &               -(fst_F_uv(i,j,k,fst_nnew)-fst_F_uv(i,j-1,k,fst_nnew))
      &                 *pn_u(i,j)
      &                 *(time - fst_time)/fst_dt
           enddo
