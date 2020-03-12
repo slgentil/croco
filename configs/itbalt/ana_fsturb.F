@@ -118,7 +118,7 @@
       !
       ! for velocity forcing:
       ! fst_FT = uF /fst_kF /fst_dt
-      fst_FT = 0.1
+      fst_FT = 0.001
 
       ! nint = number of vertical levels per procs
       if ( mod(N,NNODES) == 0 ) then
