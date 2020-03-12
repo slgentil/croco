@@ -1359,11 +1359,11 @@
         do k=1,N
           do i=Istr,Iend
              FCn(i,k, 1) = 
-     &               (fst_F_uv(i,j,k,fst_nold)-fst_F_uv(i-1,j,k,fst_nold))
-     &                 *pm_u(i,j)
+     &               -(fst_F_uv(i,j,k,fst_nold)-fst_F_uv(i,j-1,k,fst_nold))
+     &                 *pn_u(i,j)
      &                 *(fst_time+fst_dt-time )/fst_dt +
-     &               (fst_F_uv(i,j,k,fst_nnew)-fst_F_uv(i-1,j,k,fst_nnew))
-     &                 *pm_u(i,j)
+     &               (fst_F_uv(i,j,k,fst_nnew)-fst_F_uv(i,j-1,k,fst_nnew))
+     &                 *pn_u(i,j)
      &                 *(time - fst_time)/fst_dt
           enddo
         enddo
@@ -1440,11 +1440,11 @@
         do k=1,N
           do i=Istr,Iend
              FCn(i,k, 1) = 
-     &               (fst_F_uv(i,j,k,fst_nold)-fst_F_uv(i,j-1,k,fst_nold))
-     &                 *pn_v(i,j)
+     &               (fst_F_uv(i,j,k,fst_nold)-fst_F_uv(i-1,j,k,fst_nold))
+     &                 *pm_v(i,j)
      &                 *(fst_time+fst_dt-time )/fst_dt +
-     &               (fst_F_uv(i,j,k,fst_nnew)-fst_F_uv(i,j-1,k,fst_nnew))
-     &                 *pn_v(i,j)
+     &               (fst_F_uv(i,j,k,fst_nnew)-fst_F_uv(i-1,j,k,fst_nnew))
+     &                 *pm_v(i,j)
      &                 *(time - fst_time)/fst_dt
           enddo
         enddo
