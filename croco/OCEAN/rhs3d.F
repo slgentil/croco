@@ -30,6 +30,10 @@
 
       subroutine rhs3d_tile (Istr,Iend,Jstr,Jend, ru,rv, CF,FC,DC,
      &                                 wrk1,wrk2, UFx,UFe, VFx,VFe)
+     ! module for the turbulence forcing
+     #ifdef FSTURB
+             use fsturb
+     #endif
       implicit none
       integer Istr,Iend,Jstr,Jend, i,j,k
      &       ,imin,imax,jmin,jmax
@@ -86,6 +90,9 @@
 # endif
 # ifdef MRL_WCI
       real vstu,dudx,dvdx,ustv,dude,dvde
+# endif
+# ifdef FSTURB
+      real FCn(PRIVATE_1D_SCRATCH_ARRAY,0:N,10)
 # endif
 !
 !--------------------------------------------------------------------
@@ -368,6 +375,114 @@
 #  undef Vwrk
 #  undef Uwrk
 # endif /* BODYFORCE */
+
+! spectral turbulence forcing 
+# ifdef FSTURB
+      !
+      ! ru
+      !
+      do j=Jstr,Jend
+        ! Interpolate forcing in time 
+        do k=1,N
+          do i=IstrU,Iend
+             FCn(i,k, 1) = 
+     &               -(fst_F_uv(i,j,k,fst_nold)-fst_F_uv(i,j-1,k,fst_nold))
+     &                 *pn_u(i,j)
+     &                 *(fst_time+fst_dt-time )/fst_dt
+     &               -(fst_F_uv(i,j,k,fst_nnew)-fst_F_uv(i,j-1,k,fst_nnew))
+     &                 *pn_u(i,j)
+     &                 *(time - fst_time)/fst_dt
+          enddo
+        enddo
+        ! interpolate forcing on actual grid
+        ! there is some degree of inaccuracy due to the fact that v points are
+        ! not on z_r, could be improved
+        do k=2,N-1
+          do i=IstrU,Iend
+            FCn(i,k,2) = (
+     &           FCn(i,k, 1)
+     &             + 0.5*( (FCn(i,k+1, 1)-FCn(i,k, 1))
+     &                     /(zr_vmodes(k+1)-zr_vmodes(k))
+     &                    +(FCn(i,k, 1)-FCn(i,k-1, 1))
+     &                     /(zr_vmodes(k)-zr_vmodes(k-1)) )
+     &                  *(z_u(i,j,k)-zr_vmodes(k)) )
+          enddo
+        enddo
+        do i=IstrU,Iend
+          k=1
+          FCn(i,k,2) = (
+     &              FCn(i,k, 1)
+     &             + (FCn(i,k+1, 1)-FCn(i,k, 1))
+     &               /(zr_vmodes(k+1)-zr_vmodes(k))
+     &               *(z_u(i,j,k)-zr_vmodes(k)) )
+!     &               *(z_r(i,j,k)-zr_vmodes(k)) )
+          k=N
+          FCn(i,k,2) = (
+     &              FCn(i,k, 1)
+     &             +(FCn(i,k, 1)-FCn(i,k-1, 1))     
+     &               /(zr_vmodes(k)-zr_vmodes(k-1))
+     &               *(z_u(i,j,k)-zr_vmodes(k)) )
+        enddo
+        !
+        ! update ru
+        !
+        do k=1,N
+          do i=IstrU,Iend
+            ru(i,j,k) = ru(i,j,k) + FCn(i,k,2)*om_u(i,j)*on_u(i,j)
+          enddo
+        enddo
+      enddo
+      do j=JstrV,Jend
+        ! Interpolate forcing in time 
+        do k=1,N
+          do i=Istr,Iend
+             FCn(i,k, 1) = 
+     &               (fst_F_uv(i,j,k,fst_nold)-fst_F_uv(i-1,j,k,fst_nold))
+     &                 *pm_v(i,j)
+     &                 *(fst_time+fst_dt-time )/fst_dt +
+     &               (fst_F_uv(i,j,k,fst_nnew)-fst_F_uv(i-1,j,k,fst_nnew))
+     &                 *pm_v(i,j)
+     &                 *(time - fst_time)/fst_dt
+          enddo
+        enddo
+        ! interpolate forcing on actual grid
+        ! there is some degree of inaccuracy due to the fact that v points are
+        ! not on z_r, could be improved
+        do k=2,N-1
+          do i=Istr,Iend
+            FCn(i,k,2) = (
+     &           FCn(i,k, 1)
+     &             + 0.5*( (FCn(i,k+1, 1)-FCn(i,k, 1))
+     &                     /(zr_vmodes(k+1)-zr_vmodes(k))
+     &                    +(FCn(i,k, 1)-FCn(i,k-1, 1))
+     &                     /(zr_vmodes(k)-zr_vmodes(k-1)) )
+     &                  *(z_v(i,j,k)-zr_vmodes(k)) )
+          enddo
+        enddo
+        do i=Istr,Iend
+          k=1
+          FCn(i,k,2) = (
+     &              FCn(i,k, 1)
+     &             + (FCn(i,k+1, 1)-FCn(i,k, 1))
+     &               /(zr_vmodes(k+1)-zr_vmodes(k))
+     &               *(z_v(i,j,k)-zr_vmodes(k)) )
+          k=N
+          FCn(i,k,2) = (
+     &              FCn(i,k, 1)
+     &             +(FCn(i,k, 1)-FCn(i,k-1, 1))     
+     &               /(zr_vmodes(k)-zr_vmodes(k-1))
+     &               *(z_v(i,j,k)-zr_vmodes(k)) )
+        enddo
+        !
+        ! update rv
+        !
+        do k=1,N
+          do i=Istr,Iend
+            rv(i,j,k)=rv(i,j,k) + FCn(i,k,2)*om_v(i,j)*on_v(i,j)
+          enddo
+        enddo
+      enddo
+# endif
 
       do k=1,N
 

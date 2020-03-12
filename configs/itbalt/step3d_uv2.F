@@ -1350,7 +1350,7 @@
 ! aponte wmaker )
 
 ! spectral turbulence forcing 
-# ifdef FSTURB
+# ifdef FSTURB_TURNED_OFF
       !
       ! u
       !

@@ -472,7 +472,7 @@ C$OMP END MASTER
 #endif /* ZNUDGING */
 
 ! spectral turbulence forcing 
-# ifdef FSTURB
+# ifdef FSTURB_TURNED_OFF
       do j=JstrV-1,Jend
         do i=IstrU-1,Iend
           zeta_new(i,j)=zeta_new(i,j)
@@ -662,7 +662,7 @@ C$OMP END MASTER
      &                  + ( h(i-1,j)+h(i,j)+rzeta(i-1,j)+rzeta(i,j) )
      &                                   *( Ptide(i,j)-Ptide(i-1,j) )
 #endif
-#ifdef FSTURB
+#ifdef FSTURB_TURNED_OFF
          ! note: F_uvbt is in m^2/s^2, Ptide is in m
      &    - (h(i-1,j)+h(i,j)+rzeta(i-1,j)+rzeta(i,j))
      &       *( (fst_F_uvbt(i,j,fst_nold)-fst_F_uvbt(i,j-1, fst_nold))
@@ -688,7 +688,7 @@ C$OMP END MASTER
      &                  + ( h(i,j-1)+h(i,j)+rzeta(i,j-1)+rzeta(i,j) )
      &                                   *( Ptide(i,j)-Ptide(i,j-1) )
 #endif
-#ifdef FSTURB
+#ifdef FSTURB_TURNED_OFF
           ! note: F_uvbt is in m^2/s^2, Ptide is in m
      &     + (h(i,j-1)+h(i,j)+rzeta(i,j-1)+rzeta(i,j))
      &       *( (fst_F_uvbt(i,j,fst_nold)-fst_F_uvbt(i-1,j, fst_nold))
