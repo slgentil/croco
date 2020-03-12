@@ -77,7 +77,7 @@
           </field_group>
       </file>
 
-      <file id="file_in" name="inst" output_freq="1800s" sync_freq="1d" split_freq="50d" enabled=".FALSE.">
+      <file id="file_in" name="inst" output_freq="1d" sync_freq="1d" split_freq="50d" enabled=".TRUE.">
           <field_group id="inst_fields" operation="instant" >
             <field field_ref="zeta" name="ssh_y" grid_ref="rho_2Dy" />
             <field field_ref="temp" name="T_y" grid_ref="rho_3Dy" />

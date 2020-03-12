@@ -31,7 +31,7 @@
 ! Number of modes to keep, amplitude of each mode
       integer, parameter      :: fst_Nmode=5
       real(kind=8), dimension(fst_Nmode), parameter :: 
-     &                               fst_a = (/1.0,0.0,0.0,0.0,0.0/)
+     &                               fst_a = (/0.0,1.0,0.0,0.0,0.0/)
 
 ! For the real form of the forcing
       real(kind=8), parameter :: fst_xmid  = 512.e+3, fst_xwid = 200.e+3
@@ -118,7 +118,7 @@
       !
       ! for velocity forcing:
       ! fst_FT = uF /fst_kF /fst_dt
-      fst_FT = 0.01
+      fst_FT = 0.1
 
       ! nint = number of vertical levels per procs
       if ( mod(N,NNODES) == 0 ) then
