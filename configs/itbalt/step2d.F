@@ -664,7 +664,7 @@ C$OMP END MASTER
 #endif
 #ifdef FSTURB
          ! note: F_uvbt is in m^2/s^2, Ptide is in m
-     &                  - ( h(i-1,j)+h(i,j)+rzeta(i-1,j)+rzeta(i,j) )
+     &    - (h(i-1,j)+h(i,j)+rzeta(i-1,j)+rzeta(i,j))
      &       *( (fst_F_uvbt(i,j,fst_nold)-fst_F_uvbt(i,j-1, fst_nold))
      &          *(fst_time+fst_dt-time )/fst_dt
      &         +(fst_F_uvbt(i,j,fst_nnew)-fst_F_uvbt(i,j-1, fst_nnew))
@@ -690,7 +690,7 @@ C$OMP END MASTER
 #endif
 #ifdef FSTURB
           ! note: F_uvbt is in m^2/s^2, Ptide is in m
-     &                  + ( h(i,j-1)+h(i,j)+rzeta(i,j-1)+rzeta(i,j) )
+     &     + (h(i,j-1)+h(i,j)+rzeta(i,j-1)+rzeta(i,j))
      &       *( (fst_F_uvbt(i,j,fst_nold)-fst_F_uvbt(i-1,j, fst_nold))
      &          *(fst_time+fst_dt-time )/fst_dt
      &         +(fst_F_uvbt(i,j,fst_nnew)-fst_F_uvbt(i-1,j, fst_nnew))
