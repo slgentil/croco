@@ -2216,6 +2216,15 @@ C 				  endif
       call xios_send_field("Vtransform",REAL(Vtransform))
 # endif
 
+# ifdef VMODES_TURNED_OFF
+      call xios_send_field("zr_vmodes",Cs_r(1:N))
+      call xios_send_field("zw_vmodes",Cs_w(0:N))
+      call xios_send_field("phi_vmodes",Cs_r(1:N))
+      call xios_send_field("phi_vmodes",Cs_w(0:N))
+      call xios_send_field("phi_vmodes",Cs_w(0:N))
+      call xios_send_field("N2_vmodes",Cs_w(0:N))
+      call xios_send_field("c_vmodes",Cs_w(0:N))
+# endif
       call xios_send_field("levels_rho",z_r(:,:,:))
       call xios_send_field("levels_w"  ,z_w(:,:,:))
       do k=1,N
