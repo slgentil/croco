@@ -1,5 +1,5 @@
 
-   <field_definition level="1" enabled=".TRUE." default_value="1.e20">   
+   <field_definition level="1" prec="4" enabled=".TRUE." default_value="1.e20">   
 
       <field id="time" long_name="time (in s) since beginning"  unit="second" grid_ref="scalar_grid"/>
 

@@ -30,9 +30,9 @@
          -->
       <!-- </domain_group> -->
 
-      <domain_group id="scalarpoint">
+      <!-- <domain_group id="scalarpoint">
          <domain id="scalarpoint" long_name="scalar"/>
-      </domain_group>
+      </domain_group> -->
 
 
    </domain_definition>
