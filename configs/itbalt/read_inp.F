@@ -15,6 +15,9 @@
                                         ! script file using keywords
                                         ! to recognize variables.
       use params
+#ifdef FSTURB
+      use fsturb
+#endif
 !     implicit none
 #include "param.h"
 #include "scalars.h"
@@ -2523,47 +2526,18 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
         start_time_itide = start_time_itide * day2sec
 #endif
 ! aponte itide )
-! aponte jet (
-#ifdef ITBALT   /* Jet config */
-      elseif (keyword(1:kwlen).eq.'jet') then
+#ifdef FSTURB   /* FSTURB config */
+      elseif (keyword(1:kwlen).eq.'fsturb') then
         call cancel_kwd (keyword(1:kwlen), ierr)
-        read(input,*,err=95) flag_jet, flag_jet_perturb, jet_ywidth, 
-     &        jet_weight, jet_decay_start
-# ifdef Y_STRETCH_GRID
-     &        , jet_domain_width
+        read(input,*,err=95) fst_dt, fst_F, fst_Lmin, fst_Lmax,
+     &        fst_tstart, fst_tdecay, fst_Nmode, 
+     &        fst_xmid, fst_xwid, fst_ymid, fst_ywid, 
+        fst_tstart =  fst_tstart * day2sec
+        fst_tdecay =  fst_tdecay * day2sec
+      elseif (keyword(1:kwlen).eq.'fsturb_avmodes') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) (fst_a(itrc),itrc=1,fst_Nmode)
 #endif
-        call params_output('jet_flag', flag_jet)
-        call params_output('jet_flag_perturb', flag_jet_perturb)
-        call params_output('jet_ywidth', jet_ywidth)
-        call params_output('jet_weight', jet_weight)
-!        MPI_master_only write(stdout,
-!        MPI_master_only write(stdout,
-!     &         '(7x,A,1x,L1)')
-!     &         'Flag jet = ', flag_jet
-!        MPI_master_only write(stdout,
-!     &         '(7x,A,1x,L1)')
-!     &         'Flag perturb = ', flag_jet_perturb
-!        MPI_master_only write(stdout,
-!     &         '(7x,A,1x,1pe10.3,1x,A,1x,1pe10.3)')
-!     &         'jet_ywidth = ', jet_ywidth,
-!     &         ', jet_weight = ', jet_weight
-# ifdef Y_STRETCH_GRID
-        call params_output('jet_domain_width', jet_domain_width)
-!        MPI_master_only write(stdout,
-!     &         '(7x,A,1x,1pe10.3)')
-!     &         'jet_domain_width = ',jet_domain_width
-#endif
-#ifdef JET_DECAY
-        call params_output('jet_decay_start', jet_decay_start)
-!        MPI_master_only write(stdout,
-!     &         '(7x,A,1x,F10.3,A)')
-!     &         'jet_decay_start = ', jet_decay_start, ' days'
-        jet_decay_start =  jet_decay_start * day2sec
-        jet_decay_length = 30.*day2sec/sqrt(-log(0.1))   ! forçage = 0.1 au bout de 30j de decay
-
-#endif
-#endif
-! aponte jet )
 ! aponte sponges (
 ! relaxation layer in fact
       elseif (keyword(1:kwlen).eq.'damp_rl') then

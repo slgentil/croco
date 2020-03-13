@@ -91,9 +91,16 @@
 # ifdef MRL_WCI
       real vstu,dudx,dvdx,ustv,dude,dvde
 # endif
-# ifdef FSTURB
+#  ifdef IWMAKER || FSTURB
       real FCn(PRIVATE_1D_SCRATCH_ARRAY,0:N,10)
 # endif
+#  ifdef IWMAKER 
+      real y, yoff, dely, delt, time_itide
+      integer nmode
+      real CF(PRIVATE_1D_SCRATCH_ARRAY,0:N),
+     &     FC(PRIVATE_1D_SCRATCH_ARRAY,0:N),
+     &     DC(PRIVATE_1D_SCRATCH_ARRAY,0:N)     
+#  endif
 !
 !--------------------------------------------------------------------
 ! Definition of flux operators: 1st, 2nd, 3rd, 4th, 5th or 6th order,
@@ -376,11 +383,114 @@
 #  undef Uwrk
 # endif /* BODYFORCE */
 
+! aponte wmaker (
+# ifdef IWMAKER
+#  ifdef MPI
+      y=real(0+jj*Mm)
+#  else
+      y=0.
+#  endif
+      y=y/real(MMm)
+      yoff = y - 1. * y_itide/el
+! spatial width of the forcing (gaussian shape)
+      dely = dely_itide/el
+! ramping timescale in days
+      delt = 4.0
+      time_itide = time - start_time_itide
+#  if WMAKER_TEST == 6
+      do j=JstrV,Jend
+       ! Big loop around modes
+       do nmode=2,4
+        ! interpolate forcing on actual grid
+        ! there is some degree of inaccuracy due to the fact that v points are
+        ! not on z_r, could be improved
+        do k=2,N-1
+          do i=Istr,Iend
+             FCn(i,k,nmode) = (
+     &           phiuv(k,nmode)
+     &             + 0.5*( (phiuv(k+1,nmode)-phiuv(k,nmode))
+     &                     /(zr_vmodes(k+1)-zr_vmodes(k))
+     &                    +(phiuv(k,nmode)-phiuv(k-1,nmode))
+     &                     /(zr_vmodes(k)-zr_vmodes(k-1)) )
+     &                  *(z_r(i,j,k)-zr_vmodes(k)) )
+          enddo
+        enddo
+        do i=Istr,Iend
+            k=1
+             FCn(i,k,nmode) = (
+     &              phiuv(k,nmode)
+     &             + (phiuv(k+1,nmode)-phiuv(k,nmode))
+     &               /(zr_vmodes(k+1)-zr_vmodes(k))
+     &               *(z_r(i,j,k)-zr_vmodes(k)) )
+         !
+            k=N
+            FCn(i,k,nmode) = (
+     &              phiuv(k,nmode)
+     &             + (phiuv(k,nmode)-phiuv(k-1,nmode))
+     &               /(zr_vmodes(k)-zr_vmodes(k-1))
+     &               *(z_r(i,j,k)-zr_vmodes(k)) )
+        enddo
+        if ( True ) then
+          ! correct barotropicity
+          do i=IV_RANGE
+            DC(i,0)=0.
+            CF(i,0)=0.
+            FC(i,0)=0.
+          enddo
+          ! compute local depth and forcing integral
+          do k=1,N,+1
+            do i=IV_RANGE
+              DC(i,k)=0.5*(Hz(i,j,k)+Hz(i,j-1,k))
+              DC(i,0)=DC(i,0)+DC(i,k)
+              CF(i,0)=CF(i,0)+DC(i,k)*FCn(i,k,nmode)
+            enddo
+          enddo
+          ! average
+          do i=IV_RANGE
+            DC(i,0)=1./DC(i,0)
+            CF(i,0)=DC(i,0)*CF(i,0)
+          enddo
+          ! substract average
+          do k=1,N
+            do i=IV_RANGE
+              FCn(i,k,nmode)=FCn(i,k,nmode)-CF(i,0)
+            enddo
+          enddo
+         endif
+         !
+         ! update rv
+         !
+         do k=1,N
+           do i=IV_RANGE
+            rv(i,j,k,nnew)=rv(i,j,k,nnew)+
+     &          *( Atide_cos_mode(nmode) * cos(omega_itide*time_itide)
+     &            +Atide_sin_mode(nmode) * sin(omega_itide*time_itide)
+     &                      )
+            ! with progressive shape
+!     &          *(  Avc_itide * cos(omega_itide*time
+!     &                  - omega_itide*el/c_vmodes(nmode_itide)
+!     &                    *(real(j)/real(MMm)+yoff))
+!     &            + Avs_itide * sin(omega_itide*time
+!     &                  - omega_itide*el/c_vmodes(nmode_itide)
+!     &                    *(real(j)/real(MMm)+yoff)) )
+            ! above is inaccurate because rotation should be considered ...
+     &          *0.5*(1+sign(1.,time_itide))*tanh(time_itide/86400.0/delt)**2
+     &          *exp(-(real(j)/real(MMm)+yoff)**2/dely**2)
+            ! vertical structure
+     &          *FCn(i,k,nmode)
+     &          *om_v(i,j)*on_v(i,j)*0.5*(Hz(i,j,k)+Hz(i,j-1,k))
+          enddo
+        enddo
+       enddo
+      enddo
+#   endif
+# endif
+! aponte wmaker )
+
 ! spectral turbulence forcing 
 # ifdef FSTURB
       !
-      ! ru
-      !
+      ! ru (acceleration x Hz x dx x dy)
       do j=Jstr,Jend
         ! Interpolate forcing in time 
         do k=1,N
@@ -394,9 +504,7 @@
      &                 *(time - fst_time)/fst_dt
           enddo
         enddo
-        ! interpolate forcing on actual grid
-        ! there is some degree of inaccuracy due to the fact that v points are
-        ! not on z_r, could be improved
+        ! interpolate forcing on current vertical grid
         do k=2,N-1
           do i=IstrU,Iend
             FCn(i,k,2) = (
@@ -415,7 +523,6 @@
      &             + (FCn(i,k+1, 1)-FCn(i,k, 1))
      &               /(zr_vmodes(k+1)-zr_vmodes(k))
      &               *(z_u(i,j,k)-zr_vmodes(k)) )
-!     &               *(z_r(i,j,k)-zr_vmodes(k)) )
           k=N
           FCn(i,k,2) = (
      &              FCn(i,k, 1)
@@ -423,9 +530,7 @@
      &               /(zr_vmodes(k)-zr_vmodes(k-1))
      &               *(z_u(i,j,k)-zr_vmodes(k)) )
         enddo
-        !
         ! update ru
-        !
         do k=1,N
           do i=IstrU,Iend
             ru(i,j,k) = ru(i,j,k) + FCn(i,k,2)*om_u(i,j)*on_u(i,j)
@@ -433,6 +538,8 @@
           enddo
         enddo
       enddo
+      !
+      ! rv (acceleration x Hz x dx x dy)
       do j=JstrV,Jend
         ! Interpolate forcing in time 
         do k=1,N
@@ -446,9 +553,7 @@
      &                 *(time - fst_time)/fst_dt
           enddo
         enddo
-        ! interpolate forcing on actual grid
-        ! there is some degree of inaccuracy due to the fact that v points are
-        ! not on z_r, could be improved
+        ! interpolate forcing on current vertical grid
         do k=2,N-1
           do i=Istr,Iend
             FCn(i,k,2) = (
@@ -474,9 +579,7 @@
      &               /(zr_vmodes(k)-zr_vmodes(k-1))
      &               *(z_v(i,j,k)-zr_vmodes(k)) )
         enddo
-        !
         ! update rv
-        !
         do k=1,N
           do i=Istr,Iend
             rv(i,j,k)=rv(i,j,k) + FCn(i,k,2)*om_v(i,j)*on_v(i,j)

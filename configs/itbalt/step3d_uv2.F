@@ -59,7 +59,7 @@
 !-------------------------------------------------------------------- 
 !
 ! module for the turbulence forcing
-#ifdef FSTURB
+#ifdef FSTURB_OFF
         use fsturb
 #endif
       implicit none
@@ -104,9 +104,10 @@
       real dRx,dRe, cfilt
 # endif
 ! aponte iwmaker (
-      ! FCn is moved outside to be used by FSTURB
+#  ifdef IWMAKER || FSTURB
       real FCn(PRIVATE_1D_SCRATCH_ARRAY,0:N,10)
-#  ifdef IWMAKER
+#  endif
+#  ifdef IWMAKER 
       real y, yoff, dely, delt, time_itide
       integer nmode
 #  endif
@@ -1350,10 +1351,9 @@
 ! aponte wmaker )
 
 ! spectral turbulence forcing 
-# ifdef FSTURB_TURNED_OFF
+# ifdef FSTURB_OFF
       !
       ! u
-      !
       do j=JV_RANGE
         ! Interpolate forcing in time 
         do k=1,N
@@ -1367,9 +1367,7 @@
      &                 *(time - fst_time)/fst_dt
           enddo
         enddo
-        ! interpolate forcing on actual grid
-        ! there is some degree of inaccuracy due to the fact that v points are
-        ! not on z_r, could be improved
+        ! interpolate forcing on current vertical grid
         do k=2,N-1
           do i=Istr,Iend
             FCn(i,k,2) = (
@@ -1379,7 +1377,6 @@
      &                    +(FCn(i,k, 1)-FCn(i,k-1, 1))
      &                     /(zr_vmodes(k)-zr_vmodes(k-1)) )
      &                  *(z_u(i,j,k)-zr_vmodes(k)) )
-!     &                  *(z_r(i,j,k)-zr_vmodes(k)) )
           enddo
         enddo
         do i=Istr,Iend
@@ -1389,52 +1386,22 @@
      &             + (FCn(i,k+1, 1)-FCn(i,k, 1))
      &               /(zr_vmodes(k+1)-zr_vmodes(k))
      &               *(z_u(i,j,k)-zr_vmodes(k)) )
-!     &               *(z_r(i,j,k)-zr_vmodes(k)) )
           k=N
           FCn(i,k,2) = (
      &              FCn(i,k, 1)
      &             +(FCn(i,k, 1)-FCn(i,k-1, 1))     
      &               /(zr_vmodes(k)-zr_vmodes(k-1))
      &               *(z_u(i,j,k)-zr_vmodes(k)) )
-!     &               *(z_r(i,j,k)-zr_vmodes(k)) )
         enddo
-        !
-        ! correct barotropicity here
-        !
-        ! init variables
-        !do i=IV_RANGE
-        !  DC(i,0)=0.
-        !  CF(i,0)=0.
-        !  FC(i,0)=0.
-        !enddo
-        ! compute local depth and forcing integral
-        !do k=1,N,+1
-        !  do i=IV_RANGE
-        !    DC(i,k)=0.5*(Hz(i,j,k)+Hz(i-1,j,k))
-        !    DC(i,0)=DC(i,0)+DC(i,k)
-        !    CF(i,0)=CF(i,0)+DC(i,k)*FCn(i,k,2)
-        !  enddo
-        !enddo
-        ! average
-        !do i=IV_RANGE
-        !  DC(i,0)=1./DC(i,0)
-        !  CF(i,0)=DC(i,0)*CF(i,0)
-        !enddo
-        ! substract average
-        !do k=1,N
-        !  do i=IV_RANGE
-        !    FCn(i,k,2)=FCn(i,k,2)-CF(i,0)
-        !  enddo
-        !enddo
-        !
         ! update u
-        !
         do k=1,N
           do i=IV_RANGE
             u(i,j,k,nnew) = u(i,j,k,nnew) + dt*FCn(i,k,2)
           enddo
         enddo
       enddo
+      !
+      ! v
       do j=JV_RANGE
         ! Interpolate forcing in time 
         do k=1,N
@@ -1448,9 +1415,7 @@
      &                 *(time - fst_time)/fst_dt
           enddo
         enddo
-        ! interpolate forcing on actual grid
-        ! there is some degree of inaccuracy due to the fact that v points are
-        ! not on z_r, could be improved
+        ! interpolate forcing on current vertical grid
         do k=2,N-1
           do i=Istr,Iend
             FCn(i,k,2) = (
@@ -1476,37 +1441,7 @@
      &               /(zr_vmodes(k)-zr_vmodes(k-1))
      &               *(z_v(i,j,k)-zr_vmodes(k)) )
         enddo
-        !
-        ! correct barotropicity here
-        !
-        ! init variables
-        !do i=IV_RANGE
-        !  DC(i,0)=0.
-        !  CF(i,0)=0.
-        !  FC(i,0)=0.
-        !enddo
-        ! compute local depth and forcing integral
-        !do k=1,N,+1
-        !  do i=IV_RANGE
-        !    DC(i,k)=0.5*(Hz(i,j,k)+Hz(i,j-1,k))
-        !    DC(i,0)=DC(i,0)+DC(i,k)
-        !    CF(i,0)=CF(i,0)+DC(i,k)*FCn(i,k,2)
-        !  enddo
-        !enddo
-        ! average
-        !do i=IV_RANGE
-        !  DC(i,0)=1./DC(i,0)
-        !  CF(i,0)=DC(i,0)*CF(i,0)
-        !enddo
-        ! substract average
-        !do k=1,N
-        !  do i=IV_RANGE
-        !    FCn(i,k,2)=FCn(i,k,2)-CF(i,0)
-        !  enddo
-        !enddo
-        !
         ! update v
-        !
         do k=1,N
           do i=IV_RANGE
             v(i,j,k,nnew)=v(i,j,k,nnew) + dt*FCn(i,k,2)

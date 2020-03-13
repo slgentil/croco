@@ -34,7 +34,7 @@
      &                          FX,FE, WORK, FC,CF,BC,DC,EC,GC, swdk)
 
 ! module for the turbulence forcing
-#ifdef FSTURB
+#ifdef FSTURB_OFF
         use fsturb
 #endif
       implicit none
@@ -881,12 +881,9 @@
 ! aponte iwmaker )
 
 ! spectral turbulence forcing 
-# ifdef FSTURB
-
+# ifdef FSTURB_OFF
       do j=Jstr,Jend
-
-! Interpolate forcing in time 
-
+        ! Interpolate forcing in time 
         do k=1,N
           do i=Istr,Iend
              FC(i,k) = fst_F_t(i,j,k,fst_nold) *
@@ -895,9 +892,7 @@
      &                 (time - fst_time)/fst_dt
           enddo
         enddo
-
-! interpolate forcing on actual z grid
-
+        ! interpolate forcing on actual z grid
         do k=2,N-1
           do i=Istr,Iend
              FC(i,k) = (FC(i,k)
@@ -923,18 +918,13 @@
      &               /(zr_vmodes(k)-zr_vmodes(k-1))
      &               *(z_r(i,j,k)-zr_vmodes(k)) )
         enddo
-
-!
-! update traceur
-!
+        ! update traceur
         do k=1,N
           do i=Istr,Iend
             t(i,j,k,nnew,itrc)=t(i,j,k,nnew,itrc)+FC(i,k)*0.
           enddo
         enddo
-
       enddo
-
 # endif /* FSTURB */
 
 !

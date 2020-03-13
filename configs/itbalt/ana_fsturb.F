@@ -1,6 +1,6 @@
 ! 
 !  for each level k
-!     fst_F_t(i,j,k,t) = fst_FT * fst_W(i,j) * fst_out(i,j)
+!     fst_F_t(i,j,k,t) = fst_F * fst_W(i,j) * fst_out(i,j)
 !  
 ! Doc about fftw:
 !  http://www.fftw.org/fftw3_doc/Multi_002ddimensional-Transforms.html#Multi_002ddimensional-Transforms  
@@ -21,24 +21,31 @@
 !     indices of the old and new fsturb time step
       integer :: fst_nold, fst_nnew
 !     time step of the computation of the forcing (second)
-      real(kind=8), parameter :: fst_dt = 10.*86400.
+!      real(kind=8), parameter :: fst_dt = 10.*86400.
+      real(kind=8) :: fst_dt
 !     time after which forcing is killed
-      real(kind=8), parameter :: fst_tstart = 0.
-      real(kind=8), parameter :: fst_tdecay = 800.*86400.
+      !real(kind=8), parameter :: fst_tstart = 0.
+      !real(kind=8), parameter :: fst_tdecay = 800.*86400.
+      real(kind=8) :: fst_tstart
+      real(kind=8) :: fst_tdecay
 !     time of computation corresponding to the fst_nnew indice
-      real(kind=8)            :: fst_time
+      real(kind=8) :: fst_time
 
 ! Number of modes to keep, amplitude of each mode
-      integer, parameter      :: fst_Nmode=5
-      real(kind=8), dimension(fst_Nmode), parameter :: 
-     &                               fst_a = (/0.0,1.0,0.0,0.0,0.0/)
+!      integer, parameter      :: fst_Nmode=5
+      integer  :: fst_Nmode
+!      real(kind=8), dimension(fst_Nmode), parameter :: 
+!     &                               fst_a = (/0.0,1.0,0.0,0.0,0.0/)
+      real(kind=8), dimension(fst_Nmode) :: fst_a
 
 ! For the real form of the forcing
-      real(kind=8), parameter :: fst_xmid  = 512.e+3, fst_xwid = 200.e+3
-      real(kind=8), parameter :: fst_ymid  = 1440.e+3, fst_ywid = 500.e+3
+!      real(kind=8), parameter :: fst_xmid  = 512.e+3, fst_xwid = 200.e+3
+!      real(kind=8), parameter :: fst_ymid  = 1440.e+3, fst_ywid = 500.e+3
+      real(kind=8) :: fst_xmid, fst_xwid
+      real(kind=8) :: fst_ymid, fst_ywid
 !     amplitude of the forcing
-!      real(kind=8), parameter :: fst_FT = 1.e-1
-      real(kind=8) :: fst_FT
+!      real(kind=8), parameter :: fst_F = 1.e-1
+      real(kind=8) :: fst_F
 !     gaussian form of the forcing
       real(kind=8),dimension(:,:), allocatable :: fst_W
 !     total forcing
@@ -56,7 +63,8 @@
 ! For the complex part of the forcing
       integer   :: L2, M2
 !     Radius and width for the horizontal part of the spectral initialization      
-      real(kind=8)            :: fst_kF, fst_dkF
+      real(kind=8) :: fst_Lmin, fst_Lmax
+      real(kind=8) :: fst_kF, fst_dkF
 !     wave length   
       real(kind=8),dimension(:), allocatable     ::fst_kx
       real(kind=8),dimension(:), allocatable     :: fst_ky
@@ -107,18 +115,20 @@
       real(kind=8) :: kx, ky, uF
 
       ! forcing wavenumbers
-      fst_kF = 16./xl
-      fst_dkF = fst_kF/4.
+      !fst_kF = 16./xl
+      !fst_dkF = fst_kF/4.
+      fst_kF = .5/fst_Lmin + .5/fst_Lmax
+      fst_dkF = .5/fst_Lmin - .5/fst_Lmax
       ! forcing amplitude, forcing on density
       ! uF = 0.1
-      ! fst_FT = uF*1.0313E-4 /fst_kF/g *rho0/abs(Tcoef) /fst_dt
+      ! fst_F = uF*1.0313E-4 /fst_kF/g *rho0/abs(Tcoef) /fst_dt
       !  ~ 1e-4
       ! above is not pretty: too many hardcoded parameters:
       ! f0 = 1.0313E-4
       !
       ! for velocity forcing:
-      ! fst_FT = uF /fst_kF /fst_dt
-      fst_FT = 0.001
+      ! fst_F = uF /fst_kF /fst_dt
+      !fst_F = 0.001
 
       ! nint = number of vertical levels per procs
       if ( mod(N,NNODES) == 0 ) then
@@ -202,9 +212,11 @@
       call params_output('fst_xwid',fst_xwid)
       call params_output('fst_ymid',fst_ymid)
       call params_output('fst_ywid',fst_ywid)
-      call params_output('fst_FT',fst_FT)
+      call params_output('fst_F',fst_F)
       call params_output('fst_k',fst_kF)
       call params_output('fst_dk',fst_dkF)
+      call params_output('fst_Lmin',fst_Lmin)
+      call params_output('fst_Lmax',fst_Lmax)
 
       end subroutine init_fsturb
 
@@ -247,22 +259,22 @@
       endif
 
       do k=1,N
-         fst_F_t(:,:,k,fst_nnew) = fst_F_t(:,:,k,fst_nnew) * fst_FT 
+         fst_F_t(:,:,k,fst_nnew) = fst_F_t(:,:,k,fst_nnew) * fst_F 
      &                          * fst_W(:,:)
      &                          * start_decay
       enddo
 
-      fst_F_zeta(:,:,fst_nnew) = fst_F_zeta(:,:,fst_nnew) * fst_FT 
+      fst_F_zeta(:,:,fst_nnew) = fst_F_zeta(:,:,fst_nnew) * fst_F 
      &                          * fst_W(:,:)
      &                          * start_decay
 
       do k=1,N
-        fst_F_uv(:,:,k,fst_nnew) = fst_F_uv(:,:,k,fst_nnew) * fst_FT 
+        fst_F_uv(:,:,k,fst_nnew) = fst_F_uv(:,:,k,fst_nnew) * fst_F 
      &                          * fst_W(:,:)
      &                          * start_decay
       enddo
 
-      fst_F_uvbt(:,:,fst_nnew) = fst_F_uvbt(:,:,fst_nnew) * fst_FT 
+      fst_F_uvbt(:,:,fst_nnew) = fst_F_uvbt(:,:,fst_nnew) * fst_F 
      &                          * fst_W(:,:)
      &                          * start_decay
 
