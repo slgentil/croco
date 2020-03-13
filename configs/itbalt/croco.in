@@ -49,28 +49,11 @@ nudg_cof:    TauT_in, TauT_out, TauM_in, TauM_out  [days for all]
 lateral_visc:   VISC2,    VISC4    [m^2/sec for all]
                 0.0       0.0e+8
 
-tracer_diff2: TNU2(1:NT)           [m^2/sec for all]
-               0.0   260.
-
 tracer_diff4: TNU4(1:NT)
               0.0e+8     0.0e+8
 
-MY_bak_mixing: Akq_bak, q2nu2, q2nu4
-               5.0d-6   0.     0.
-
-diagnostics:   ldefdia   nwrtdia    nrpfdia /filename
-                  F        10         0
-                  diags_ts.out
-diagnosticsM:   ldefdiaM   nwrtdiaM    nrpfdiaM /filename
-                  F          10          0
-                  diags_uv.out
-diagspec:       navgspec nwrtspec spec_nlev /filename /levels
-                5        10       5
-                spec.nc
-                2 4 6 8 16
-
-fsturb: dt     F     Lmin     Lmax   t_start  t_decay  Nmode xmid xwid ymid ywid
-        10.  1.e-3    50.     100.      0.      800.     5
+fsturb: dt     F     Lmin     Lmax   t_start  t_decay  Nmode xmid xwid   ymid     ywid
+        10.  1.e-3  50.e+3   100.e+3      0.      800.     5    0.    0. 1440.e+3  500.e+3  
 
 fsturb_avmodes: a(1:Nmode)
         0.0   1.0   0.0   0.0   0.0

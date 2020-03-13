@@ -91,7 +91,7 @@
 # ifdef MRL_WCI
       real vstu,dudx,dvdx,ustv,dude,dvde
 # endif
-#  ifdef IWMAKER || FSTURB
+# if defined IWMAKER || defined FSTURB
       real FCn(PRIVATE_1D_SCRATCH_ARRAY,0:N,10)
 # endif
 #  ifdef IWMAKER 

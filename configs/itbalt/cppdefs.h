@@ -61,7 +61,7 @@
 # undef BETAON
 
 ! type of wavemaker
-# define WMAKER_TEST 5
+# define WMAKER_TEST 6
 # undef ITIDEP
 
 # define FSTURB
@@ -144,8 +144,8 @@
 # ifdef  LMD_MIXING
 #  undef  ANA_VMIX
 #  define ANA_SRFLUX
-#  define   LMD_SKPP
-#  undef    LMD_BKPP
+#  define LMD_SKPP
+#  define LMD_BKPP
 #  define LMD_RIMIX
 #  define LMD_CONVEC
 #  undef  LMD_KPP /* this flag seems deprecated !? */

@@ -36,7 +36,7 @@
       integer  :: fst_Nmode
 !      real(kind=8), dimension(fst_Nmode), parameter :: 
 !     &                               fst_a = (/0.0,1.0,0.0,0.0,0.0/)
-      real(kind=8), dimension(fst_Nmode) :: fst_a
+      real(kind=8), dimension(10) :: fst_a
 
 ! For the real form of the forcing
 !      real(kind=8), parameter :: fst_xmid  = 512.e+3, fst_xwid = 200.e+3

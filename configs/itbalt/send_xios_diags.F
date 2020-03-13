@@ -2499,7 +2499,8 @@ C 				  endif
 !      call xios_send_field("hbl",work2d)
 #  endif
 #  ifdef LMD_BKPP
-      call xios_send_field("hbbl",work2d)
+! aponte turned off, crash otherwise
+!      call xios_send_field("hbbl",work2d)
 #  endif
 #  ifdef GLS_MIXING
 !      call xios_send_field("tke",tke(:,:,:,nstp))

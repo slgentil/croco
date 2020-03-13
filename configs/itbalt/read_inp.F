@@ -2531,7 +2531,8 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) fst_dt, fst_F, fst_Lmin, fst_Lmax,
      &        fst_tstart, fst_tdecay, fst_Nmode, 
-     &        fst_xmid, fst_xwid, fst_ymid, fst_ywid, 
+     &        fst_xmid, fst_xwid, fst_ymid, fst_ywid
+        fst_dt =  fst_dt * day2sec
         fst_tstart =  fst_tstart * day2sec
         fst_tdecay =  fst_tdecay * day2sec
       elseif (keyword(1:kwlen).eq.'fsturb_avmodes') then
