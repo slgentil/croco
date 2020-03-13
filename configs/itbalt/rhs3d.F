@@ -429,6 +429,7 @@
         do k=1,N
           do i=IstrU,Iend
             ru(i,j,k) = ru(i,j,k) + FCn(i,k,2)*om_u(i,j)*on_u(i,j)
+     &                               *0.5*(Hz(i,j,k)+Hz(i-1,j,k))
           enddo
         enddo
       enddo
@@ -479,6 +480,7 @@
         do k=1,N
           do i=Istr,Iend
             rv(i,j,k)=rv(i,j,k) + FCn(i,k,2)*om_v(i,j)*on_v(i,j)
+     &                               *0.5*(Hz(i,j,k)+Hz(i,j-1,k))
           enddo
         enddo
       enddo
