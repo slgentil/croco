@@ -175,11 +175,17 @@ def get_pv(u, v, rho, rho_a, f, f0, zr, zw, ds):
 
     return q
 
-def interp2z_3d(z0, z, v, extrap):
+def interp2z_3d(z0, z, v, b_extrap=2, t_extrap=2):
+    """
+    b_extrap, t_extrap:
+        0 set to NaN
+        1 set to nearest neighboor
+        2 linear extrapolation
+    """
     import crocosi.fast_interp3D as fi  # OpenMP accelerated C based interpolator
     # check v and z have identical shape
     assert v.ndim==z.ndim
-    # test if temporal dimension is present
+    # add dimensions if necessary
     if v.ndim == 1:
         lv = v.squeeze()[:,None,None]
         lz = z.squeeze()[:,None,None]
@@ -190,25 +196,22 @@ def interp2z_3d(z0, z, v, extrap):
         lz = z[...]
         lv = v[...]
     #
-    if extrap:
-        zmin = np.min(z0)-1.
-        lv = np.concatenate((lv[[0],...], lv), axis=0)
-        lz = np.concatenate((zmin+0.*lz[[0],...], lz), axis=0)
-    #
-    return fi.interp(z0.astype('float64'), lz.astype('float64'), lv.astype('float64'))
+    return fi.interp(z0.astype('float64'), lz.astype('float64'), lv.astype('float64'), 
+                     b_extrap, t_extrap).squeeze()
 
-def interp2z(z0, z, v, extrap):
+def interp2z(z0, z, v, b_extrap, t_extrap):
     ''' interpolate vertically
     '''
     # check v and z have identical shape
     assert v.ndim==z.ndim
     # test if temporal dimension is present
     if v.ndim == 4:
-        vi = [interp2z_3d(z0, z[...,t], v[...,t], extrap)[...,None] for t in range(v.shape[-1])]
+        vi = [interp2z_3d(z0, z[...,t], v[...,t], b_extrap, t_extrap)[...,None] 
+                  for t in range(v.shape[-1])]
         return np.concatenate(vi, axis=0) # (50, 722, 258, 1)
         #return v*0 + v.shape[3]
     else:
-        return interp2z_3d(z0, z, v, extrap)
+        return interp2z_3d(z0, z, v, b_extrap, t_extrap)
 
 
 def N2Profile(run, strat, z, g=9.81):

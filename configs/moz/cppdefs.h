@@ -66,7 +66,8 @@
 # undef  OA_COUPLING
 # undef  OW_COUPLING
                       /* I/O server */
-# define  XIOS
+# define XIOS
+# define USE_CALENDAR
 # undef PARALLEL_FILES
 
                       /* Open Boundary Conditions */
@@ -101,7 +102,7 @@
 # define SPHERICAL
 # define MASKING
 # undef  WET_DRY
-# undef  NEW_S_COORD
+# define  NEW_S_COORD
                       /* Model dynamics */
 # define SOLVE3D
 # define UV_COR
@@ -245,8 +246,8 @@
 # undef  OBC_M3SPECIFIED
 # undef  OBC_TSPECIFIED
                       /* Input/Output & Diagnostics */
-# define AVERAGES
-# define AVERAGES_K
+# undef AVERAGES
+# undef AVERAGES_K
 # undef  DIAGNOSTICS_TS
 # undef  DIAGNOSTICS_UV
 # ifdef DIAGNOSTICS_TS

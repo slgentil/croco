@@ -1,0 +1,16 @@
+8:
+  nbproc_roms: 8
+  nbproc_xios: 1
+  elapse_time: '03:00:00'
+4:
+  nbproc_roms: 48
+  nbproc_xios: 2
+  elapse_time: '24:00:00'
+2:
+  nbproc_roms: 60
+  nbproc_xios: 2
+  elapse_time: '24:00:00'
+1:
+  nbproc_roms: 960
+  nbproc_xios: 48
+  elapse_time: '24:00:00'
