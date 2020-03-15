@@ -1,15 +1,15 @@
 import os, sys
+from os.path import join
 import shutil
 from glob import glob
 import yaml
+import time
 
-from os.path import join
-
-class run(Object):
+class run(object):
     """ Object to automate run launchings
     """
     
-    def __init__(self, rundir, nbchain=1, elaptim=None, config=None,
+    def __init__(self, rundir, nbchains=1, elaptim=None, config=None,
                  jobname='job', workdir=None, restart=False,
                  launch=False,
                  **params):
@@ -24,23 +24,27 @@ class run(Object):
             self.workdir = workdir
         # main directory where the simulation will be run:
         self.rpath = join(self.workdir, rundir)
+        print('Run will be stored in {}'.format(self.rpath))
         self._create_rpath()
         # individual run directories
-        self.nbchain = nbchain
+        self.nbchains = nbchains
         self._create_tdirs()
         # backup code files
         self._backup_code()
         # change input parameters in croco.in
+        self.restart = restart
         self.update_input_file(**params)    
         # guess config if necessary and create job files
         self.jobname = jobname
-        self.load_config(config)
+        self._load_config(config)
         self._create_job_files()
         # create commands to be executed
         self._create_commands()
         # launch runs
-        self.launch()
-                     
+        if launch:
+            self.launch()
+        os.chdir(self.startdir)
+
     def _create_rpath(self):
         if os.path.exists(self.rpath) :    
             os.system('rm -Rf '+self.rpath)
@@ -49,13 +53,14 @@ class run(Object):
     
     def _create_tdirs(self):
         self.tdirs = [join(self.rpath, 't'+str(t)) 
-                        for t in range(0, self.nbchain+1)]
-        for tdir in self.tdirs:
+                        for t in range(1, self.nbchains+1)]
+        for t, tdir in zip(range(1,self.nbchains+1), self.tdirs):
             os.mkdir(tdir)
             if t != 0 :
                 # copy executables and input files
                 shutil.copy(self.startdir+'/croco',tdir)
                 shutil.copy(self.startdir+'/croco.in',tdir)
+                shutil.copy(self.startdir+'/config.yaml',tdir)
                 shutil.copy(self.startdir+'/iodef.xml',tdir)
                 shutil.copy(self.startdir+'/domain_def.xml',tdir)
                 shutil.copy(self.startdir+'/axis_def.xml',tdir)
@@ -68,7 +73,7 @@ class run(Object):
         _bpath = join(self.rpath,'backup/')
         if ~os.path.exists(_bpath):
             os.mkdir(_bpath)
-            code_files = glob(join(startdir,'*.F'))
+            code_files = glob(join(self.startdir,'*.F'))
             #cmd='find '+startdir+' -name "*.[Fh]" -exec grep -l aponte {} \;'
             #listfiles = os.popen(cmd).readlines()  
             for f in code_files:
@@ -84,7 +89,7 @@ class run(Object):
                 given as lists or single values
         """
 
-        for t, tdir in zip(range(1,self.nbchain+1), self.tdirs):
+        for t, tdir in zip(range(1,self.nbchains+1), self.tdirs):
             def wrap(p):
                 if isinstance(p, list):
                     return '         '+'  '.join(map(str,p))+'\n'
@@ -106,7 +111,7 @@ class run(Object):
                       lines[index+1]=lines[index+1].rstrip()[:-2]+'1\n'
                    for p, v in params.items():
                        if p in line:
-                           lines[index+1]=wrap(p,v)
+                           lines[index+1]=wrap(v)
             with open('croco.in','w') as f:
                 f.writelines(lines)
 
@@ -117,12 +122,14 @@ class run(Object):
             self.config = list(configs.keys())[0]
             _required = ['elapse_time', 'nbproc_roms', 'nbproc_xios']
             assert all([r in configs[self.config] for r in _required])
-            for k, v in configs[self.config]:
+            for k, v in configs[self.config].items():
                 setattr(self, k, v)
+        self.nb_cores = self.nbproc_roms+self.nbproc_xios
+        self.nb_nodes = int((self.nb_cores)/28)+1
 
     def _create_job_files(self):
         
-        for t, tdir in zip(range(1,self.nbchain+1), self.tdirs):
+        for t, tdir in zip(range(1,self.nbchains+1), self.tdirs):
             with open(join(tdir,'job_datarmor'),'w') as f:
                 f.write('#!/bin/csh\n')
                 f.write('#PBS -N '+self.jobname+str(t)+'\n')
@@ -151,7 +158,7 @@ class run(Object):
     def _create_commands(self):
 
         # all runs
-        for t, tdir in zip(range(1,self.nbchain+1), self.tdirs):
+        for t, tdir in zip(range(1,self.nbchains+1), self.tdirs):
             os.chdir(tdir)
             if t == 1:
                 command='qsub -h job_datarmor'  
@@ -159,26 +166,29 @@ class run(Object):
                 f=os.popen('qselect -N '+self.jobname+str(t-1)+' -u '
                            +self.user)
                 numjob=f.read()
-                command='qsub -W depend=afterany:'+str(numjob[:-1])
+                command='qsub -W depend=afterany:'+str(numjob[:-1]) \
                         +' job_datarmor'
             os.system(command)
         
         # first run
-        os.chdir(join(self.rpath,'/t1'))
+        os.chdir(join(self.rpath,'t1'))
         f=os.popen('qselect -N '+self.jobname+str(1)+' -u '
                     +self.user)
         numjob=f.read()
         self.command = 'qrls '+numjob[:-1]
+        #print(self.command)
 
-        if restart and isinstance(restart,str) and os.isdir(restart):
-            for f in glob(restart):
+        if self.restart and isinstance(self.restart,str) and os.isdir(self.restart):
+            for f in glob(self.restart):
                 sh.copy(f, join(self.rpath,'t0'))        
-        elif restart:
-            print('Put the restart files in '+join(self.restart,'/t0'))
+        elif self.restart:
+            print('Put the restart files in '+join(self.restart,'t0'))
                 
     def launch(self):
         """ Launch simulations
         """
-        os.chdir(join(self.rpath,'/t1'))
+        time.sleep(1)
+        os.chdir(join(self.rpath,'t1'))
         os.system(self.command)
-                
+        os.chdir(self.startdir)
+

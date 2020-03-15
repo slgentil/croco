@@ -101,11 +101,11 @@
 # define UV_ADV
 
 !                   Advection for tracer (default: HADV UP3, VADV AKIMA )
-# define  TS_HADV_UP5
-# define  TS_VADV_SPLINES
+!# define  TS_HADV_UP5
+!# define  TS_VADV_SPLINES
 !                   Avection for momentum (default: HADV UP3, VADV SPLINES)
-# define  UV_HADV_UP5
-# define  UV_VADV_SPLINES
+!# define  UV_HADV_UP5
+!# define  UV_VADV_SPLINES
 !                   Surface and bottom fluxes
 # define ANA_STFLUX
 # define ANA_BTFLUX
