@@ -3,76 +3,50 @@ import xarray as xr
 import numpy as np
 
 # ------------------------------------------------------------------------------------------------
+
+# dangerous, should be read from output files:
 _g = 9.81
 
-def add_coords(ds, var, coords):
-    for co in coords:
-        var.coords[co] = ds.coords[co]
+# ------------------------------------------------------------------------------------
+
+def _get_xydim(v):
+    return (next(x for x in v.dims if x[0]=='x'), 
+           next(x for x in v.dims if x[0]=='y'))
+
+def x2rho(v, grid):
+    """ Interpolate from any grid to rho grid
+    """
+    xdim, ydim = _get_xydim(v)
+    vout = v.copy()
+    if xdim == 'x_u':
+        vout = grid.interp(vout, 'xi')
+    if ydim == 'y_v':
+        vout = grid.interp(vout, 'eta')
+    return vout
 
 def x2u(v, grid):
     """ Interpolate from any grid to u grid
     """
-    return v
+    xdim, ydim = _get_xydim(v)
+    vout = v.copy()
+    if xdim == 'x_rho':
+        vout = grid.interp(vout, 'xi')
+    if ydim == 'y_v':
+        vout = grid.interp(vout, 'eta')
+    return vout
 
-def rho2u(v, grid):
+def x2v(v, grid):
+    """ Interpolate from any grid to u grid
     """
-    interpolate horizontally variable from rho to u point
-    """
-    var = grid.interp(v,'xi')
-    #add_coords(ds, var, ['xi_u','eta_u'])
-    var.attrs = v.attrs # dangerous should use assign_attrs instead
-    return var.rename(v.name)
+    xdim, ydim = _get_xydim(v)
+    vout = v.copy()
+    if xdim == 'x_rho':
+        vout = grid.interp(vout, 'xi')
+    if ydim == 'y_v':
+        vout = grid.interp(vout, 'eta')
+    return vout
 
-def u2rho(v, ds):
-    """
-    interpolate horizontally variable from u to rho point
-    """
-    grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'xi')
-    add_coords(ds, var, ['xi_rho','eta_rho'])
-    var.attrs = v.attrs
-    return var.rename(v.name)
-
-def v2rho(v, ds):
-    """
-    interpolate horizontally variable from rho to v point
-    """
-    grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'eta')
-    add_coords(ds, var, ['xi_rho','eta_rho'])
-    var.attrs = v.attrs
-    return var.rename(v.name)
-
-def rho2v(v, ds):
-    """
-    interpolate horizontally variable from rho to v point
-    """
-    grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'eta')
-    add_coords(ds, var, ['xi_v','eta_v'])
-    var.attrs = v.attrs
-    return var.rename(v.name)
-
-def rho2psi(v, ds):
-    """
-    interpolate horizontally variable from rho to psi point
-    """
-    grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'xi')
-    var = grid.interp(var,'eta')
-    var.attrs = v.attrs
-    return var.rename(v.name)
-
-def psi2rho(v, ds):
-    """
-    interpolate horizontally variable from rho to psi point
-    """
-    grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'xi')
-    var = grid.interp(var,'eta')
-    add_coords(ds, var, ['xi_rho','eta_rho'])
-    var.attrs = v.attrs
-    return var.rename(v.name)
+# ------------------------------------------------------------------------------------
 
 def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r', vtrans=None):
     ''' compute vertical coordinates
@@ -124,6 +98,9 @@ def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r', vtrans=None):
         z = z.transpose(*(zdim,)+_zeta.dims)
     return z.rename('z_'+vgrid)
 
+
+# ------------------------------------------------------------------------------------
+
 def get_p(grid,rho,zw,zr=None,g=_g):
     """ compute (not reduced) pressure by integration from the surface, 
     taking rho at rho points and giving results on w points (z grid)
@@ -138,7 +115,6 @@ def get_p(grid,rho,zw,zr=None,g=_g):
         dpdn = (zw.isel(s_w=slice(1,None)).drop("s_w").rename(rna) - zr)*rho
         p = (dpup.shift(s_rho=-1, fill_value=0) + dpdn).sortby(rho.s_rho, ascending=False)                .cumsum("s_rho").sortby(rho.s_rho, ascending=True).assign_coords(z_r=zr)
     return _g *p.rename("p")
-
 
 def get_uv_from_psi(psi, ds):
     # note that u, v are computed at rho points
@@ -179,6 +155,9 @@ def get_pv(u, v, rho, rho_a, f, f0, zr, zw, ds):
 
     return q
 
+
+# ------------------------------------------------------------------------------------
+
 def interp2z_3d(z0, z, v, b_extrap=2, t_extrap=2):
     """
     b_extrap, t_extrap:
@@ -218,6 +197,8 @@ def interp2z(z0, z, v, b_extrap, t_extrap):
         return interp2z_3d(z0, z, v, b_extrap, t_extrap)
 
 
+# ------------------------------------------------------------------------------------
+    
 def N2Profile(run, strat, z, g=9.81):
     """
     Method to compute the N2 profile : 

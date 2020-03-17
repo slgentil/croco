@@ -76,9 +76,12 @@ class Run(object):
     def __getitem__(self, key):
         """ Load data set by providing suffix
         """
+        _gettable_attrs = ['xgrid']
         # assert key in self.open_nc
         if key in self.open_nc:
             return self.ds[key]
+        elif key in _gettable_attrs:
+            return getattr(self, key)
         elif key in self.params_output.keys():
             return self.params_output[key]
         elif key in self.params_input.keys():
@@ -353,17 +356,15 @@ class Run(object):
             '''
             Allows use of theta_b > 0 (July 2009)
             '''
-            one64 = np.float64(1) # weird
-
             if theta_s > 0.:
-                csrf = ((one64 - np.cosh(theta_s * sc)) /
-                        (np.cosh(theta_s) - one64))
+                csrf = ((1 - np.cosh(theta_s * sc)) /
+                        (np.cosh(theta_s) - 1))
             else:
                 csrf = -sc ** 2
-            sc1 = csrf + one64
+            sc1 = csrf + 1
             if theta_b > 0.:
-                Cs = ((np.exp(theta_b * sc1) - one64) /
-                      (np.exp(theta_b) - one64) - one64)
+                Cs = ((np.exp(theta_b * sc1) - 1) /
+                      (np.exp(theta_b) - 1) - 1)
             else:
                 Cs = csrf
             return Cs
@@ -379,6 +380,9 @@ class Run(object):
         self.Mm = self.M - 1
         self.N  = ds.sizes['s_rho']
         self.Np = self.N + 1
+        
+        # rename dimensions to be consistent with future xgrid object
+        ds = ds.rename({'x_psi': 'x_u', 'y_psi': 'y_v'})
 
         # add S-coordinate stretching curves at RHO-points in dataset if not in
         if 'sc_r' not in list(ds.data_vars):
@@ -394,7 +398,7 @@ class Run(object):
             cs = s_coordinate(ds["sc_w"].values, self.params_input['theta_s'], self.params_input['theta_b'])
             ds["Cs_w"]=(['s_w'],  cs)
 
-        # Add topography in dataset if not in
+        # Add topography in dataset if not in file
         if 'h' not in list(ds.data_vars):
             ds['h']=(['y_rho','x_rho'],  self.H*np.ones((self.M,self.L)))
 
@@ -402,16 +406,65 @@ class Run(object):
             print("Grid size: (L ,M, N) = (" + str(self.L) + ", " + str(self.M) + ", " + str(self.N) + ")")
 
         # Create xgcm grid
-        coords={'xi':{'center':'x_rho', 'inner':'x_u'}, 
-                'eta':{'center':'y_rho', 'inner':'y_v'}, 
-                's':{'center':'s_rho', 'outer':'s_w'}}
-        ds.attrs['xgcm-Grid'] = Grid(ds, coords=coords) # add metrics terms here?
-        self.xgrid = ds.attrs['xgcm-Grid']
-        
-    def x2u(v):
-        """ Interpolate from any grid to u grid
-        """
-        # wrapps around gridop methods
-        # should copy coords here or in gop.x2u directly
+        # axis
+        coords={'xi': {'center':'x_rho', 'inner':'x_u'}, 
+                'eta': {'center':'y_rho', 'inner':'y_v'}, 
+                's': {'center':'s_rho', 'outer':'s_w'}}
+        # add metrics terms
+        ds = _compute_metrics(ds)
+        metrics = {
+                   ('xi',): ['dx_rho', 'dx_u', 'dx_rho2d', 'dx_u2d'], # X distances
+                   ('eta',): ['dy_rho', 'dy_v', 'dy_rho2d', 'dy_v2d'], # Y distances
+                   ('xi', 'eta'): ['rA', 'rAu', 'rAv'] # Areas
+                  }
+        # generate xgcm grid
+        self.xgrid = Grid(ds, coords=coords, metrics=metrics)
+    
+    ### wrappers (gop, xgcm grid)
+    
+    # grid moving
+    def x2u(self, v):
         return gop.x2u(v, self.xgrid)
-        
+    def x2rho(self, v):
+        return gop.x2rho(v, self.xgrid)
+    def x2v(self, v):
+        return gop.x2v(v, self.xgrid)
+
+    # xgcm functions
+    def diff(self, *args, **kwargs):
+        return self.xgrid.diff(*args, **kwargs)
+
+    def interp(self, *args, **kwargs):
+        return self.xgrid.interp(*args, **kwargs)
+
+    def derivative(self, *args, **kwargs):
+        return self.xgrid.derivative(*args, **kwargs)
+
+    
+def _compute_metrics(ds):
+    """ Compute metrics from data available in grid.nc
+    This code should be update for realistic curvilinear grids
+    """
+    ds['dx_rho'] = 1/ds['pm']
+    ds['dy_rho'] = 1/ds['pm']
+    ds['dx_rho2d'] = 0.*ds['dy_rho'] + ds['dx_rho']
+    ds['dy_rho2d'] = ds['dy_rho'] + 0.*ds['dx_rho']     
+    # code below should be updated for curvilinear grids
+    ds['dx_u'] = ((ds['x_rho'].shift(x_rho=-1)-ds['x_rho'])[:-1]
+                        .drop('x_rho')
+                        .rename({'x_rho': 'x_u'})
+                  )
+    ds['dy_u'] = (ds['y_rho'].shift(y_rho=-1)-ds['y_rho'])
+    ds['dx_v'] = (ds['x_rho'].shift(x_rho=-1)-ds['x_rho'])
+    ds['dy_v'] = ((ds['y_rho'].shift(y_rho=-1)-ds['y_rho'])[:-1]
+                     .drop('y_rho')
+                     .rename({'y_rho': 'y_v'})
+                  )
+    ds['dx_u2d'] = 0.*ds['y_rho'] + ds['dx_u']
+    ds['dy_u2d'] = ds['dy_u'] + 0.*ds['x_u']
+    ds['dx_v2d'] = 0.*ds['y_v'] + ds['dx_v']
+    ds['dy_v2d'] = ds['dy_v'] + 0.*ds['x_rho']
+    ds['rA'] = ds['dx_rho']*ds['dy_rho']
+    ds['rAu'] = ds['dx_u']*ds['dy_u']
+    ds['rAv'] = ds['dx_v']*ds['dy_v']
+    return ds
