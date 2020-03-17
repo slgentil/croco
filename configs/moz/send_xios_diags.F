@@ -1708,7 +1708,8 @@ C 				  endif
 # else
       TYPE(xios_duration) :: dtime    = xios_duration(0,
      &  0, 0, 0, 0, 0)
-!      TYPE(xios_date)     :: start_date
+      TYPE(xios_date) :: date
+C       TYPE(xios_date)     :: start_date
 # endif     
       TYPE(xios_context) :: ctx_hdl
       TYPE(xios_field) :: field_hdl
@@ -1778,7 +1779,7 @@ C 				  endif
 # else
       iday=1
       imonth=1       
-      iyear=1
+      iyear=1900
       ihour=0
       iminute=0
       isec=0
@@ -1790,7 +1791,7 @@ C 				  endif
      &        start_date=cldate )
 # else
       CALL xios_define_calendar( TYPE = "Gregorian", 
-     & time_origin = xios_date(1979,01,01,00,00,00),
+     & time_origin = xios_date(1900,01,01,00,00,00),
      & start_date = xios_date(iyear,imonth,iday,ihour,iminute,isec))
 #endif
       ! horizontal grid definition
@@ -2022,11 +2023,10 @@ C 				  endif
 #  endif
 
 
-!       ilc=iic   ! number of time step since start
        ilc=1+iic-ntstart   ! number of time step since restart
        ! To be conform with clasic (no xios) croco file first 
        ! time step must be writen
-       if (ilc == 0) ilc=1
+!      if (ilc == 1) ilc=1
        CALL xios_update_calendar(ilc)
 
 !       call xios_send_field("scrum_time",time)

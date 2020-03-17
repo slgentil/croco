@@ -186,8 +186,8 @@
 !      parameter (LLm0=1024,  MMm0=1024,  N=480) 
 !      parameter (LLm0=1024,  MMm0=1024,  N=240)  
        parameter (LLm0=1024,  MMm0=1024,  N=180) 
-#    elif RESOLUTION == 1152
-       parameter (LLm0=1152,  MMm0=1152,  N=480) 
+#    elif RESOLUTION == 1800
+       parameter (LLm0=1800,  MMm0=1040,  N=400) 
 #    endif
 #  else
       parameter (LLm0=94,   MMm0=81,   N=40)
@@ -231,17 +231,22 @@
 #    if RESOLUTION == 128
        parameter (NP_XI=2, NP_ETA=4, NNODES=NP_XI*NP_ETA)         ! Linux
 #    elif RESOLUTION == 256
-!      parameter (NP_XI=2, NP_ETA=4, NNODES=NP_XI*NP_ETA)         ! Linux
-       parameter (NP_XI=2, NP_ETA=8, NNODES=NP_XI*NP_ETA)     ! Datarmor
+       parameter (NP_XI=2, NP_ETA=8, NNODES=NP_XI*NP_ETA)         ! Linux
 #    elif RESOLUTION == 512 
-       parameter (NP_XI=16, NP_ETA=32, NNODES=NP_XI*NP_ETA)
+       parameter (NP_XI=4, NP_ETA=32, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=8, NP_ETA=32, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=16, NP_ETA=32, NNODES=NP_XI*NP_ETA)
 #    elif RESOLUTION == 768 
        parameter (NP_XI=12, NP_ETA=64, NNODES=NP_XI*NP_ETA)
 #    elif RESOLUTION == 1024 
-!      parameter (NP_XI=16, NP_ETA=32, NNODES=NP_XI*NP_ETA)
-       parameter (NP_XI=8 , NP_ETA=32, NNODES=NP_XI*NP_ETA)
-#    elif RESOLUTION == 1152 
-       parameter (NP_XI=12, NP_ETA=64, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=4 , NP_ETA=16, NNODES=NP_XI*NP_ETA)        ! 64 cores
+!      parameter (NP_XI=4 , NP_ETA=32, NNODES=NP_XI*NP_ETA)        ! 128 cores
+!      parameter (NP_XI=8 , NP_ETA=32, NNODES=NP_XI*NP_ETA)        ! 256 cores
+       parameter (NP_XI=16, NP_ETA=32, NNODES=NP_XI*NP_ETA)        ! 512 cores
+!      parameter (NP_XI=8, NP_ETA=64, NNODES=NP_XI*NP_ETA)        ! 512 cores
+#    elif RESOLUTION == 1800 
+       parameter (NP_XI=9, NP_ETA=26, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=9, NP_ETA=104, NNODES=NP_XI*NP_ETA)
 #    endif
 #else
       parameter (NP_XI=1, NP_ETA=1, NNODES=NP_XI*NP_ETA)

@@ -27,7 +27,7 @@ if  len(sys.argv) < 7 :
     print 'workdir : répertoire qui sera créé sous $WORK'
     print 'nbchain : nombre de chainages'
     print 'elaptim : temps elapsed pour chaque chainage HH:MM:SS  '
-    print 'resolution : resolution 256, 512, 1024, 1152 '
+    print 'resolution : resolution 256, 512, 1024, 1800 '
     print 'jobname : nom générique des batchs'   
     print 'restart : 0 (initial) or 1 (restart)'
     quit()
@@ -42,35 +42,32 @@ prefix='moz'
 
 if resolution==128:
     nbproc_roms=2*8
-    # nbproc_xios=0
     nbproc_xios=1
 elif resolution==256:
-    # nbproc_roms=2*16
     nbproc_roms=2*8
-    # nbproc_xios=0
     nbproc_xios=1
 elif resolution==512:
     nbproc_roms=16*32
     nbproc_xios=2
-elif resolution==768:
-    nbproc_roms=12*64
-    # nbproc_xios=0
-    nbproc_xios=4
 elif resolution==1024:
-    # nbproc_roms=16*32
-    # nbproc_xios=16
-    nbproc_roms=8*32
-    nbproc_xios=16
-elif resolution==1152:
-    nbproc_roms=12*64
-    nbproc_xios=4
-    # nbproc_xios=10
+    nbproc_roms=16*32
+    nbproc_xios=64
+elif resolution==1800:
+    nbproc_roms=9*26
+    # nbproc_roms=9*104
+    nbproc_xios=1
 else:
     print 'resolution not implemented yet'
     quit()
-    
+
+if nbproc_roms % nbproc_xios == 0 :
+  nproc_int = nbproc_roms / nbproc_xios
+else :
+  print('modulo(nbproc_roms,nbproc_xios) différent de 0')
+  sys.exit()   
+
 nb_cores = nbproc_roms+nbproc_xios    
-nb_nodes = int((nb_cores-1)/28)+1
+nb_nodes = int((nb_cores-1)/28)+1  
     
 #==============================================================================
     
@@ -101,17 +98,13 @@ for t in range(0,nbchain+1):
         # recopie des exécutables et input files dans chaque répertoire t
         shutil.copy(startdir+'/croco',tdir)
         shutil.copy(startdir+'/croco.in',tdir)
-        # shutil.copy(startdir+'/CROCO_FILES/'+prefix+'_grd.nc',tdir+'/CROCO_FILES')
-        # shutil.copy(startdir+'/CROCO_FILES/'+prefix+'_bry.nc',tdir+'/CROCO_FILES')
-        # shutil.copy(startdir+'/CROCO_FILES/'+prefix+'_ini.nc',tdir+'/CROCO_FILES')
         shutil.copy(startdir+'/field_def.xml',tdir) 
         shutil.copy(startdir+'/domain_def.xml',tdir) 
         shutil.copy(startdir+'/axis_def.xml',tdir)
         shutil.copy(startdir+'/grid_def.xml',tdir)
         shutil.copy(startdir+'/iodef.xml',tdir)   
-#       shutil.copy(startdir+'/floats.in',tdir)
-#       shutil.copy('/appli/NETCDF/4.3.3.1-mpt-intel/XIOS-rsync/bin/xios_server.exe',tdir)
-        shutil.copy(HOME+'/lib/XIOS/bin/xios_server.exe',tdir)
+        # shutil.copy(startdir+'/floats.in',tdir)
+        shutil.copy(startdir+'/xios_server.exe',tdir)
 
 #==============================================================================
 
@@ -156,7 +149,12 @@ for t in range(1,nbchain+1):
 #==============================================================================
 
 
-# Création du script jobname* dans chaque workdir/t*
+# Création du script jobname* dans chaque workdir/t* nb_nodes
+
+launch_str = '{} {:d} {}'.format(' -np ',nproc_int,' croco : -np 1 xios_server.exe')
+for i in range(nbproc_xios-1):
+  launch_str = launch_str+'{} {:d} {}'.format(' : -np ',nproc_int,' croco : -np 1 xios_server.exe')
+
 
 for t in range(1,nbchain+1):
     tdir='t'+str(t)   
@@ -172,7 +170,12 @@ for t in range(1,nbchain+1):
     fo.write('# get the path for command module,mpirun\n')
     fo.write('source /usr/share/Modules/3.2.10/init/csh\n') 
     fo.write('module purge\n')  
-    fo.write('module load   NETCDF/4.3.3.1-mpt-intel2016  intel-cmkl-16/16.0.4.258\n')  
+    # fo.write('module load   NETCDF/4.3.3.1-mpt-intel2016  intel-cmkl-16/16.0.4.258\n')  
+    fo.write('module load intel-cmkl-18/18.0.1.163\n') 
+    fo.write('module load intel-comp/18\n') 
+    fo.write('module load impi/2018.1.163\n') 
+    fo.write('module list\n') 
+
     fo.write('\n')    
     fo.write('# cd to the directory you submitted your job\n')
     fo.write('cd $PBS_O_WORKDIR\n')
@@ -184,6 +187,7 @@ for t in range(1,nbchain+1):
        fo.write('cp ../t'+str(t-1)+'/'+prefix+'_bry.nc .\n')    
     # fo.write('time $MPI_LAUNCH -n '+str(nbproc_roms)+' roms >& output.mpi\n')   
     fo.write('time $MPI_LAUNCH -n '+str(nbproc_roms)+' croco : -n '+str(nbproc_xios)+ ' xios_server.exe >& output.mpi\n')  
+    # fo.write('time $MPI_LAUNCH ' + launch_str + ' >& output.mpi\n')  
 
     fo.close()
 
