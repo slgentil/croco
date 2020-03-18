@@ -183,8 +183,11 @@ def get_N2(run, rho, z, g=_g):
     ... doc to be improved
     """
     grid = run['xgrid']
-    N2 = -g/run['rho0'] * grid.diff(rho, 's', boundary='extend') \
-            / grid.diff(z, 's', boundary='extend')    
+    N2 = -g/run['rho0'] * grid.diff(rho, 's', boundary='fill', fill_value=np.NaN) \
+            / grid.diff(z, 's', boundary='fill', fill_value=np.NaN)
+    # cannot find a solution with xgcm, weird
+    N2 = N2.fillna(N2.shift(s_w=-1))
+    N2 = N2.fillna(N2.shift(s_w=1))
     return N2
 
 # ------------------------------------------------------------------------------------
@@ -231,20 +234,35 @@ def hinterp(ds,var,coords=None):
 
 # ------------------------------------------------------------------------------------
 
-def get_p(grid,rho,zw,zr=None,g=_g):
-    """ compute (not reduced) pressure by integration from the surface, 
+def get_p(grid, rho, zw, zr=None, g=_g):
+    """ Compute (not reduced) pressure by integration from the surface, 
     taking rho at rho points and giving results on w points (z grid)
-    with p=0 at the surface. If zr is not None, compute result on rho points """
+    with p=0 at the surface. If zr is not None, compute result on rho points
+    
+    Parameters
+    ----------
+    ...
+    
+    
+    """
     if zr is None:
         dz = grid.diff(zw, "s")
-        p = grid.cumsum((rho*dz).sortby("s_rho",ascending=False), "s",                             to="outer", boundary="fill").sortby("s_w",ascending=False)
+        p = (grid.cumsum((rho*dz).sortby("s_rho",ascending=False), 
+                         "s", to="outer", boundary="fill")
+             .sortby("s_w", ascending=False)
+            )
     else:
-        """ it is assumed that all fields are from bottom to surface"""
+        # it is assumed that all fields are from bottom to surface
         rna = {"s_w":"s_rho"}
         dpup = (zr - zw.isel(s_w=slice(0,-1)).drop("s_w").rename(rna))*rho
         dpdn = (zw.isel(s_w=slice(1,None)).drop("s_w").rename(rna) - zr)*rho
-        p = (dpup.shift(s_rho=-1, fill_value=0) + dpdn).sortby(rho.s_rho, ascending=False)                .cumsum("s_rho").sortby(rho.s_rho, ascending=True).assign_coords(z_r=zr)
-    return _g *p.rename("p")
+        p = ((dpup.shift(s_rho=-1, fill_value=0) + dpdn)
+             .sortby(rho.s_rho, ascending=False)                
+             .cumsum("s_rho")
+             .sortby(rho.s_rho, ascending=True)
+             .assign_coords(z_r=zr)
+            )
+    return _g*p.rename("p")
 
 def get_uv_from_psi(psi, ds):
     # note that u, v are computed at rho points

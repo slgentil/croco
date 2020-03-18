@@ -9,6 +9,8 @@ _sig = .1
 _nmodes = 10
 ### N.B.: norm is H
 
+# This should be a class
+
 def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     """ wrapper for calling compute_vmodes with apply_ufunc. Includes unstacking of result
     this is what you should need in your scripts, unless you are using numpy arrays only 
@@ -23,28 +25,41 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
         - free_surf (bool): use free surface boundary condition (default:True)
         - sigma (scalar or None): for shift-invert in eig (default: 0.1)
     """
-    # unpack kwargs
     kworg = {"nmodes":nmodes, "stacked":True}
     if kwargs is not None:
         kworg.update(kwargs)
-    lesdims = tuple([dim for dim in zc.dims if dim!="s_rho"]) # storing extra dims  
     N = zc.s_rho.size
-    res = xr.apply_ufunc(compute_vmodes, zc.chunk({"s_rho":-1}), zf.chunk({"s_w":-1}), \
-                    N2.chunk({"s_w":-1}), kwargs=kworg, input_core_dims=[["s_rho"],["s_w"],["s_w"]], \
-                    dask='parallelized', output_dtypes=[np.float64], \
-                    output_core_dims=[["s_stack","mode"]], \
-                    output_sizes={"mode":nmodes+1,"s_stack":2*(N+1)})
+    res = xr.apply_ufunc(compute_vmodes, 
+                         zc.chunk({"s_rho":-1}), 
+                         zf.chunk({"s_w":-1}),
+                         N2.chunk({"s_w":-1}), 
+                         kwargs=kworg, 
+                         input_core_dims=[["s_rho"],["s_w"],["s_w"]],
+                         dask='parallelized', 
+                         output_dtypes=[np.float64],
+                         output_core_dims=[["s_stack","mode"]],
+                         output_sizes={"mode":nmodes+1,"s_stack":2*(N+1)}
+                        )
     res['mode'] = np.arange(nmodes+1)
+    # unstack variables
     c = res.isel(s_stack=0).rename('c')
     phi = (res.isel(s_stack=slice(1,N+1))
-           .rename('phi').rename({'s_stack': 's_rho'})
-           .assign_coords(z_rho=zc))
+           .rename('phi')
+           .rename({'s_stack': 's_rho'})
+           .assign_coords(z_rho=zc)
+          )
     dphidz = (res.isel(s_stack=slice(N+1,2*N+2))
-              .rename('dphidz').rename({'s_stack': 's_w'})
-              .assign_coords(z_w=zf))
-    #return c, phi, dphidz
-    dm = xr.merge([c, phi, dphidz]).transpose(*('mode','s_rho','s_w')+lesdims)
-    return dm.assign_coords(N2=N2, norm = -zf.isel(s_w=0, drop=True))  ### hard-coded norm = H
+              .rename('dphidz')
+              .rename({'s_stack': 's_w'})
+              .assign_coords(z_w=zf)
+             )
+    # merge data into a single dataset
+    other_dims = tuple([dim for dim in zc.dims if dim!="s_rho"]) # extra dims    
+    dm = (xr.merge([c, phi, dphidz])
+          .transpose(*('mode','s_rho','s_w')+other_dims)
+          .assign_coords(N2=N2, norm=-zf.isel(s_w=0, drop=True))
+         )
+    return dm  ### hard-coded norm = H
 
 def compute_vmodes(zc_nd, zf_nd, N2f_nd, nmodes=_nmodes, free_surf=True, g=_g, 
                    sigma=_sig, stacked=True, **kwargs):
@@ -147,3 +162,5 @@ def compute_vmodes_1D(zc, zf, N2f, nmodes=_nmodes, free_surf=True, g=_g, sigma=_
     dphif = Dz*phic
     # this would give w-modes: np.r_[np.zeros((1,nmodes+1)),(dzf[:,None]*phic).cumsum(axis=0)]
     return c, phic, dphif
+
+#def project(...)
