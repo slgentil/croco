@@ -1,6 +1,7 @@
 import sys
 import xarray as xr
 import numpy as np
+from collections import OrderedDict
 
 # ------------------------------------------------------------------------------------------------
 
@@ -9,95 +10,224 @@ _g = 9.81
 
 # ------------------------------------------------------------------------------------
 
-def _get_xydim(v):
-    return (next(x for x in v.dims if x[0]=='x'), 
-           next(x for x in v.dims if x[0]=='y'))
+def _get_spatial_dims(v):
+    """ Return an ordered dict of spatial dimensions in the s/z, y, x order
+    """
+    dims = OrderedDict( (d, next((x for x in v.dims if x[0]==d), None))
+                        for d in ['s','y','x'] )
+    return dims
 
 def x2rho(v, grid):
     """ Interpolate from any grid to rho grid
     """
-    xdim, ydim = _get_xydim(v)
+    dims = _get_spatial_dims(v)
     vout = v.copy()
-    if xdim == 'x_u':
+    if dims['x'] == 'x_u':
         vout = grid.interp(vout, 'xi')
-    if ydim == 'y_v':
+    if dims['y'] == 'y_v':
         vout = grid.interp(vout, 'eta')
     return vout
 
 def x2u(v, grid):
     """ Interpolate from any grid to u grid
     """
-    xdim, ydim = _get_xydim(v)
+    dims = _get_spatial_dims(v)
     vout = v.copy()
-    if xdim == 'x_rho':
+    if dims['x'] == 'x_rho':
         vout = grid.interp(vout, 'xi')
-    if ydim == 'y_v':
+    if dims['y'] == 'y_v':
         vout = grid.interp(vout, 'eta')
     return vout
 
 def x2v(v, grid):
     """ Interpolate from any grid to u grid
     """
-    xdim, ydim = _get_xydim(v)
+    dims = _get_spatial_dims(v)
     vout = v.copy()
-    if xdim == 'x_rho':
+    if dims['x'] == 'x_rho':
         vout = grid.interp(vout, 'xi')
-    if ydim == 'y_v':
+    if dims['y'] == 'y_v':
         vout = grid.interp(vout, 'eta')
     return vout
 
+def x2x(v, grid, target):
+    if target is 'rho':
+        return x2rho(v, grid)
+    elif target is 'u':
+        return x2u(v, grid)
+    elif target is 'v':
+        return x2v(v, grid)
+    
 # ------------------------------------------------------------------------------------
 
-def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r', vtrans=None):
-    ''' compute vertical coordinates
-        zeta should have the size of the final output
-        vertical coordinate is first in output
+def get_z(run, zeta=None, h=None, vgrid='r', 
+          hgrid=None, vtransform=None):
+    ''' Compute vertical coordinates
+        Spatial dimensions are placed last, in the order: s_rho/s_w, y, x
+        
+        Parameters
+        ----------
+        run: crocosi.gridop.run
+            Simulation output object
+        zeta: xarray.DataArray, optional
+            Sea level data, default to 0 if not provided
+            If you use slices, make sure singleton dimensions are kept, i.e do:
+                zeta.isel(x_rho=[i])
+            and not :
+                zeta.isel(x_rho=i)
+        h: xarray.DataArray, optional
+            Water depth, searche depth in grid if not provided
+        vgrid: str, optional
+            Vertical grid, 'r'/'rho' or 'w'. Default is 'rho'
+        hgrid: str, optional
+            Any horizontal grid: 'r'/'rho', 'u', 'v'. Default is 'rho'
+        vtransform: int, str, optional
+            croco vertical transform employed in the simulation.
+            1="old": z = z0 + (1+z0/_h) * _zeta  with  z0 = hc*sc + (_h-hc)*cs
+            2="new": z = z0 * (_zeta + _h) + _zeta  with  z0 = (hc * sc + _h * cs) / (hc + _h)
     '''
 
-    try:
-        ds = run.ds['grid']
-    except Exception:
-        ds = run.ds['his']
-    N = run.N
-    hc = run.params_input['Hc']
+    grid, xgrid = run['grid'], run['xgrid']
 
-    _h = ds.h if h is None else h
-    _zeta = 0*ds.h if zeta is None else zeta
+    _h = grid.h if h is None else h
+    _zeta = 0*grid.h if zeta is None else zeta
 
-    # swith horizontal grid if needed (should we use grid.interp instead?)
+    # switch horizontal grid if needed
     if hgrid in ['u','v']:
-        funtr = eval("rho2"+hgrid)
-        if zeta is None:
-            _zeta = funtr(_zeta, ds)
-        _h = funtr(_h, ds)
+        _h = x2x(_h, xgrid, hgrid)
+        _zeta = x2x(_h, xgrid, hgrid)
+    
+    # align datasets (zeta may contain a slice along one dimension for example)
+    _h, _zeta  = xr.align(_h, _zeta, join='inner')
     
     # determine what kind of vertical corrdinate we are using (NEW_S_COORD)
-    if vtrans is None:
-        vtrans = ds.Vtransform.values
+    if vtransform is None:
+        vtransform = grid.Vtransform.values
     else:
-        if isinstance(vtrans, str):
-            if vtrans.lower()=="old":
-                vtrans = 1
-            elif vtrans.lower()=="new":
-                vtrans = 2
+        if isinstance(vtransform, str):
+            if vtransform.lower()=="old":
+                vtransform = 1
+            elif vtransform.lower()=="new":
+                vtransform = 2
             else:
                 raise ValueError("unable to understand what is vtransform")
-                
-    sc=ds['sc_'+vgrid]
-    cs=ds['Cs_'+vgrid]
 
-    if vtrans == 2:
-        z0 = (hc * sc + _h * cs) / (hc + _h)
-        z = _zeta + (_zeta + _h) * z0
+    if vgrid in ['r', 'rho']:
+        vgrid = 'rho'
+        sc = grid['sc_r']
+        cs = grid['Cs_r']
     else:
+        sc = grid['sc_'+vgrid]
+        cs = grid['Cs_'+vgrid]
+
+    hc = run['Hc']
+    if vtransform == 1:
         z0 = hc*sc + (_h-hc)*cs
-        z = z0 + _zeta*(1+z0/_h) # order should be updated here
-        
-    zdim = "s_"+vgrid.replace('r','rho')
-    if z.dims[0] != zdim:
-        z = z.transpose(*(zdim,)+_zeta.dims)
+        z = z0 + (1+z0/_h) * _zeta
+    else:
+        z0 = (hc * sc + _h * cs) / (hc + _h)
+        z = z0 * (_zeta + _h) + _zeta
+    
+    # reorder spatial dimensions and place them last
+    sdims = list(_get_spatial_dims(z).values())
+    sdims = tuple(filter(None,sdims)) # delete None values
+    reordered_dims = tuple(d for d in z.dims if d not in sdims) + sdims
+    z = z.transpose(*reordered_dims)
+    
     return z.rename('z_'+vgrid)
 
+# ------------------------------------------------------------------------------------
+
+def interp2z_3d(z0, z, v, b_extrap=2, t_extrap=2):
+    """
+    b_extrap, t_extrap:
+        0 set to NaN
+        1 set to nearest neighboor
+        2 linear extrapolation
+    """
+    import crocosi.fast_interp3D as fi  # OpenMP accelerated C based interpolator
+    # check v and z have identical shape
+    assert v.ndim==z.ndim
+    # add dimensions if necessary
+    if v.ndim == 1:
+        lv = v.squeeze()[:,None,None]
+        lz = z.squeeze()[:,None,None]
+    elif v.ndim == 2:
+        lv = v[...,None]
+        lz = z[...,None]
+    else:
+        lz = z[...]
+        lv = v[...]
+    #
+    return fi.interp(z0.astype('float64'), lz.astype('float64'), lv.astype('float64'), 
+                     b_extrap, t_extrap).squeeze()
+
+def interp2z(z0, z, v, b_extrap, t_extrap):
+    ''' interpolate vertically
+    '''
+    # check v and z have identical shape
+    assert v.ndim==z.ndim
+    # test if temporal dimension is present
+    if v.ndim == 4:
+        vi = [interp2z_3d(z0, z[...,t], v[...,t], b_extrap, t_extrap)[...,None] 
+                  for t in range(v.shape[-1])]
+        return np.concatenate(vi, axis=0) # (50, 722, 258, 1)
+        #return v*0 + v.shape[3]
+    else:
+        return interp2z_3d(z0, z, v, b_extrap, t_extrap)
+
+# ------------------------------------------------------------------------------------
+    
+def get_N2(run, rho, z, g=_g):
+    """ Compute square buoyancy frequency N2 
+    ... doc to be improved
+    """
+    grid = run['xgrid']
+    N2 = -g/run['rho0'] * grid.diff(rho, 's', boundary='extend') \
+            / grid.diff(z, 's', boundary='extend')    
+    return N2
+
+# ------------------------------------------------------------------------------------
+
+def hinterp(ds,var,coords=None):
+    import pyinterp
+    #create Tree object
+    mesh = pyinterp.RTree()
+
+    L = ds.dims['x_r']
+    M = ds.dims['y_r']
+    N = ds.dims['s_r']
+    z_r = get_z(ds)
+    #coords = np.array([coords])
+
+    # where I know the values
+    z_r = get_z(ds)
+    vslice = []
+    #lon_r = np.tile(ds.lon_r.values,ds.dims['s_r']).reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
+    lon_r = np.tile(ds.lon_r.values,(ds.dims['s_r'],1,1)).reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
+    lat_r = np.tile(ds.lat_r.values,(ds.dims['s_r'],1,1)).reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
+    z_r = get_z(ds)
+    mesh.packing(np.vstack((lon_r.flatten(), lat_r.flatten(), z_r.values.flatten())).T,
+                            var.values.flatten())
+
+    # where I want the values
+    zcoord = np.zeros_like(ds.lon_r.values)
+    zcoord[:] = coords
+    vslice, neighbors = mesh.inverse_distance_weighting(
+        np.vstack((ds.lon_r.values.flatten(), ds.lat_r.values.flatten(), zcoord.flatten())).T,
+        within=True)    # Extrapolation is forbidden)
+
+
+    # The undefined values must be set to nan.
+    print(ds.mask_rho.values)
+    mask=np.where(ds.mask_rho.values==1.,)
+    vslice[int(ds.mask_rho.values)] = float("nan")
+
+    vslice = xr.DataArray(np.asarray(vslice.reshape(ds.dims['y_r'], ds.dims['x_r'])),dims=('x_r','y_r'))
+    yslice = ds.lat_r
+    xslice = ds.lon_r
+
+    return[xslice,yslice,vslice]
 
 # ------------------------------------------------------------------------------------
 
@@ -154,100 +284,3 @@ def get_pv(u, v, rho, rho_a, f, f0, zr, zw, ds):
     q = (xi + S + f - f0 ).rename('q') # order of variable conditions dimension order
 
     return q
-
-
-# ------------------------------------------------------------------------------------
-
-def interp2z_3d(z0, z, v, b_extrap=2, t_extrap=2):
-    """
-    b_extrap, t_extrap:
-        0 set to NaN
-        1 set to nearest neighboor
-        2 linear extrapolation
-    """
-    import crocosi.fast_interp3D as fi  # OpenMP accelerated C based interpolator
-    # check v and z have identical shape
-    assert v.ndim==z.ndim
-    # add dimensions if necessary
-    if v.ndim == 1:
-        lv = v.squeeze()[:,None,None]
-        lz = z.squeeze()[:,None,None]
-    elif v.ndim == 2:
-        lv = v[...,None]
-        lz = z[...,None]
-    else:
-        lz = z[...]
-        lv = v[...]
-    #
-    return fi.interp(z0.astype('float64'), lz.astype('float64'), lv.astype('float64'), 
-                     b_extrap, t_extrap).squeeze()
-
-def interp2z(z0, z, v, b_extrap, t_extrap):
-    ''' interpolate vertically
-    '''
-    # check v and z have identical shape
-    assert v.ndim==z.ndim
-    # test if temporal dimension is present
-    if v.ndim == 4:
-        vi = [interp2z_3d(z0, z[...,t], v[...,t], b_extrap, t_extrap)[...,None] 
-                  for t in range(v.shape[-1])]
-        return np.concatenate(vi, axis=0) # (50, 722, 258, 1)
-        #return v*0 + v.shape[3]
-    else:
-        return interp2z_3d(z0, z, v, b_extrap, t_extrap)
-
-
-# ------------------------------------------------------------------------------------
-    
-def N2Profile(run, strat, z, g=9.81):
-    """
-    Method to compute the N2 profile : 
-    """
-    
-    grid = run.ds['his'].attrs['xgcm-Grid']
-    N2 = -g/run.params_input['rho0'] * grid.diff(strat,'s') / grid.diff(z,'s')
-    N2.isel(s_w=0).values = N2.isel(s_w=1).values
-    N2.isel(s_w=-1).values = N2.isel(s_w=-2).values
-    # if np.any(N2<0):
-    #     print("Unstable N2 profile detected")
-    return (N2)
-
-def hinterp(ds,var,coords=None):
-    import pyinterp
-    #create Tree object
-    mesh = pyinterp.RTree()
-
-    L = ds.dims['x_r']
-    M = ds.dims['y_r']
-    N = ds.dims['s_r']
-    z_r = get_z(ds)
-    #coords = np.array([coords])
-
-    # where I know the values
-    z_r = get_z(ds)
-    vslice = []
-    #lon_r = np.tile(ds.lon_r.values,ds.dims['s_r']).reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
-    lon_r = np.tile(ds.lon_r.values,(ds.dims['s_r'],1,1)).reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
-    lat_r = np.tile(ds.lat_r.values,(ds.dims['s_r'],1,1)).reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
-    z_r = get_z(ds)
-    mesh.packing(np.vstack((lon_r.flatten(), lat_r.flatten(), z_r.values.flatten())).T,
-                            var.values.flatten())
-
-    # where I want the values
-    zcoord = np.zeros_like(ds.lon_r.values)
-    zcoord[:] = coords
-    vslice, neighbors = mesh.inverse_distance_weighting(
-        np.vstack((ds.lon_r.values.flatten(), ds.lat_r.values.flatten(), zcoord.flatten())).T,
-        within=True)    # Extrapolation is forbidden)
-
-
-    # The undefined values must be set to nan.
-    print(ds.mask_rho.values)
-    mask=np.where(ds.mask_rho.values==1.,)
-    vslice[int(ds.mask_rho.values)] = float("nan")
-
-    vslice = xr.DataArray(np.asarray(vslice.reshape(ds.dims['y_r'], ds.dims['x_r'])),dims=('x_r','y_r'))
-    yslice = ds.lat_r
-    xslice = ds.lon_r
-
-    return[xslice,yslice,vslice]

@@ -30,7 +30,7 @@ class Run(object):
     (ave, his, etc.), a grid object, and online output diagnostics (e.g. energy, ...).
     """
     def __init__(self, dirname, verbose=False, prefix='', open_nc=[],
-                 tdir_max=0, grid_params={}, chunk_time=1):
+                 tdir_max=0, grid_params={}, chunk_time=1, grid_periodicity=False):
         """
         Constructor; we inspect a run directory and assemble scDataset
                      classes for ave, his, etc., construct a CGrid class, and
@@ -46,6 +46,7 @@ class Run(object):
         self.open_nc = ['grid'] + open_nc
         self.tdir_max = tdir_max # limits the number of t directories
         self._grid_params = grid_params
+        self.grid_periodicity = grid_periodicity
         if isinstance(chunk_time,dict):
             self._chunk_time = chunk_time
         else:
@@ -418,11 +419,14 @@ class Run(object):
                    ('xi', 'eta'): ['rA', 'rAu', 'rAv'] # Areas
                   }
         # generate xgcm grid
-        self.xgrid = Grid(ds, coords=coords, metrics=metrics)
+        self.xgrid = Grid(ds, 
+                          periodic=self.grid_periodicity,
+                          coords=coords, 
+                          metrics=metrics)
     
     ### wrappers (gop, xgcm grid)
     
-    # grid moving
+    # horizontal grid moving
     def x2u(self, v):
         return gop.x2u(v, self.xgrid)
     def x2rho(self, v):
@@ -439,8 +443,16 @@ class Run(object):
 
     def derivative(self, *args, **kwargs):
         return self.xgrid.derivative(*args, **kwargs)
-
     
+    # vertical grid
+    def get_z(self, *args, **kwargs):
+        return gop.get_z(self, *args, **kwargs)
+    
+    # buoyancy frequency
+    def get_N2(self, *args, **kwargs):
+        return gop.get_N2(self, *args, **kwargs)
+    
+
 def _compute_metrics(ds):
     """ Compute metrics from data available in grid.nc
     This code should be update for realistic curvilinear grids
