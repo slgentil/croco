@@ -10,7 +10,62 @@ _nmodes = 10
 ### N.B.: norm is H
 
 # This should be a class
+class Vmodes(object):
+    """ Description of the class
+    """
+    def __init__(self, xgrid, nmodes,
+                 zc, zf, N2,
+                 free_surf=True,
+                 persist=False,
+                 g=_g, sigma=_sig):
+        """ Create a Vmode object
+        
+        Parameters
+        ----------
+            xgrid: xgcm.Grid
+                xgcm grid object required for grid manipulations
+            ...
+            
+        """
+        self.xgrid = xgrid
+        self.nmodes = nmodes
+        # merge and rename
+        self.ds = xr.merge([zeta.rename('zeta'),
+                            zc.rename('zc'),
+                            zf.rename('zf'),
+                            N2.rename('N2'),
+                            ])
+        self.g = _g
+        # add or derive other useful variables
+        # N2 at c points?
+        self.ds['H'] = np.abs(self.ds['zf'].sel(s_w=-1,method='nearest'))
+        #
+        self.free_surf = free_surf
+        self.sigma=_sig
+        self._compute_vmodes(persist)
 
+    def __getitem__(self, item):
+        """ Enables calls such as vm['N2']
+        """
+        return self.ds[item]
+
+    def _compute_vmodes(self, persist):
+        # add modes to self.ds, e.g.:
+        #   will call get_vmodes, etc ...
+        #self.ds['phi'] = ...
+        #self.ds['dphidz'] = ...
+        #self.ds['c'] = ...
+        
+        # persist dataset if relevant:
+        #if persist:
+        #   ...
+        
+    def project(self, v, persist=False):
+        """ Project a variable on vertical modes
+        """
+        pass
+        
+        
 def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     """ wrapper for calling compute_vmodes with apply_ufunc. Includes unstacking of result
     this is what you should need in your scripts, unless you are using numpy arrays only 
