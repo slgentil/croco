@@ -3,12 +3,9 @@ import xarray as xr
 import numpy as np
 from collections import OrderedDict
 
-# ------------------------------------------------------------------------------------------------
+from .postp import g_default
 
-# dangerous, should be read from output files:
-_g = 9.81
-
-# ------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def _get_spatial_dims(v):
     """ Return an ordered dict of spatial dimensions in the s/z, y, x order
@@ -58,7 +55,7 @@ def x2x(v, grid, target):
     elif target is 'v':
         return x2v(v, grid)
     
-# ------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def get_z(run, zeta=None, h=None, vgrid='r', 
           hgrid=None, vtransform=None):
@@ -95,7 +92,7 @@ def get_z(run, zeta=None, h=None, vgrid='r',
     # switch horizontal grid if needed
     if hgrid in ['u','v']:
         _h = x2x(_h, xgrid, hgrid)
-        _zeta = x2x(_h, xgrid, hgrid)
+        _zeta = x2x(_zeta, xgrid, hgrid)
     
     # align datasets (zeta may contain a slice along one dimension for example)
     _h, _zeta  = xr.align(_h, _zeta, join='inner')
@@ -136,7 +133,7 @@ def get_z(run, zeta=None, h=None, vgrid='r',
     
     return z.rename('z_'+vgrid)
 
-# ------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def interp2z_3d(z0, z, v, b_extrap=2, t_extrap=2):
     """
@@ -176,9 +173,9 @@ def interp2z(z0, z, v, b_extrap, t_extrap):
     else:
         return interp2z_3d(z0, z, v, b_extrap, t_extrap)
 
-# ------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
     
-def get_N2(run, rho, z, g=_g):
+def get_N2(run, rho, z, g=g_default):
     """ Compute square buoyancy frequency N2 
     ... doc to be improved
     """
@@ -190,7 +187,7 @@ def get_N2(run, rho, z, g=_g):
     N2 = N2.fillna(N2.shift(s_w=1))
     return N2
 
-# ------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def hinterp(ds,var,coords=None):
     import pyinterp
@@ -232,9 +229,9 @@ def hinterp(ds,var,coords=None):
 
     return[xslice,yslice,vslice]
 
-# ------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
-def get_p(grid, rho, zw, zr=None, g=_g):
+def get_p(grid, rho, zw, zr=None, g=g_default):
     """ Compute (not reduced) pressure by integration from the surface, 
     taking rho at rho points and giving results on w points (z grid)
     with p=0 at the surface. If zr is not None, compute result on rho points

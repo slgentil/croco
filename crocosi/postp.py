@@ -11,6 +11,7 @@ import xarray as xr
 from glob import glob
 
 second2day = 1./86400.
+g_default = 9.81
 
 import crocosi.gridop as gop
 

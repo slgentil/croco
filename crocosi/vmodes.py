@@ -3,10 +3,12 @@ import scipy.sparse.linalg as la
 import numpy as np
 import xarray as xr
 
-### default values
-_g = 9.81
+from .postp import g_default
+
+# default values
 _sig = .1
 _nmodes = 10
+
 ### N.B.: norm is H
 
 # This should be a class
@@ -17,7 +19,7 @@ class Vmodes(object):
                  zc, zf, N2,
                  free_surf=True,
                  persist=False,
-                 g=_g, sigma=_sig):
+                 g=g_default, sigma=_sig):
         """ Create a Vmode object
         
         Parameters
@@ -35,7 +37,7 @@ class Vmodes(object):
                             zf.rename('zf'),
                             N2.rename('N2'),
                             ])
-        self.g = _g
+        self.g = g
         # add or derive other useful variables
         # N2 at c points?
         self.ds['H'] = np.abs(self.ds['zf'].sel(s_w=-1,method='nearest'))
@@ -116,8 +118,11 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
          )
     return dm  ### hard-coded norm = H
 
-def compute_vmodes(zc_nd, zf_nd, N2f_nd, nmodes=_nmodes, free_surf=True, g=_g, 
-                   sigma=_sig, stacked=True, **kwargs):
+def compute_vmodes(zc_nd, zf_nd, N2f_nd, 
+                   nmodes=_nmodes, free_surf=True,
+                   g=g_default,
+                   sigma=_sig, stacked=True,
+                   **kwargs):
     """
     wrapper for vectorizing compute_vmodes_1D over elements of axes other than vertical dim
     that's not elegant, nor efficient
@@ -159,7 +164,9 @@ def compute_vmodes(zc_nd, zf_nd, N2f_nd, nmodes=_nmodes, free_surf=True, g=_g,
                                 free_surf=free_surf, g=g, sigma=sigma)
 
             
-def compute_vmodes_1D(zc, zf, N2f, nmodes=_nmodes, free_surf=True, g=_g, sigma=_sig):
+def compute_vmodes_1D(zc, zf, N2f, 
+                      nmodes=_nmodes, free_surf=True, 
+                      g=g_default, sigma=_sig):
     """ compute vertical modes: solution of SL problem (phi'/N^2)'+k*phi=0'
     returns phi at rho points, dphi at w points and c=1/sqrt(k) 
     normalization such that int(phi^2)=H, w-modes=d(phi)/dz
@@ -217,5 +224,3 @@ def compute_vmodes_1D(zc, zf, N2f, nmodes=_nmodes, free_surf=True, g=_g, sigma=_
     dphif = Dz*phic
     # this would give w-modes: np.r_[np.zeros((1,nmodes+1)),(dzf[:,None]*phic).cumsum(axis=0)]
     return c, phic, dphif
-
-#def project(...)
