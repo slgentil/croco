@@ -31,20 +31,29 @@ class Vmodes(object):
         """
         self.xgrid = xgrid
         self.nmodes = nmodes
-        # merge and rename
-        self.ds = xr.merge([zeta.rename('zeta'),
-                            zc.rename('zc'),
-                            zf.rename('zf'),
-                            N2.rename('N2'),
-                            ])
-        self.g = g
+        # create dataset
+        self.ds = get_vmodes(zc,
+                             zf,
+                             N2,
+                             nmodes=nmodes,
+                             free_surf=free_surf,
+                             sigma=sigma)
+        self.ds = self.ds.assign_coords(zc=zc.rename('zc'), zf=zf.rename('zf'))
+        #self.ds['N2'] = N2.rename('N2').drop("z_w", errors="ignore")
+        #self.ds = xr.merge([zc.rename('zc'),
+        #                    zf.rename('zf'),
+        #                    N2.rename('N2'),
+        #                    ])
         # add or derive other useful variables
         # N2 at c points?
         self.ds['H'] = np.abs(self.ds['zf'].sel(s_w=-1,method='nearest'))
+        if persist:
+            self.ds.persist()
         #
+        self.g = g
         self.free_surf = free_surf
         self.sigma=_sig
-        self._compute_vmodes(persist)
+        #self._compute_vmodes(persist)
 
     def __getitem__(self, item):
         """ Enables calls such as vm['N2']
@@ -53,14 +62,11 @@ class Vmodes(object):
 
     def _compute_vmodes(self, persist):
         # add modes to self.ds, e.g.:
-        #   will call get_vmodes, etc ...
-        #self.ds['phi'] = ...
-        #self.ds['dphidz'] = ...
-        #self.ds['c'] = ...
-        
+                
         # persist dataset if relevant:
         #if persist:
         #   ...
+        pass
         
     def project(self, v, persist=False):
         """ Project a variable on vertical modes
@@ -103,18 +109,18 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     phi = (res.isel(s_stack=slice(1,N+1))
            .rename('phi')
            .rename({'s_stack': 's_rho'})
-           .assign_coords(z_rho=zc)
+    #       .assign_coords(z_rho=zc)
           )
     dphidz = (res.isel(s_stack=slice(N+1,2*N+2))
               .rename('dphidz')
               .rename({'s_stack': 's_w'})
-              .assign_coords(z_w=zf)
+      #        .assign_coords(z_w=zf)
              )
     # merge data into a single dataset
     other_dims = tuple([dim for dim in zc.dims if dim!="s_rho"]) # extra dims    
-    dm = (xr.merge([c, phi, dphidz])
+    dm = (xr.merge([c, phi, dphidz, -zf.isel(s_w=0, drop=True).rename('norm'), N2.rename('N2')])
           .transpose(*('mode','s_rho','s_w')+other_dims)
-          .assign_coords(N2=N2, norm=-zf.isel(s_w=0, drop=True))
+    #      .assign_coords(N2=N2, norm=-zf.isel(s_w=0, drop=True))
          )
     return dm  ### hard-coded norm = H
 
