@@ -1,3 +1,6 @@
+""" vmodes.py python module
+WARNING this is a WIP, see ipython notebook for the current version under development
+this version is not working with the class Vmodes yet. """
 import scipy.sparse as sp
 import scipy.sparse.linalg as la
 import numpy as np
@@ -72,7 +75,8 @@ class Vmodes(object):
         """ Project a variable on vertical modes
         """
         pass
-        
+    
+
         
 def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     """ wrapper for calling compute_vmodes with apply_ufunc. Includes unstacking of result

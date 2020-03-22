@@ -135,6 +135,35 @@ def get_z(run, zeta=None, h=None, vgrid='r',
 
 # ------------------------------------------------------------------------------
 
+def zi_w2rho(run, data, z_w=None, z_r=None):
+    """ interpolate linearly from z_w grid to z_r grid
+    warning: this version uses grid (xgcm)
+    N.B.: z_r, z_w can the grid at any time or at rest (zeta=0) 
+    if z_w is None, will try to get the values from data
+    if z_r is None, will interpolate at midpoints using grid.interp
+    if z_w is None but z_r is not, will fail """
+    
+    grid = run.xgrid
+    
+    if z_w is None and "z_w" in data:
+        z_w = data.z_w
+        
+    if z_r is not None:
+        dzr = grid.diff(z_w, "s") #.diff("s_w")
+        idn, iup = slice(0,-1), slice(1,None)
+        rna = {"s_w":"s_rho"}
+        z_w, data = z_w.drop("s_w"), data.drop("s_w")
+        w1 = (z_w.isel(s_w=iup).rename(rna) - z_r)/dzr
+        w2 = (z_r - z_w.isel(s_w=idn).rename(rna))/dzr
+        w_i = (w1*data.isel(s_w=idn).rename(rna) + w2*data.isel(s_w=iup).rename(rna))
+        w_i = w_i.assign_coords(z_rho=z_r)
+    else:
+        w_i = grid.interp(data, "s")
+        if z_w is not None:
+            w_i = w_i.assign_coords(z_rho=grid.interp(z_w, "s"))
+        
+    return w_i
+
 def interp2z_3d(z0, z, v, b_extrap=2, t_extrap=2):
     """
     b_extrap, t_extrap:
