@@ -135,15 +135,14 @@ def get_z(run, zeta=None, h=None, vgrid='r',
 
 # ------------------------------------------------------------------------------
 
-def zi_w2rho(run, data, z_w=None, z_r=None):
+def w2rho(data, grid, z_w=None, z_r=None):
     """ interpolate linearly from z_w grid to z_r grid
     warning: this version uses grid (xgcm)
     N.B.: z_r, z_w can the grid at any time or at rest (zeta=0) 
     if z_w is None, will try to get the values from data
     if z_r is None, will interpolate at midpoints using grid.interp
-    if z_w is None but z_r is not, will fail """
-    
-    grid = run.xgrid
+    if z_w is None but z_r is not, will fail 
+    This routine should give the same result as xgcm.interp with updated metrics """
     
     if z_w is None and "z_w" in data:
         z_w = data.z_w
