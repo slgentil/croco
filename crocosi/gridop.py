@@ -135,19 +135,19 @@ def get_z(run, zeta=None, h=None, vgrid='r',
 
 # ------------------------------------------------------------------------------
 
-def w2rho(data, grid, z_w=None, z_r=None):
+def w2rho(data, grid, z_r=None, z_w=None):
     """ Linearly interpolates from w vertical grid to rho one.
 
     Parameters
     ----------
     data: xarray.DataArray
-       Array to be interpolated. May contain `z_w` and `z_r` has coordinates.
+       Array to be interpolated. May contain `z_w` and `z_r` as coordinates.
     grid: xgcm.Grid
         Grid object containing grid information required for the interpolation
+    z_r: xarray.DataArray, optional 
+        Vertical grid at cell centers (rho). If not provided will search for variable `z_r` in `data`.
     z_w: xarray.DataArray, optional
         Vertical grid at cell faces (w). If not provided will search for variable `z_w` in `data`.
-    z_r: xarray.DataArray, optional
-        Vertical grid at cell centers (rho). If not provided will search for variable `z_r` in `data`.
 
     Returns
     -------
@@ -163,24 +163,23 @@ def w2rho(data, grid, z_w=None, z_r=None):
     This routine should give the same result as xgcm.interp with updated metrics
     """
     
-    if z_w is None and "z_w" in data:
+    if z_w is None:
         z_w = data.z_w
         
-    if z_r is not None:
-        dzr = grid.diff(z_w, "s") #.diff("s_w")
-        idn, iup = slice(0,-1), slice(1,None)
-        rna = {"s_w":"s_rho"}
-        z_w, data = z_w.drop("s_w"), data.drop("s_w")
-        w1 = (z_w.isel(s_w=iup).rename(rna) - z_r)/dzr
-        w2 = (z_r - z_w.isel(s_w=idn).rename(rna))/dzr
-        w_i = (w1*data.isel(s_w=idn).rename(rna) + w2*data.isel(s_w=iup).rename(rna))
-        w_i = w_i.assign_coords(z_rho=z_r)
-    else:
-        w_i = grid.interp(data, "s")
-        if z_w is not None:
-            w_i = w_i.assign_coords(z_rho=grid.interp(z_w, "s"))
-        
-    return w_i
+    if z_r is None:
+        z_r = data.z_r
+
+    dzr = grid.diff(z_w, "s") #.diff("s_w")
+    idn, iup = slice(0,-1), slice(1,None)
+    rna = {"s_w":"s_rho"}
+    z_w, data = z_w.drop("s_w"), data.drop("s_w")
+    # TODO use shift instead of isel (if the routine is maintained) 
+    w1 = (z_w.isel(s_w=iup).rename(rna) - z_r)/dzr
+    w2 = (z_r - z_w.isel(s_w=idn).rename(rna))/dzr
+    w_i = (w1*data.isel(s_w=idn).rename(rna) + w2*data.isel(s_w=iup).rename(rna))
+
+    return w_i.assign_coords(z_rho=z_r)
+
 
 def interp2z_3d(z0, z, v, b_extrap=2, t_extrap=2):
     """
