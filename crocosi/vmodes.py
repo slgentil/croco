@@ -5,6 +5,7 @@ import scipy.sparse as sp
 import scipy.sparse.linalg as la
 import numpy as np
 import xarray as xr
+import crocosi.gridop as gop
 
 from .postp import g_default
 
@@ -34,50 +35,275 @@ class Vmodes(object):
         """
         self.xgrid = xgrid
         self.nmodes = nmodes
-        # create dataset
-        self.ds = get_vmodes(zc,
-                             zf,
-                             N2,
-                             nmodes=nmodes,
-                             free_surf=free_surf,
-                             sigma=sigma)
-        self.ds = self.ds.assign_coords(zc=zc.rename('zc'), zf=zf.rename('zf'))
-        #self.ds['N2'] = N2.rename('N2').drop("z_w", errors="ignore")
-        #self.ds = xr.merge([zc.rename('zc'),
-        #                    zf.rename('zf'),
-        #                    N2.rename('N2'),
-        #                    ])
-        # add or derive other useful variables
-        # N2 at c points?
-        self.ds['H'] = np.abs(self.ds['zf'].sel(s_w=-1,method='nearest'))
-        if persist:
-            self.ds.persist()
-        #
+        self._znames = {"zc": zc.name, "zf": zf.name}
         self.g = g
         self.free_surf = free_surf
         self.sigma=_sig
-        #self._compute_vmodes(persist)
-
+        
+        # create dataset
+        N2name = N2.name if N2.name else "N2"
+        # time_instant is conflicting if specifying coords in Dataset... weird
+        self.ds = xr.Dataset({N2name:N2}).assign_coords({zc.name:zc})
+        if zf.name not in self.ds.coords:
+            self.ds = self.ds.assign_coords({zf.name:zf})
+        self._compute_vmodes()
+        
+        self.ds['H'] = np.abs(zf.sel(s_w=-1,method='nearest'))
+        self.ds['dz'] = xgrid.diff(zf, "s").rename("dz")
+        
+        if persist:
+            self.ds.persist()
+     
     def __getitem__(self, item):
         """ Enables calls such as vm['N2']
         """
+        if item in ['zc', 'zf']:
+            return self.ds[self._znames[item]]
         return self.ds[item]
 
-    def _compute_vmodes(self, persist):
-        # add modes to self.ds, e.g.:
-                
-        # persist dataset if relevant:
-        #if persist:
-        #   ...
-        pass
-        
-    def project(self, v, persist=False):
-        """ Project a variable on vertical modes
-        """
+    def _compute_vmodes(self):
+        """ compute vertical modes and store the results into the dataset """
+        dm = get_vmodes(self['zc'],
+                        self['zf'],
+                        self.ds.N2,
+                        nmodes=self.nmodes,
+                        free_surf=self.free_surf,
+                        sigma=self.sigma)
+        # merge error on z_w... but no z_w in get_vmodes dataset, so why? 
+        # It's okay if I return Vmodes without calling _compute_vmodes and then merge with get_vmodes outside of the class.
+        self.ds = xr.merge([self.ds, dm], compat="override")
         pass
     
-
+    ### projection and reconstruction
+    
+    def project(self, data, vartype="p", **kwargs):
+        """ Project a variable on vertical modes (p-modes or w-modes)
+        Internally call project_puv or project_w
         
+        Parameters:
+        ___________
+        data: xarray.DataArray
+            array containing the data to be projected. 
+        vartype: str, optional (default: "p", i.e. pressure modes)
+            string specifying whether projection should be done w-modes ("w"), buoyancy modes ("b") or pressure modes (any other value)
+        zz: xarray.DataArray, optional (default: None)
+            array containing the z-grid of the data. Those will be interpolated onto the vmodes grid points prior to projection.
+        isel: Dict, optional (default: None)
+            indices applied to the vmodes dataset prior to projection
+        align: bool, optional (default: False)
+            wether alignment between the data and vmodes DataArray should be performed before projecting
+        
+        Returns
+        _______
+        xarray.DataArray
+            Projected array
+            
+        See also
+        ________
+        project_puv, project_w, reconstruct
+        
+        """
+        
+        if vartype == "w":
+            return self.project_w(data, **kwargs)
+        elif vartype == "b":
+            return self.project_b(data, **kwargs)
+        else:
+            return self.project_puv(data, **kwargs)
+    
+    def project_puv(self, data, zz=None, isel=None, align=False):
+        """ projection on p-mode 
+        compute int_z(phi_n * field) using sum
+        
+        Parameters:
+        ___________
+        data: xarray.DataArray
+        
+        Returns:
+        ________
+        xarray.Datarray
+        
+        See also:
+        _________
+        project, reconstruct_p
+        
+        """
+
+        if isel is None:
+            dm = self.ds
+        else:
+            dm = self.ds.isel(isel)
+        if align:
+            raise ValueError("aligning not implemented")
+            # how not to get rid of "modes" when aligning, or align only on existing dimensions?
+            #data, dm = xr.align(data, dm, join="left", exclude="mode")
+        if zz is not None:
+            data = self._z2zmoy(data, zz, align=align)
+        res = (dm.dz*data*dm.phi).sum("s_rho")/dm.norm
+
+        return res
+    
+    def project_w(self, data, zz=None, isel=None, align=False): 
+        """ projection on w-mode (varphi = -c**2/N2 * dphidz)
+        for reconstructing, use w = wn*varphi (see reconstruct_w)
+        
+        interpolation uses linear interpolation, but midpoints should be OK 
+            (since it gives something equivalent to trapezoidal integration upon integration)
+            
+        Parameters:
+        ___________
+        data: xarray.DataArray
+        
+        Returns:
+        ________
+        xarray.Datarray
+        
+        See also:
+        _________
+        project, reconstruct_w
+        
+        """
+        
+        if isel is None:
+            dm = self.ds
+        else:
+            dm = self.ds.isel(isel)
+        if align:
+            raise ValueError("aligning not implemented")
+            # how not to get rid of "modes" when aligning, or align only on existing dimensions?
+            #data, dm = xr.align(data, dm, join="left", exclude="mode")    
+        if zz is not None:
+            data = self._z2zmoy(data, zz)        
+        prov = (data * self._w2rho(-dm.dphidz, align=align) * dm.dz).sum(dim="s_rho")
+        if self.free_surf:
+            prov += self.g * ( -dm.dphidz / dm.N2 
+                              * self.xgrid.interp(data, "s", boundary="extrapolate") 
+                             ).isel(s_w=-1).drop(self._znames["zf"])
+       
+        return prov/dm.norm
+    
+    def project_b(self, data, zz=None, isel=None, align=False): 
+        """ projection on b-mode (dphidz)
+        for reconstructing, use -c**2*bn*dphidz (see reconstruct b)
+        
+        interpolation uses linear interpolation, but midpoints should be OK 
+            (since it gives something equivalent to trapezoidal integration upon integration)
+            
+        Parameters:
+        ___________
+        data: xarray.DataArray
+        
+        Returns:
+        ________
+        xarray.Datarray
+        
+        See also:
+        _________
+        project, project_w, reconstruct_b
+        
+        """
+        if isel is None:
+            dm = self.ds
+        else:
+            dm = self.ds.isel(isel)
+        if align:
+            raise ValueError("aligning not implemented")
+            # how not to get rid of "modes" when aligning, or align only on existing dimensions?
+            #data, dm = xr.align(data, dm, join="left", exclude="mode")    
+        if zz is not None:
+            data = self._z2zmoy(data, zz)    
+        prov = (data * self.xgrid.interp(dm.dphidz/dm.N2, "s") * dm.dz).sum("s_rho")
+        if self.free_surf:
+            prov += self.g * (self.xgrid.interp(data, "s", boundary="extrapolate")
+                          * dm.dphidz / dm.N2**2
+                         ).isel(s_w=-1).drop(self._znames["zf"])
+        return -prov/dm.norm 
+
+    def reconstruct(self, modamp, vartype=None, **kwargs):
+        """ Reconstruct a variable from modal amplitudes
+        Internally call reconstruct_puv or reconstruct w or reconstruct_b
+        
+        Parameters:
+        ___________
+        modamp: xarray.DataArray
+            array containing the modal amplitudes 
+        vartype: str, optional, {"p", "u", "v", "w", "b"} (default: "p", i.e. pressure modes)
+            string specifying whether reconstruction should be done using w-modes ("w"), buoyancy modes ("b") or pressure modes ("p", "u" or "v")
+        isel: Dict, optional (default: None)
+            indices applied to the vmodes dataset prior to reconstruction
+        
+        Returns
+        _______
+        xarray.DataArray
+            Reconstructed field array
+            
+        See also
+        ________
+        reconstruct_puv, reconstruct_w, reconstruct_b, project
+        
+        """
+        
+        if vartype is None:
+            if sum(subst in modamp.name.lower() for subst in 'puvbw')==1:
+                vartype = next(subst for subst in 'puvw' if subst in modamp.name)
+            else: 
+                raise ValueError("unable to find what kind of basis to use for reconstruction")
+                
+        if vartype in "puv":
+            return self.reconstruct_puv(modamp, **kwargs)
+        elif vartype is "w":
+            return self.reconstruct_w(modamp, **kwargs)
+        elif vartype is "b":
+            return self.reconstruct_b(modamp, **kwargs)
+        
+    def reconstruct_puv(self, modamp, isel=None):
+        if isel is None:
+            dm = self.ds
+        else:
+            dm = self.ds.isel(isel)
+        return (modamp * dm.phi).sum("mode")
+
+    def reconstruct_w(self, modamp, isel=None):
+        if isel is None:
+            dm = self.ds
+        else:
+            dm = self.ds.isel(isel)
+        return (-dm.c**2 / dm.N2 * dm.dphidz * modamp).sum("mode")
+    
+    def reconstruct_b(self, modamp, isel=None):
+        if isel is None:
+            dm = self.ds
+        else:
+            dm = self.ds.isel(isel)
+        return (-dm.c**2 * dm.dphidz * modamp).sum("mode")
+    ### utilitaries 
+    
+    def _z2zmoy(self, data, zz, align=True):
+        """ routine for interpolating data on the mean z-grid used for the modes
+        WARNING: I think it works only for initial data on same grid (e.g. dim are "s_rho")"""
+        # if not re-chunking, nanny restarts worker
+        if "s_rho" in data.dims: 
+            data = data.chunk({"s_rho":-1})
+        elif "s_w" in data.dims: 
+            raise("data should be on s_rho grid, but s_w found") #data = data.chunk({"s_w":-1})
+        zc = self['zc']
+        if align:
+            data, zc = xr.align(data, zc, join="inner")
+        prov = xr.apply_ufunc(gop.interp2z, zc, zz, data, 2, 2,
+                        dask='parallelized', output_dtypes=[np.float64])
+        return prov.rename(data.name)
+    
+    def _w2rho(self, data, zf=None, zc=None, align=True):
+        """ routine to interpolate fields from mean rho point to mean w point
+        adapt to different ensemble of points if specified
+        WARNING: there is a hack: first arg of gridop.zi_w2rho should be a run object, 
+        but it works with Vmodes object because only xgrid is needed """
+        if zf is None:
+            zf = self["zf"]
+        if zc is None:
+            zc = self["zc"]
+        return gop.w2rho(data, self.xgrid, zc, zf)
+
 def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     """ wrapper for calling compute_vmodes with apply_ufunc. Includes unstacking of result
     this is what you should need in your scripts, unless you are using numpy arrays only 
@@ -113,18 +339,18 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     phi = (res.isel(s_stack=slice(1,N+1))
            .rename('phi')
            .rename({'s_stack': 's_rho'})
-    #       .assign_coords(z_rho=zc)
+           #.assign_coords(z_rho=zc)
           )
     dphidz = (res.isel(s_stack=slice(N+1,2*N+2))
               .rename('dphidz')
               .rename({'s_stack': 's_w'})
-      #        .assign_coords(z_w=zf)
+            #  .assign_coords(z_w=zf)
              )
     # merge data into a single dataset
     other_dims = tuple([dim for dim in zc.dims if dim!="s_rho"]) # extra dims    
-    dm = (xr.merge([c, phi, dphidz, -zf.isel(s_w=0, drop=True).rename('norm'), N2.rename('N2')])
+    dm = (xr.merge([c, phi, dphidz, -zf.isel(s_w=0, drop=True).rename('norm')])
           .transpose(*('mode','s_rho','s_w')+other_dims)
-    #      .assign_coords(N2=N2, norm=-zf.isel(s_w=0, drop=True))
+          #.assign_coords(norm=-zf.isel(s_w=0, drop=True)) #, N2=N2
          )
     return dm  ### hard-coded norm = H
 
