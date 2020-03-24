@@ -135,15 +135,33 @@ def get_z(run, zeta=None, h=None, vgrid='r',
 
 # ------------------------------------------------------------------------------
 
-def zi_w2rho(run, data, z_w=None, z_r=None):
-    """ interpolate linearly from z_w grid to z_r grid
-    warning: this version uses grid (xgcm)
-    N.B.: z_r, z_w can the grid at any time or at rest (zeta=0) 
-    if z_w is None, will try to get the values from data
-    if z_r is None, will interpolate at midpoints using grid.interp
-    if z_w is None but z_r is not, will fail """
-    
-    grid = run.xgrid
+def w2rho(data, grid, z_w=None, z_r=None):
+    """ Linearly interpolates from w vertical grid to rho one.
+
+    Parameters
+    ----------
+    data: xarray.DataArray
+       Array to be interpolated. May contain `z_w` and `z_r` has coordinates.
+    grid: xgcm.Grid
+        Grid object containing grid information required for the interpolation
+    z_w: xarray.DataArray, optional
+        Vertical grid at cell faces (w). If not provided will search for variable `z_w` in `data`.
+    z_r: xarray.DataArray, optional
+        Vertical grid at cell centers (rho). If not provided will search for variable `z_r` in `data`.
+
+    Returns
+    -------
+    xarray.DataArray
+        Interpolated array
+
+    Notes
+    -----
+    The linear interpolation leverages `xgcm`_ library.
+
+    .. _xgcm:
+       https://xgcm.readthedocs.io/en/latest/
+    This routine should give the same result as xgcm.interp with updated metrics
+    """
     
     if z_w is None and "z_w" in data:
         z_w = data.z_w
