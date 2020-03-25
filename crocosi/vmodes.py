@@ -408,7 +408,6 @@ def compute_vmodes_1D(zc, zf, N2f,
     normalization such that int(phi^2)=H, w-modes=d(phi)/dz
     copy-pasted from M. Dunphy's vmodes_MD.py
     TODO: correct rigid lid & barotropic mode """
-    print("computing {0} modes", nmodes)
     # Precompute a few quantities
     assert zc.ndim==zf.ndim==N2f.ndim==1
     assert len(zc)+1==len(N2f)==len(zf)
