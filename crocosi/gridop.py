@@ -161,6 +161,7 @@ def interp2z_3d(z0, z, v, b_extrap=2, t_extrap=2):
 
 def interp2z(z0, z, v, b_extrap, t_extrap):
     ''' interpolate vertically
+    will be updated with proper docstring ;)
     '''
     # check v and z have identical shape
     assert v.ndim==z.ndim
