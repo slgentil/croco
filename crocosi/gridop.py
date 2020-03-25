@@ -159,21 +159,47 @@ def interp2z_3d(z0, z, v, b_extrap=2, t_extrap=2):
     return fi.interp(z0.astype('float64'), lz.astype('float64'), lv.astype('float64'), 
                      b_extrap, t_extrap).squeeze()
 
-def interp2z(z0, z, v, b_extrap, t_extrap):
-    ''' interpolate vertically
+def interp2z_np(z0, z, v, **kwargs):
+    ''' interpolates vertically
     will be updated with proper docstring ;)
+    
+    Parameters
+    ----------
+    z0:  ndarray
+        Target vertical grid
+    z:   ndarray
+        Actual vertical grid
+    ...
     '''
     # check v and z have identical shape
     assert v.ndim==z.ndim
     # test if temporal dimension is present
     if v.ndim == 4:
-        vi = [interp2z_3d(z0, z[...,t], v[...,t], b_extrap, t_extrap)[...,None] 
-                  for t in range(v.shape[-1])]
+        vi = [interp2z_3d(z0, z[...,t], v[...,t], **kwargs)[...,None] 
+                      for t in range(v.shape[-1])]
         return np.concatenate(vi, axis=0) # (50, 722, 258, 1)
         #return v*0 + v.shape[3]
     else:
-        return interp2z_3d(z0, z, v, b_extrap, t_extrap)
+        return interp2z_3d(z0, z, v, **kwargs)
 
+def interp2z(z0, z, v, **kwargs):
+    ''' interpolates vertically
+    will be updated with proper docstring ;)
+    
+    Parameters
+    ----------
+    z0:  xarray.DataArray
+        Target vertical grid
+    z:   xarray.DataArray
+        Actual vertical grid
+    
+    '''
+    vout = xr.apply_ufunc(interp2z_np, z0, z, v,
+                          kwargs=kwargs,
+                          dask='parallelized',
+                          output_dtypes=[np.float64])
+    return vout
+        
 # ------------------------------------------------------------------------------
     
 def get_N2(run, rho, z, g=g_default):
