@@ -1,179 +1,139 @@
 import sys
 import xarray as xr
 import numpy as np
+from collections import OrderedDict
 
-# ------------------------------------------------------------------------------------------------
-_g = 9.81
+from .postp import g_default
 
-def add_coords(ds, var, coords):
-    for co in coords:
-        var.coords[co] = ds.coords[co]
+# ------------------------------------------------------------------------------
 
-def rho2u(v, ds):
+def _get_spatial_dims(v):
+    """ Return an ordered dict of spatial dimensions in the s/z, y, x order
     """
-    interpolate horizontally variable from rho to u point
-    """
-    grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'xi')
-    add_coords(ds, var, ['xi_u','eta_u'])
-    var.attrs = v.attrs
-    return var.rename(v.name)
+    dims = OrderedDict( (d, next((x for x in v.dims if x[0]==d), None))
+                        for d in ['s','y','x'] )
+    return dims
 
-def u2rho(v, ds):
+def x2rho(v, grid):
+    """ Interpolate from any grid to rho grid
     """
-    interpolate horizontally variable from u to rho point
-    """
-    grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'xi')
-    add_coords(ds, var, ['xi_rho','eta_rho'])
-    var.attrs = v.attrs
-    return var.rename(v.name)
+    dims = _get_spatial_dims(v)
+    vout = v.copy()
+    if dims['x'] == 'x_u':
+        vout = grid.interp(vout, 'xi')
+    if dims['y'] == 'y_v':
+        vout = grid.interp(vout, 'eta')
+    return vout
 
-def v2rho(v, ds):
+def x2u(v, grid):
+    """ Interpolate from any grid to u grid
     """
-    interpolate horizontally variable from rho to v point
-    """
-    grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'eta')
-    add_coords(ds, var, ['xi_rho','eta_rho'])
-    var.attrs = v.attrs
-    return var.rename(v.name)
+    dims = _get_spatial_dims(v)
+    vout = v.copy()
+    if dims['x'] == 'x_rho':
+        vout = grid.interp(vout, 'xi')
+    if dims['y'] == 'y_v':
+        vout = grid.interp(vout, 'eta')
+    return vout
 
-def rho2v(v, ds):
+def x2v(v, grid):
+    """ Interpolate from any grid to u grid
     """
-    interpolate horizontally variable from rho to v point
-    """
-    grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'eta')
-    add_coords(ds, var, ['xi_v','eta_v'])
-    var.attrs = v.attrs
-    return var.rename(v.name)
+    dims = _get_spatial_dims(v)
+    vout = v.copy()
+    if dims['x'] == 'x_rho':
+        vout = grid.interp(vout, 'xi')
+    if dims['y'] == 'y_v':
+        vout = grid.interp(vout, 'eta')
+    return vout
 
-def rho2psi(v, ds):
-    """
-    interpolate horizontally variable from rho to psi point
-    """
-    grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'xi')
-    var = grid.interp(var,'eta')
-    var.attrs = v.attrs
-    return var.rename(v.name)
+def x2x(v, grid, target):
+    if target is 'rho':
+        return x2rho(v, grid)
+    elif target is 'u':
+        return x2u(v, grid)
+    elif target is 'v':
+        return x2v(v, grid)
+    
+# ------------------------------------------------------------------------------
 
-def psi2rho(v, ds):
-    """
-    interpolate horizontally variable from rho to psi point
-    """
-    grid = ds.attrs['xgcm-Grid']
-    var = grid.interp(v,'xi')
-    var = grid.interp(var,'eta')
-    add_coords(ds, var, ['xi_rho','eta_rho'])
-    var.attrs = v.attrs
-    return var.rename(v.name)
-
-def get_z(run, zeta=None, h=None, vgrid='r', hgrid='r', vtrans=None):
-    ''' compute vertical coordinates
-        zeta should have the size of the final output
-        vertical coordinate is first in output
+def get_z(run, zeta=None, h=None, vgrid='r', 
+          hgrid=None, vtransform=None):
+    ''' Compute vertical coordinates
+        Spatial dimensions are placed last, in the order: s_rho/s_w, y, x
+        
+        Parameters
+        ----------
+        run: crocosi.gridop.run
+            Simulation output object
+        zeta: xarray.DataArray, optional
+            Sea level data, default to 0 if not provided
+            If you use slices, make sure singleton dimensions are kept, i.e do:
+                zeta.isel(x_rho=[i])
+            and not :
+                zeta.isel(x_rho=i)
+        h: xarray.DataArray, optional
+            Water depth, searche depth in grid if not provided
+        vgrid: str, optional
+            Vertical grid, 'r'/'rho' or 'w'. Default is 'rho'
+        hgrid: str, optional
+            Any horizontal grid: 'r'/'rho', 'u', 'v'. Default is 'rho'
+        vtransform: int, str, optional
+            croco vertical transform employed in the simulation.
+            1="old": z = z0 + (1+z0/_h) * _zeta  with  z0 = hc*sc + (_h-hc)*cs
+            2="new": z = z0 * (_zeta + _h) + _zeta  with  z0 = (hc * sc + _h * cs) / (hc + _h)
     '''
 
-    try:
-        ds = run.ds['grid']
-    except Exception:
-        ds = run.ds['his']
-    N = run.N
-    hc = run.params_input['Hc']
+    grid, xgrid = run['grid'], run['xgrid']
 
-    _h = ds.h if h is None else h
-    _zeta = 0*ds.h if zeta is None else zeta
+    _h = grid.h if h is None else h
+    _zeta = 0*grid.h if zeta is None else zeta
 
-    # swith horizontal grid if needed (should we use grid.interp instead?)
+    # switch horizontal grid if needed
     if hgrid in ['u','v']:
-        funtr = eval("rho2"+hgrid)
-        if zeta is None:
-            _zeta = funtr(_zeta, ds)
-        _h = funtr(_h, ds)
+        _h = x2x(_h, xgrid, hgrid)
+        _zeta = x2x(_zeta, xgrid, hgrid)
+    
+    # align datasets (zeta may contain a slice along one dimension for example)
+    _h, _zeta  = xr.align(_h, _zeta, join='inner')
     
     # determine what kind of vertical corrdinate we are using (NEW_S_COORD)
-    if vtrans is None:
-        vtrans = ds.Vtransform.values
+    if vtransform is None:
+        vtransform = grid.Vtransform.values
     else:
-        if isinstance(vtrans, str):
-            if vtrans.lower()=="old":
-                vtrans = 1
-            elif vtrans.lower()=="new":
-                vtrans = 2
+        if isinstance(vtransform, str):
+            if vtransform.lower()=="old":
+                vtransform = 1
+            elif vtransform.lower()=="new":
+                vtransform = 2
             else:
                 raise ValueError("unable to understand what is vtransform")
-                
-    sc=ds['sc_'+vgrid]
-    cs=ds['Cs_'+vgrid]
 
-    if vtrans == 2:
-        z0 = (hc * sc + _h * cs) / (hc + _h)
-        z = _zeta + (_zeta + _h) * z0
+    if vgrid in ['r', 'rho']:
+        vgrid = 'rho'
+        sc = grid['sc_r']
+        cs = grid['Cs_r']
     else:
+        sc = grid['sc_'+vgrid]
+        cs = grid['Cs_'+vgrid]
+
+    hc = run['Hc']
+    if vtransform == 1:
         z0 = hc*sc + (_h-hc)*cs
-        z = z0 + _zeta*(1+z0/_h)
-        
-    zdim = "s_"+vgrid.replace('r','rho')
-    if z.dims[0] != zdim:
-        z = z.transpose(*(zdim,)+_zeta.dims)
+        z = z0 + (1+z0/_h) * _zeta
+    else:
+        z0 = (hc * sc + _h * cs) / (hc + _h)
+        z = z0 * (_zeta + _h) + _zeta
+    
+    # reorder spatial dimensions and place them last
+    sdims = list(_get_spatial_dims(z).values())
+    sdims = tuple(filter(None,sdims)) # delete None values
+    reordered_dims = tuple(d for d in z.dims if d not in sdims) + sdims
+    z = z.transpose(*reordered_dims)
+    
     return z.rename('z_'+vgrid)
 
-def get_p(grid,rho,zw,zr=None,g=_g):
-    """ compute (not reduced) pressure by integration from the surface, 
-    taking rho at rho points and giving results on w points (z grid)
-    with p=0 at the surface. If zr is not None, compute result on rho points """
-    if zr is None:
-        dz = grid.diff(zw, "s")
-        p = grid.cumsum((rho*dz).sortby("s_rho",ascending=False), "s",                             to="outer", boundary="fill").sortby("s_w",ascending=False)
-    else:
-        """ it is assumed that all fields are from bottom to surface"""
-        rna = {"s_w":"s_rho"}
-        dpup = (zr - zw.isel(s_w=slice(0,-1)).drop("s_w").rename(rna))*rho
-        dpdn = (zw.isel(s_w=slice(1,None)).drop("s_w").rename(rna) - zr)*rho
-        p = (dpup.shift(s_rho=-1, fill_value=0) + dpdn).sortby(rho.s_rho, ascending=False)                .cumsum("s_rho").sortby(rho.s_rho, ascending=True).assign_coords(z_r=zr)
-    return _g *p.rename("p")
-
-
-def get_uv_from_psi(psi, ds):
-    # note that u, v are computed at rho points
-    x, y = ds.xi_rho, ds.eta_rho
-    #
-    u = - 0.5*(psi.shift(eta_rho=1)-psi)/(y.shift(eta_rho=1)-y) \
-        - 0.5*(psi-psi.shift(eta_rho=-1))/(y-y.shift(eta_rho=-1))
-    #
-    v =   0.5*(psi.shift(xi_rho=1)-psi)/(x.shift(xi_rho=1)-x) \
-        + 0.5*(psi-psi.shift(xi_rho=-1))/(x-x.shift(xi_rho=-1))
-    return u, v
-
-def get_pv(u, v, rho, rho_a, f, f0, zr, zw, ds):
-
-    # relative vorticity
-    xi_v =  ( (v.diff('xi_rho')/ds.xi_rho.diff('xi_rho'))
-             .rename({'xi_rho':'xi_psi', 'eta_v':'eta_psi'})
-             .assign_coords(xi_psi=ds.xi_u.rename({'xi_u':'xi_psi'}),
-                            eta_psi=ds.eta_v.rename({'eta_v':'eta_psi'})))
-
-    xi_u = -( (u.diff('eta_rho')/ds.eta_rho.diff('eta_rho'))
-             .rename({'eta_rho':'eta_psi', 'xi_u':'xi_psi'})
-             .assign_coords(xi_psi=ds.xi_u.rename({'xi_u':'xi_psi'}),
-                            eta_psi=ds.eta_v.rename({'eta_v':'eta_psi'})))
-    xi = psi2rho(xi_u+xi_v, ds)
-
-    # stretching term
-    drho = (rho.shift(z_r=1)+rho)*0.5 * zr.diff('z_r')/rho_a.diff('z_r')
-    drho = drho.rename({'z_r':'z_w'}).assign_coords(z_w=zw[:-1])
-    Sint = drho.diff('z_w')/zw[:-1].diff('z_w')
-    Sint = Sint.rename({'z_w':'z_r'}).assign_coords(z_r=zr[1:-1])
-
-    # note that top and bottom values are not used in the solver
-    S = f0 * xr.concat([0.*rho.isel(z_r=0), Sint, 0.*rho.isel(z_r=-1)], dim='z_r') #.transpose('z_r','eta_rho','xi_rho')
-
-    # assemble pb
-    q = (xi + S + f - f0 ).rename('q') # order of variable conditions dimension order
-
-    return q
+# ------------------------------------------------------------------------------
 
 def interp2z_3d(z0, z, v, b_extrap=2, t_extrap=2):
     """
@@ -213,19 +173,21 @@ def interp2z(z0, z, v, b_extrap, t_extrap):
     else:
         return interp2z_3d(z0, z, v, b_extrap, t_extrap)
 
-
-def N2Profile(run, strat, z, g=9.81):
-    """
-    Method to compute the N2 profile : 
-    """
+# ------------------------------------------------------------------------------
     
-    grid = run.ds['his'].attrs['xgcm-Grid']
-    N2 = -g/run.params_input['rho0'] * grid.diff(strat,'s') / grid.diff(z,'s')
-    N2.isel(s_w=0).values = N2.isel(s_w=1).values
-    N2.isel(s_w=-1).values = N2.isel(s_w=-2).values
-    # if np.any(N2<0):
-    #     print("Unstable N2 profile detected")
-    return (N2)
+def get_N2(run, rho, z, g=g_default):
+    """ Compute square buoyancy frequency N2 
+    ... doc to be improved
+    """
+    grid = run['xgrid']
+    N2 = -g/run['rho0'] * grid.diff(rho, 's', boundary='fill', fill_value=np.NaN) \
+            / grid.diff(z, 's', boundary='fill', fill_value=np.NaN)
+    # cannot find a solution with xgcm, weird
+    N2 = N2.fillna(N2.shift(s_w=-1))
+    N2 = N2.fillna(N2.shift(s_w=1))
+    return N2
+
+# ------------------------------------------------------------------------------
 
 def hinterp(ds,var,coords=None):
     import pyinterp
@@ -266,3 +228,74 @@ def hinterp(ds,var,coords=None):
     xslice = ds.lon_r
 
     return[xslice,yslice,vslice]
+
+# ------------------------------------------------------------------------------
+
+def get_p(grid, rho, zw, zr=None, g=g_default):
+    """ Compute (not reduced) pressure by integration from the surface, 
+    taking rho at rho points and giving results on w points (z grid)
+    with p=0 at the surface. If zr is not None, compute result on rho points
+    
+    Parameters
+    ----------
+    ...
+    
+    
+    """
+    if zr is None:
+        dz = grid.diff(zw, "s")
+        p = (grid.cumsum((rho*dz).sortby("s_rho",ascending=False), 
+                         "s", to="outer", boundary="fill")
+             .sortby("s_w", ascending=False)
+            )
+    else:
+        # it is assumed that all fields are from bottom to surface
+        rna = {"s_w":"s_rho"}
+        dpup = (zr - zw.isel(s_w=slice(0,-1)).drop("s_w").rename(rna))*rho
+        dpdn = (zw.isel(s_w=slice(1,None)).drop("s_w").rename(rna) - zr)*rho
+        p = ((dpup.shift(s_rho=-1, fill_value=0) + dpdn)
+             .sortby(rho.s_rho, ascending=False)                
+             .cumsum("s_rho")
+             .sortby(rho.s_rho, ascending=True)
+             .assign_coords(z_r=zr)
+            )
+    return _g*p.rename("p")
+
+def get_uv_from_psi(psi, ds):
+    # note that u, v are computed at rho points
+    x, y = ds.xi_rho, ds.eta_rho
+    #
+    u = - 0.5*(psi.shift(eta_rho=1)-psi)/(y.shift(eta_rho=1)-y) \
+        - 0.5*(psi-psi.shift(eta_rho=-1))/(y-y.shift(eta_rho=-1))
+    #
+    v =   0.5*(psi.shift(xi_rho=1)-psi)/(x.shift(xi_rho=1)-x) \
+        + 0.5*(psi-psi.shift(xi_rho=-1))/(x-x.shift(xi_rho=-1))
+    return u, v
+
+def get_pv(u, v, rho, rho_a, f, f0, zr, zw, ds):
+
+    # relative vorticity
+    xi_v =  ( (v.diff('xi_rho')/ds.xi_rho.diff('xi_rho'))
+             .rename({'xi_rho':'xi_psi', 'eta_v':'eta_psi'})
+             .assign_coords(xi_psi=ds.xi_u.rename({'xi_u':'xi_psi'}),
+                            eta_psi=ds.eta_v.rename({'eta_v':'eta_psi'})))
+
+    xi_u = -( (u.diff('eta_rho')/ds.eta_rho.diff('eta_rho'))
+             .rename({'eta_rho':'eta_psi', 'xi_u':'xi_psi'})
+             .assign_coords(xi_psi=ds.xi_u.rename({'xi_u':'xi_psi'}),
+                            eta_psi=ds.eta_v.rename({'eta_v':'eta_psi'})))
+    xi = psi2rho(xi_u+xi_v, ds)
+
+    # stretching term
+    drho = (rho.shift(z_r=1)+rho)*0.5 * zr.diff('z_r')/rho_a.diff('z_r')
+    drho = drho.rename({'z_r':'z_w'}).assign_coords(z_w=zw[:-1])
+    Sint = drho.diff('z_w')/zw[:-1].diff('z_w')
+    Sint = Sint.rename({'z_w':'z_r'}).assign_coords(z_r=zr[1:-1])
+
+    # note that top and bottom values are not used in the solver
+    S = f0 * xr.concat([0.*rho.isel(z_r=0), Sint, 0.*rho.isel(z_r=-1)], dim='z_r') #.transpose('z_r','eta_rho','xi_rho')
+
+    # assemble pb
+    q = (xi + S + f - f0 ).rename('q') # order of variable conditions dimension order
+
+    return q

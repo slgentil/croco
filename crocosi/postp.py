@@ -2,20 +2,18 @@
 Module postp
  - Run class holds metadata about a CROCO run
 """
-#rom lpolib.grid import CGrid, s_coordinate
-#rom lpolib.utils import tofloat, get_gradp, rho2u, rho2v
-#rom lpolib.scDataset import scDataset
+
 import os, fnmatch
 import numpy as np
 from numpy import ma
 import pandas as pd
 import xarray as xr
 from glob import glob
-#rom IPython import embed
 
 second2day = 1./86400.
+g_default = 9.81
 
-from crocosi.gridop import *
+import crocosi.gridop as gop
 
 def tofloat(x):
     """
@@ -28,8 +26,11 @@ class Run(object):
     Class Run contains several xarray classes for each netCDF file type
     (ave, his, etc.), a grid object, and online output diagnostics (e.g. energy, ...).
     """
-    def __init__(self, dirname, verbose=False, prefix='', open_nc=[],
-                 tdir_max=0, grid_params={}, chunk_time=1):
+    def __init__(self, dirname, prefix='', open_nc=[],
+                 tdir_max=0, 
+                 grid_params={}, chunk_time=1, 
+                 grid_periodicity=False, 
+                 verbose=False):
         """
         Constructor; we inspect a run directory and assemble scDataset
                      classes for ave, his, etc., construct a CGrid class, and
@@ -42,19 +43,25 @@ class Run(object):
         self.dirname = os.path.expanduser(dirname)
         self.verbose = verbose
         self.prefix = prefix
-        self.open_nc = ['grid'] + open_nc
+        if os.path.isfile(self.dirname+'t1/grid.nc'):
+            _nc_default = ['grid']
+        else:
+            # for backward compatibility
+            _nc_default = ['his']
+        self.open_nc = list(set(_nc_default + open_nc))
         self.tdir_max = tdir_max # limits the number of t directories
         self._grid_params = grid_params
+        self.grid_periodicity = grid_periodicity
         if isinstance(chunk_time,dict):
             self._chunk_time = chunk_time
         else:
             self._chunk_time = {nc:chunk_time for nc in self.open_nc}
         #
         self._findfiles()   # Find files that we know how to handle
-        self._readparams()  # Scan croco.in for parameters
-        self._readstats()   # Scan output.mpi for parameters and stats
-        self._openfiles()   # Open the NetCDF files as scDatasets
-        self._readgrid()    # Read the horizontal/vertical grid
+        self._read_input_params()  # Scan croco.in for parameters
+        self._read_output_stats()  # Scan output.mpi for parameters and stats
+        self._open_ncfiles()   # Open the NetCDF files as scDatasets
+        self._read_grid()    # Read the horizontal/vertical grid
 
     def __repr__(self):
         return ("Run: "+self.dirname+"\n"
@@ -75,9 +82,12 @@ class Run(object):
     def __getitem__(self, key):
         """ Load data set by providing suffix
         """
+        _gettable_attrs = ['grid', 'xgrid'] # grid is for backward compatibility, should be in open_nc
         # assert key in self.open_nc
         if key in self.open_nc:
             return self.ds[key]
+        elif key in _gettable_attrs:
+            return getattr(self, key)
         elif key in self.params_output.keys():
             return self.params_output[key]
         elif key in self.params_input.keys():
@@ -118,27 +128,27 @@ class Run(object):
             print("Found " + str(len(self.segs)) + " segments")
 
         # Now loop over segments in sequential order
-        self.filename={}
-        for suffix in self.open_nc:
-            self.filename[suffix] = []
-            self.flog = []
-            # self.fave, self.fhis, self.finst, self.fsta1, self.fsta2, self.flog = [], [], [], [], [], []
-            for segname in self.segs:
-                if os.path.isfile(os.path.join(self.dirname, segname, "output.mpi")):
-                    self.flog.extend([(segname, "output.mpi")])
+        self.log_files = []
+        self.filename = {s: [] for s in self.open_nc}
+        for segname in self.segs:
+            if os.path.isfile(os.path.join(self.dirname, segname, "output.mpi")):
+                self.log_files.append((segname, "output.mpi"))
+            for suffix in self.open_nc:
                 # We use intermediate lists for each segment so we can sort them
                 filename = []
                 for cfile in os.listdir(os.path.join(self.dirname, segname)):
                     if fnmatch.fnmatchcase(cfile, self.prefix+"*.nc"):
                         if fnmatch.fnmatchcase(cfile, self.prefix+suffix+"*.nc"):
-                            filename.extend([(segname, cfile)])
+                            filename.append((segname, cfile))
                 # Append sorted intermediate lists, such that the entire list is
                 # in the correct order for accumulation with scDataset
                 self.filename[suffix].extend(sorted(filename))
-            if self.verbose:
+                
+        if self.verbose:
+            for suffix in self.open_nc:
                 print("Found " + str(len(self.filename[suffix])) + " " + suffix + " files")
 
-    def _openfiles(self):
+    def _open_ncfiles(self):
         """
         Constructs xarray datasets for each list in self.open_nc
         """
@@ -187,7 +197,7 @@ class Run(object):
         ds = self._adjust_grid(ds)
         return ds
 
-    def _readparams(self):
+    def _read_input_params(self):
         """
         Short function to find parameters from a croco run directory.
         Currently we only examine croco.in.
@@ -222,13 +232,13 @@ class Run(object):
             print("File not found: "+romsfile)
             self.params_input = None
 
-    def _readstats(self):
+    def _read_output_stats(self):
         # Now read each output.mpi and get the energy diagnostics
         self.t0 = dict()
         self.params_output = dict()
         n=0
         nbstats=None
-        for ii, cfile in enumerate(self.flog):
+        for ii, cfile in enumerate(self.log_files):
             f = open(os.path.join(self.dirname, cfile[0], cfile[1]))
             search = False
             firstline = True
@@ -340,10 +350,10 @@ class Run(object):
             for c in y_coords:
                 ds = ds.assign_coords(**{'f_'+c.split('_')[1]: \
                                             _beta*(ds[c]-_yrbeta)+_f0})
-                ds = ds.assign_coords(f=ds.f_rho) # shortcut?
+            ds = ds.assign_coords(f=ds.f_rho)
         return ds
 
-    def _readgrid(self, check=False):
+    def _read_grid(self, check=False):
         """ !!! to document !!!
         """
         from xgcm import Grid
@@ -352,17 +362,15 @@ class Run(object):
             '''
             Allows use of theta_b > 0 (July 2009)
             '''
-            one64 = np.float64(1)
-
             if theta_s > 0.:
-                csrf = ((one64 - np.cosh(theta_s * sc)) /
-                        (np.cosh(theta_s) - one64))
+                csrf = ((1 - np.cosh(theta_s * sc)) /
+                        (np.cosh(theta_s) - 1))
             else:
                 csrf = -sc ** 2
-            sc1 = csrf + one64
+            sc1 = csrf + 1
             if theta_b > 0.:
-                Cs = ((np.exp(theta_b * sc1) - one64) /
-                      (np.exp(theta_b) - one64) - one64)
+                Cs = ((np.exp(theta_b * sc1) - 1) /
+                      (np.exp(theta_b) - 1) - 1)
             else:
                 Cs = csrf
             return Cs
@@ -370,7 +378,7 @@ class Run(object):
         # Store grid sizes
         if 'grid' in self.open_nc:
             ds = self.ds['grid']
-        elif 'his' in self.open_nc: 
+        elif 'his' in self.open_nc: # backward compatibility
             ds = self.ds['his']
         self.L = ds.sizes['x_rho']
         self.M = ds.sizes['y_rho']
@@ -378,6 +386,23 @@ class Run(object):
         self.Mm = self.M - 1
         self.N  = ds.sizes['s_rho']
         self.Np = self.N + 1
+        
+        # rename dimensions to be consistent with future xgrid object
+        if 'x_psi' not in ds: # backward compatibility
+            ds = ds.assign_coords(
+                    x_psi = .5*(ds['x_rho'].shift(x_rho=-1)+ds['x_rho'])[:-1]
+                        .drop('x_rho')
+                        .rename({'x_rho': 'x_psi'}) )
+        if 'y_psi' not in ds: # backward compatibility
+            ds = ds.assign_coords(
+                    y_psi = .5*(ds['y_rho'].shift(y_rho=-1)+ds['y_rho'])[:-1]
+                        .drop('y_rho')
+                        .rename({'y_rho': 'y_psi'}) )
+        #
+        if 'x_u' not in ds:
+            ds = ds.rename({'x_psi': 'x_u'})
+        if 'y_v' not in ds:
+            ds = ds.rename({'y_psi': 'y_v'})
 
         # add S-coordinate stretching curves at RHO-points in dataset if not in
         if 'sc_r' not in list(ds.data_vars):
@@ -393,7 +418,7 @@ class Run(object):
             cs = s_coordinate(ds["sc_w"].values, self.params_input['theta_s'], self.params_input['theta_b'])
             ds["Cs_w"]=(['s_w'],  cs)
 
-        # Add topography in dataset if not in
+        # Add topography in dataset if not in file
         if 'h' not in list(ds.data_vars):
             ds['h']=(['y_rho','x_rho'],  self.H*np.ones((self.M,self.L)))
 
@@ -401,8 +426,91 @@ class Run(object):
             print("Grid size: (L ,M, N) = (" + str(self.L) + ", " + str(self.M) + ", " + str(self.N) + ")")
 
         # Create xgcm grid
-        coords={'xi':{'center':'x_rho', 'inner':'x_u'}, 
-                'eta':{'center':'y_rho', 'inner':'y_v'}, 
-                's':{'center':'s_rho', 'outer':'s_w'}}
-        ds.attrs['xgcm-Grid'] = Grid(ds, coords=coords)
-        self.xgrid = ds.attrs['xgcm-Grid']
+        # axis
+        coords={'xi': {'center':'x_rho', 'inner':'x_u'}, 
+                'eta': {'center':'y_rho', 'inner':'y_v'}, 
+                's': {'center':'s_rho', 'outer':'s_w'}}
+        # add metrics terms
+        ds = _compute_metrics(ds)
+        metrics = {
+                   ('xi',): ['dx_rho', 'dx_u', 'dx_rho2d', 'dx_u2d'], # X distances
+                   ('eta',): ['dy_rho', 'dy_v', 'dy_rho2d', 'dy_v2d'], # Y distances
+                   ('xi', 'eta'): ['rA', 'rAu', 'rAv'] # Areas
+                  }
+        # generate xgcm grid
+        self.xgrid = Grid(ds, 
+                          periodic=self.grid_periodicity,
+                          coords=coords, 
+                          metrics=metrics)
+        
+        if 'grid' not in self.open_nc: # backward compatibility
+            self.grid = ds
+    
+    ### wrappers (gop, xgcm grid)
+    
+    # horizontal grid moving
+    def x2u(self, v):
+        return gop.x2u(v, self.xgrid)
+    def x2rho(self, v):
+        return gop.x2rho(v, self.xgrid)
+    def x2v(self, v):
+        return gop.x2v(v, self.xgrid)
+
+    # xgcm functions
+    def diff(self, *args, **kwargs):
+        return self.xgrid.diff(*args, **kwargs)
+
+    def interp(self, *args, **kwargs):
+        return self.xgrid.interp(*args, **kwargs)
+
+    def derivative(self, *args, **kwargs):
+        return self.xgrid.derivative(*args, **kwargs)
+    
+    # vertical grid
+    def get_z(self, *args, **kwargs):
+        return gop.get_z(self, *args, **kwargs)
+    
+    # buoyancy frequency
+    def get_N2(self, *args, **kwargs):
+        return gop.get_N2(self, *args, **kwargs)
+    
+    # pressure
+    def get_p(self, *args, **kwargs):
+        return gop.get_p(self.xgrid, *args, **kwargs)
+    
+
+def _compute_metrics(ds):
+    """ Compute metrics from data available in grid.nc
+    This code should be update for realistic curvilinear grids
+    """
+    if 'pm' in ds:
+        ds['dx_rho'] = 1/ds['pm']
+    else: # backward compatibility, hack
+        ds['dx_rho'] = ds['x_rho'].shift(x_rho=-1)-ds['x_rho']
+        ds['dx_rho'] = ds['dx_rho'].fillna(ds['dx_rho'].shift(x_rho=1))
+    if 'pn' in ds:
+        ds['dy_rho'] = 1/ds['pn']
+    else: # backward compatibility, hack
+        ds['dy_rho'] = ds['y_rho'].shift(y_rho=-1)-ds['y_rho']
+        ds['dy_rho'] = ds['dy_rho'].fillna(ds['dy_rho'].shift(y_rho=1))
+    ds['dx_rho2d'] = 0.*ds['dy_rho'] + ds['dx_rho']
+    ds['dy_rho2d'] = ds['dy_rho'] + 0.*ds['dx_rho']     
+    # code below should be updated for curvilinear grids
+    ds['dx_u'] = ((ds['x_rho'].shift(x_rho=-1)-ds['x_rho'])[:-1]
+                        .drop('x_rho')
+                        .rename({'x_rho': 'x_u'})
+                  )
+    ds['dy_u'] = (ds['y_rho'].shift(y_rho=-1)-ds['y_rho'])
+    ds['dx_v'] = (ds['x_rho'].shift(x_rho=-1)-ds['x_rho'])
+    ds['dy_v'] = ((ds['y_rho'].shift(y_rho=-1)-ds['y_rho'])[:-1]
+                     .drop('y_rho')
+                     .rename({'y_rho': 'y_v'})
+                  )
+    ds['dx_u2d'] = 0.*ds['y_rho'] + ds['dx_u']
+    ds['dy_u2d'] = ds['dy_u'] + 0.*ds['x_u']
+    ds['dx_v2d'] = 0.*ds['y_v'] + ds['dx_v']
+    ds['dy_v2d'] = ds['dy_v'] + 0.*ds['x_rho']
+    ds['rA'] = ds['dx_rho']*ds['dy_rho']
+    ds['rAu'] = ds['dx_u']*ds['dy_u']
+    ds['rAv'] = ds['dx_v']*ds['dy_v']
+    return ds

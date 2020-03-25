@@ -3,12 +3,71 @@ import scipy.sparse.linalg as la
 import numpy as np
 import xarray as xr
 
-### default values
-_g = 9.81
+from .postp import g_default
+
+# default values
 _sig = .1
 _nmodes = 10
+
 ### N.B.: norm is H
 
+# This should be a class
+class Vmodes(object):
+    """ Description of the class
+    """
+    def __init__(self, xgrid, nmodes,
+                 zc, zf, N2,
+                 free_surf=True,
+                 persist=False,
+                 g=g_default, sigma=_sig):
+        """ Create a Vmode object
+        
+        Parameters
+        ----------
+            xgrid: xgcm.Grid
+                xgcm grid object required for grid manipulations
+            ...
+            
+        """
+        self.xgrid = xgrid
+        self.nmodes = nmodes
+        # merge and rename
+        self.ds = xr.merge([zeta.rename('zeta'),
+                            zc.rename('zc'),
+                            zf.rename('zf'),
+                            N2.rename('N2'),
+                            ])
+        self.g = g
+        # add or derive other useful variables
+        # N2 at c points?
+        self.ds['H'] = np.abs(self.ds['zf'].sel(s_w=-1,method='nearest'))
+        #
+        self.free_surf = free_surf
+        self.sigma=_sig
+        self._compute_vmodes(persist)
+
+    def __getitem__(self, item):
+        """ Enables calls such as vm['N2']
+        """
+        return self.ds[item]
+
+    def _compute_vmodes(self, persist):
+        # add modes to self.ds, e.g.:
+        #   will call get_vmodes, etc ...
+        #self.ds['phi'] = ...
+        #self.ds['dphidz'] = ...
+        #self.ds['c'] = ...
+        
+        # persist dataset if relevant:
+        #if persist:
+        #   ...
+        
+    def project(self, v, persist=False):
+        """ Project a variable on vertical modes
+        """
+        pass
+        
+        
 def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     """ wrapper for calling compute_vmodes with apply_ufunc. Includes unstacking of result
     this is what you should need in your scripts, unless you are using numpy arrays only 
@@ -23,31 +82,47 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
         - free_surf (bool): use free surface boundary condition (default:True)
         - sigma (scalar or None): for shift-invert in eig (default: 0.1)
     """
-    # unpack kwargs
     kworg = {"nmodes":nmodes, "stacked":True}
     if kwargs is not None:
         kworg.update(kwargs)
-    lesdims = tuple([dim for dim in zc.dims if dim!="s_rho"]) # storing extra dims  
     N = zc.s_rho.size
-    res = xr.apply_ufunc(compute_vmodes, zc.chunk({"s_rho":-1}), zf.chunk({"s_w":-1}), \
-                    N2.chunk({"s_w":-1}), kwargs=kworg, input_core_dims=[["s_rho"],["s_w"],["s_w"]], \
-                    dask='parallelized', output_dtypes=[np.float64], \
-                    output_core_dims=[["s_stack","mode"]], \
-                    output_sizes={"mode":nmodes+1,"s_stack":2*(N+1)})
+    res = xr.apply_ufunc(compute_vmodes, 
+                         zc.chunk({"s_rho":-1}), 
+                         zf.chunk({"s_w":-1}),
+                         N2.chunk({"s_w":-1}), 
+                         kwargs=kworg, 
+                         input_core_dims=[["s_rho"],["s_w"],["s_w"]],
+                         dask='parallelized', 
+                         output_dtypes=[np.float64],
+                         output_core_dims=[["s_stack","mode"]],
+                         output_sizes={"mode":nmodes+1,"s_stack":2*(N+1)}
+                        )
     res['mode'] = np.arange(nmodes+1)
+    # unstack variables
     c = res.isel(s_stack=0).rename('c')
     phi = (res.isel(s_stack=slice(1,N+1))
-           .rename('phi').rename({'s_stack': 's_rho'})
-           .assign_coords(z_rho=zc))
+           .rename('phi')
+           .rename({'s_stack': 's_rho'})
+           .assign_coords(z_rho=zc)
+          )
     dphidz = (res.isel(s_stack=slice(N+1,2*N+2))
-              .rename('dphidz').rename({'s_stack': 's_w'})
-              .assign_coords(z_w=zf))
-    #return c, phi, dphidz
-    dm = xr.merge([c, phi, dphidz]).transpose(*('mode','s_rho','s_w')+lesdims)
-    return dm.assign_coords(N2=N2, norm = -zf.isel(s_w=0, drop=True))  ### hard-coded norm = H
+              .rename('dphidz')
+              .rename({'s_stack': 's_w'})
+              .assign_coords(z_w=zf)
+             )
+    # merge data into a single dataset
+    other_dims = tuple([dim for dim in zc.dims if dim!="s_rho"]) # extra dims    
+    dm = (xr.merge([c, phi, dphidz])
+          .transpose(*('mode','s_rho','s_w')+other_dims)
+          .assign_coords(N2=N2, norm=-zf.isel(s_w=0, drop=True))
+         )
+    return dm  ### hard-coded norm = H
 
-def compute_vmodes(zc_nd, zf_nd, N2f_nd, nmodes=_nmodes, free_surf=True, g=_g, 
-                   sigma=_sig, stacked=True, **kwargs):
+def compute_vmodes(zc_nd, zf_nd, N2f_nd, 
+                   nmodes=_nmodes, free_surf=True,
+                   g=g_default,
+                   sigma=_sig, stacked=True,
+                   **kwargs):
     """
     wrapper for vectorizing compute_vmodes_1D over elements of axes other than vertical dim
     that's not elegant, nor efficient
@@ -89,7 +164,9 @@ def compute_vmodes(zc_nd, zf_nd, N2f_nd, nmodes=_nmodes, free_surf=True, g=_g,
                                 free_surf=free_surf, g=g, sigma=sigma)
 
             
-def compute_vmodes_1D(zc, zf, N2f, nmodes=_nmodes, free_surf=True, g=_g, sigma=_sig):
+def compute_vmodes_1D(zc, zf, N2f, 
+                      nmodes=_nmodes, free_surf=True, 
+                      g=g_default, sigma=_sig):
     """ compute vertical modes: solution of SL problem (phi'/N^2)'+k*phi=0'
     returns phi at rho points, dphi at w points and c=1/sqrt(k) 
     normalization such that int(phi^2)=H, w-modes=d(phi)/dz
