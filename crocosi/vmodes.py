@@ -90,7 +90,7 @@ class Vmodes(object):
             array containing the z-grid of the data. Those will be interpolated onto the vmodes grid points prior to projection.
         isel: Dict, optional (default: None)
             indices applied to the vmodes dataset prior to projection
-        align: bool, optional (default: False)
+        align: bool, optional (default: True)
             wether alignment between the data and vmodes DataArray should be performed before projecting
         
         Returns
@@ -100,7 +100,7 @@ class Vmodes(object):
             
         See also
         ________
-        project_puv, project_w, reconstruct
+        project_puv, project_w, project_b, reconstruct
         
         """
         
@@ -111,7 +111,7 @@ class Vmodes(object):
         else:
             return self.project_puv(data, **kwargs)
     
-    def project_puv(self, data, zz=None, isel=None, align=False):
+    def project_puv(self, data, zz=None, isel=None, align=True):
         """ projection on p-mode 
         compute int_z(phi_n * field) using sum
         
@@ -143,7 +143,7 @@ class Vmodes(object):
 
         return res
     
-    def project_w(self, data, zz=None, isel=None, align=False): 
+    def project_w(self, data, zz=None, isel=None, align=True): 
         """ projection on w-mode (varphi = -c**2/N2 * dphidz)
         for reconstructing, use w = wn*varphi (see reconstruct_w)
         
@@ -169,9 +169,7 @@ class Vmodes(object):
         else:
             dm = self.ds.isel(isel)
         if align:
-            raise ValueError("aligning not implemented")
-            # how not to get rid of "modes" when aligning, or align only on existing dimensions?
-            #data, dm = xr.align(data, dm, join="left", exclude="mode")    
+            data, dm = xr.align(data, dm, join="inner")    
         if zz is not None:
             data = self._z2zmoy(data, zz)        
         prov = (data * self._w2rho(-dm.dphidz, align=align) * dm.dz).sum(dim="s_rho")
@@ -182,7 +180,7 @@ class Vmodes(object):
        
         return prov/dm.norm
     
-    def project_b(self, data, zz=None, isel=None, align=False): 
+    def project_b(self, data, zz=None, isel=None, align=True): 
         """ projection on b-mode (dphidz)
         for reconstructing, use -c**2*bn*dphidz (see reconstruct b)
         
@@ -207,9 +205,7 @@ class Vmodes(object):
         else:
             dm = self.ds.isel(isel)
         if align:
-            raise ValueError("aligning not implemented")
-            # how not to get rid of "modes" when aligning, or align only on existing dimensions?
-            #data, dm = xr.align(data, dm, join="left", exclude="mode")    
+            data, dm = xr.align(data, dm, join="inner")    
         if zz is not None:
             data = self._z2zmoy(data, zz)    
         prov = (data * self.xgrid.interp(dm.dphidz/dm.N2, "s") * dm.dz).sum("s_rho")
@@ -256,25 +252,31 @@ class Vmodes(object):
         elif vartype is "b":
             return self.reconstruct_b(modamp, **kwargs)
         
-    def reconstruct_puv(self, modamp, isel=None):
+    def reconstruct_puv(self, modamp, isel=None, align=True):
         if isel is None:
             dm = self.ds
         else:
             dm = self.ds.isel(isel)
+        if align:
+            modamp, dm = xr.align(modamp, dm, join="inner")    
         return (modamp * dm.phi).sum("mode")
 
-    def reconstruct_w(self, modamp, isel=None):
+    def reconstruct_w(self, modamp, isel=None, align=True):
         if isel is None:
             dm = self.ds
         else:
             dm = self.ds.isel(isel)
+        if align:
+            modamp, dm = xr.align(modamp, dm, join="inner")    
         return (-dm.c**2 / dm.N2 * dm.dphidz * modamp).sum("mode")
     
-    def reconstruct_b(self, modamp, isel=None):
+    def reconstruct_b(self, modamp, isel=None, align=True):
         if isel is None:
             dm = self.ds
         else:
             dm = self.ds.isel(isel)
+        if align:
+            modamp, dm = xr.align(modamp, dm, join="inner")    
         return (-dm.c**2 * dm.dphidz * modamp).sum("mode")
     ### utilitaries 
     
