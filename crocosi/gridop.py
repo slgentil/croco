@@ -135,16 +135,46 @@ def get_z(run, zeta=None, h=None, vgrid='r',
 
 # ------------------------------------------------------------------------------
 
-def interp2z_3d(z0, z, v, b_extrap=2, t_extrap=2):
-    """
-    b_extrap, t_extrap:
-        0 set to NaN
-        1 set to nearest neighboor
-        2 linear extrapolation
+def interp2z_np_3d(zt, z, v, b_extrap=2, t_extrap=2):
+    """ Interpolates 3D arrays from one vertical grid to another
+    
+    Parameters
+    ----------
+    zt: ndarray
+        Target vertical grid, may be 1D/2D/3D
+    z: ndarray
+        Initial vertical grid, may be 1D/2D/3D
+    v: ndarray
+        Initial data, may be 1D/2D/3D
+    b_extrap: int, optional
+        Bottom boundary condition. 1: closest value, 2: linear extrapolation (default), otherwise: NaN
+    t_extrap: int, optional
+        Top boundary condition. 1: closest value, 2: linear extrapolation (default), otherwise: NaN
+        
+    Note
+    ----
+    Dimensions of zt, z and v must be ordered in z/y/x order
+    Horizontal dimensions must match if present
+        
+    Returns
+    -------
+    vt: ndarray
+        
+
     """
     import crocosi.fast_interp3D as fi  # OpenMP accelerated C based interpolator
-    # check v and z have identical shape
-    assert v.ndim==z.ndim
+    # collects size information
+    zt_shape, v_shape = zt.shape, v.shape
+    # check shapes are identical or compatible
+    assert v_shape==z.shape
+    if zt.ndim>1:
+        assert v_shape[1:]==zt_shape[1:]
+        _zt = zt
+    else:
+        # broadcast zt
+        _zt = zt.reshape((zt_shape[0],) + tuple(1 for d in v_shape[1:]))
+        _zt = np.broadcast_to(_zt, (zt_shape[0],)+v_shape[1:])
+        vt_shape = _zt.shape
     # add dimensions if necessary
     if v.ndim == 1:
         lv = v.squeeze()[:,None,None]
@@ -156,34 +186,46 @@ def interp2z_3d(z0, z, v, b_extrap=2, t_extrap=2):
         lz = z[...]
         lv = v[...]
     #
-    return fi.interp(z0.astype('float64'), lz.astype('float64'), lv.astype('float64'), 
-                     b_extrap, t_extrap).squeeze()
+    out = fi.interp(_zt.astype('float64'), 
+                    lz.astype('float64'),
+                    lv.astype('float64'), 
+                    b_extrap, t_extrap)
+    return out.reshape(vt_shape)
 
-def interp2z_np(z0, z, v, **kwargs):
-    ''' interpolates vertically
-    will be updated with proper docstring ;)
+def interp2z_np(zt, z, v, **kwargs):
+    ''' Interpolates arrays from one vertical grid to another.
     
     Parameters
     ----------
-    z0:  ndarray
-        Target vertical grid
+    zt:  ndarray
+        Target vertical grid, may be 1D/2D/3D but NOT 4D
     z:   ndarray
-        Actual vertical grid
-    ...
+        Initial vertical grid, may be 1D/2D/3D/4D
+    v: ndarray
+        Initial data, may be 1D/2D/3D
+    **kwargs: passed to interp2z_np_3D
+        
+    Note
+    ----
+    Dimensions of zt, z and v must be ordered in t/z/y/x order
+    Horizontal dimensions must match if present
+        
+    Returns
+    -------
+    vt: ndarray
     '''
     # check v and z have identical shape
     assert v.ndim==z.ndim
-    # test if temporal dimension is present
     if v.ndim == 4:
-        vi = [interp2z_3d(z0, z[...,t], v[...,t], **kwargs)[...,None] 
+        # temporal dimension is present
+        vi = [interp2z_np_3d(zt, z[...,t], v[...,t], **kwargs)[...,None]
                       for t in range(v.shape[-1])]
-        return np.concatenate(vi, axis=0) # (50, 722, 258, 1)
-        #return v*0 + v.shape[3]
+        return np.concatenate(vi, axis=0)
     else:
-        return interp2z_3d(z0, z, v, **kwargs)
+        return interp2z_np_3d(zt, z, v, **kwargs)
 
-def interp2z(z0, z, v, **kwargs):
-    ''' interpolates vertically
+def interp2z(zt, z, v, **kwargs):
+    ''' Interpolates vertically
     will be updated with proper docstring ;)
     
     Parameters
