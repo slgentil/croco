@@ -134,9 +134,7 @@ class Vmodes(object):
         else:
             dm = self.ds.isel(isel)
         if align:
-            raise ValueError("aligning not implemented")
-            # how not to get rid of "modes" when aligning, or align only on existing dimensions?
-            #data, dm = xr.align(data, dm, join="left", exclude="mode")
+            data, dm = xr.align(data, dm, join="inner")
         if zz is not None:
             data = self._z2zmoy(data, zz, align=align)
         res = (dm.dz*data*dm.phi).sum("s_rho")/dm.norm
