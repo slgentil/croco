@@ -158,39 +158,39 @@ def interp2z_np_3d(zt, z, v, b_extrap=2, t_extrap=2):
     Notes
     -----
     Dimensions of zt, z and v must be ordered in z/y/x order
-    Horizontal dimensions must match if present    
+    zt may have singleton dimensions along horizontal dimensions
+    z and v must have the same shape
     """
     import crocosi.fast_interp3D as fi  # OpenMP accelerated C based interpolator
-    # collects size information
-    zt_shape, v_shape = zt.shape, v.shape
     # check shapes are identical or compatible
-    assert v_shape==z.shape
-    if zt.ndim>1:
-        assert v_shape[1:]==zt_shape[1:]
+    assert v.shape==z.shape, \
+        'mismatch: v_shape={} but z_shape={}'.format(v.shape, z.shape)
+    # add dimensions to v and z if necessary
+    if v.ndim == 1:
+        _v = v.squeeze()[:,None,None]
+        _z = z.squeeze()[:,None,None]
+    elif v.ndim == 2:
+        _v = v[...,None]
+        _z = z[...,None]
+    else:
+        _z = z[...]
+        _v = v[...]
+    # adjust zt now if necessary
+    if zt.ndim==_v.ndim:
         _zt = zt
     else:
-        # broadcast zt
-        _zt = zt.reshape((zt_shape[0],) + tuple(1 for d in v_shape[1:]))
-        _zt = np.broadcast_to(_zt, (zt_shape[0],)+v_shape[1:])
-        vt_shape = _zt.shape
-    # add dimensions if necessary
-    if v.ndim == 1:
-        lv = v.squeeze()[:,None,None]
-        lz = z.squeeze()[:,None,None]
-    elif v.ndim == 2:
-        lv = v[...,None]
-        lz = z[...,None]
-    else:
-        lz = z[...]
-        lv = v[...]
+        # expand the number of dimensions of zt to match that of v
+        _zt = zt.reshape(zt.shape + tuple(1 for d in range(_v.ndim-zt.ndim)))
+    # broadcast zt along all dimensions but the vertical one
+    _zt = np.broadcast_to(_zt, (zt.shape[0],)+_v.shape[1:])
     #
     out = fi.interp(_zt.astype('float64'), 
-                    lz.astype('float64'),
-                    lv.astype('float64'), 
+                    _z.astype('float64'),
+                    _v.astype('float64'), 
                     b_extrap, t_extrap)
-    return out.reshape(vt_shape)
+    return out.reshape(_zt.shape)
 
-def interp2z_np(zt, z, v, zdim=None, zdimt=None, **kwargs):
+def interp2z_np(zt, z, v, zdim=None, **kwargs):
     ''' Interpolates arrays from one vertical grid to another
     
     Parameters
@@ -203,8 +203,6 @@ def interp2z_np(zt, z, v, zdim=None, zdimt=None, **kwargs):
         Initial data, may be 1D/2D/3D/4D
     zdim: tuple
         Position and size of v and z dimensions as a tuple: (pos, size)
-    zdimt: tuple, optional
-        Position and size of zt dimensions as a tuple: (pos, size)
     **kwargs: passed to interp2z_np_3D
                 
     Returns
@@ -216,37 +214,41 @@ def interp2z_np(zt, z, v, zdim=None, zdimt=None, **kwargs):
     Notes
     -----
     v and z must have the same shape
-    Horizontal dimensions must match if present and be in the same order
+    #Horizontal dimensions must match if present and be in the same order
     '''
     # check v and z have identical shape
     assert v.shape==z.shape, \
             'v and z have different shapes: {}, {}'.format(v.shape, z.shape)
     assert v.shape[zdim[0]]==zdim[1], \
             'v shape and zdim are not consistent: {}, {}'.format(v.shape, zdim)
-    if zdimt is not None:
-        assert zt.shape[zdimt[0]]==zdimt[1], \
-            'zt shape is {} while zdimt indicates {}'.format(zt.shape, zdimt)
-    # could also search for a mapping between z and zt compatible coordinates and place them last
     if v.ndim == 4:
         # move vertical dimension in second position
         _z = z.swapaxes(1,zdim[0])
         _v = v.swapaxes(1,zdim[0])
         #
-        vi = [interp2z_np_3d(zt, _z[t,...], _v[t,...], **kwargs)[None,...]
+        if zt.ndim==v.ndim:
+            # assumes dimensions are ordered similarly
+            # zt may however have singleton dimensions if produced by apply_ufunc
+            # move vertical dimension to the last position
+            _zt = zt.swapaxes(1,zdim[0])
+        else:
+            # add a fake first dimension
+            _zt = zt[None,...]
+        if _zt.shape[0]==1:
+            _zt = np.broadcast_to(_zt, (_v.shape[0],)+_zt.shape[1:])
+        #
+        vi = [interp2z_np_3d(_zt[t,...], _z[t,...], _v[t,...], **kwargs)[None,...]
                       for t in range(_v.shape[0])]
         vi = np.concatenate(vi, axis=0)
         #
-        return vi.swapaxes(1,zdim[0])
+        return vi.swapaxes(1, zdim[0])
     else:
-        _z = z.swapaxes(0,zdim[0])
-        _v = v.swapaxes(0,zdim[0])
+        _z = z.swapaxes(0, zdim[0])
+        _v = v.swapaxes(0, zdim[0])
         #
         vi = interp2z_np_3d(zt, _z, _v, **kwargs)
         #
         return vi.swapaxes(0, zdim[0])
-
-def dummy(*args, **kwargs):
-    return 1.
 
 def interp2z(zt, z, v, zt_dim=None, z_dim=None, **kwargs):
     ''' Interpolates xarrays from one vertical grid to another
@@ -268,7 +270,7 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None, **kwargs):
     Returns
     -------
     vt: xarray.DataArray
-    Preserves v and z alignment
+    Preserves v dimension order
 
     Notes
     -----
@@ -283,15 +285,14 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None, **kwargs):
     if z_dim is None:
         z_dim = next((d for d in v.dims if d in _zdims_database), None)
         assert z_dim, 'Could not find a vertical dimension for z'
-    # check z and v have identical shapes
-    assert z.dims==v.dims # may uselessly break if dimensions are transposed
     # check dimension alignment and reorder data properly
     _v, _z = xr.broadcast(v, z)
-    # same with zt?
-    _zt = zt
+    # sort zt dimensions to match that of z if necessary
+    zt_dimtr = [zt_dim if d==z_dim else d for d in list(v.dims)]
+    _zt = zt.transpose(*[d for d in zt_dimtr if d in zt.dims])
     #
-    z_pos = _v._get_axis_num(z_dim)
-    z_size = _v[z_dim].size
+    pos_size = lambda v, dim: (v._get_axis_num(dim), v[dim].size)
+    z_pos, z_size = pos_size(_v, z_dim)
     #
     # adjust chunks in the vertical dimension
     _zt = _zt.chunk({zt_dim: -1})
@@ -300,7 +301,9 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None, **kwargs):
     # provide core dimensions if necessary
     ufunc_kwargs = {}
     if zt_dim!=z_dim or zt[zdimt].size!=z[zdim].size:
-        z_pos = -1 # core dimensions are moved to the last position
+        # core dimensions are moved to the last position
+        z_pos = -1 
+        zt_pos = -1
         ufunc_kwargs.update(**{'input_core_dims': [[zt_dim], [z_dim], [z_dim]],
                                'output_core_dims': [[zt_dim]]})
     #
@@ -311,7 +314,7 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None, **kwargs):
                           dask='parallelized',
                           output_dtypes=[np.float64],
                           **ufunc_kwargs)
-    # realign dimensions with v
+    # reorder dimensions to match that of v (modulo change along vertical)
     vout = vout.transpose(*[zt_dim if d==z_dim else d for d in list(v.dims)])
     return vout
         
