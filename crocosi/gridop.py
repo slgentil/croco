@@ -151,16 +151,14 @@ def interp2z_np_3d(zt, z, v, b_extrap=2, t_extrap=2):
     t_extrap: int, optional
         Top boundary condition. 1: closest value, 2: linear extrapolation (default), otherwise: NaN
         
-    Note
-    ----
-    Dimensions of zt, z and v must be ordered in z/y/x order
-    Horizontal dimensions must match if present
-        
     Returns
     -------
     vt: ndarray
-        
-
+    
+    Notes
+    -----
+    Dimensions of zt, z and v must be ordered in z/y/x order
+    Horizontal dimensions must match if present    
     """
     import crocosi.fast_interp3D as fi  # OpenMP accelerated C based interpolator
     # collects size information
@@ -208,17 +206,17 @@ def interp2z_np(zt, z, v, zdim, zdimt=None, **kwargs):
     zdimt: tuple, optional
         Position and size of zt dimensions as a tuple: (pos, size)
     **kwargs: passed to interp2z_np_3D
-        
-    Note
-    ----
-    v and z must have the same shape
-    Horizontal dimensions must match if present and be in the same order
-        
+                
     Returns
     -------
     vt: ndarray
     Preserves v and z shapes, except for the vertical dimension whose size
     will match that of zt
+
+    Notes
+    -----
+    v and z must have the same shape
+    Horizontal dimensions must match if present and be in the same order
     '''
     # check v and z have identical shape
     assert v.shape==z.shape, \
@@ -264,11 +262,15 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None, **kwargs):
         Name of the initial vertical dimension
     **kwargs: passed to interp2z_np_3D
 
-    Note
-    ----
+    Returns
+    -------
+    vt: xarray.DataArray
+    Preserves v and z alignment
+
+    Notes
+    -----
     When zt_dim or z_dim are not provided, we search through a database
     of known vertical dimension names
-    
     '''
     # search for vertical dimensions names
     _zdims_database = ['z', 's_rho','s_w'] # erase 'z' eventually
