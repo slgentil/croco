@@ -190,7 +190,7 @@ def interp2z_np_3d(zt, z, v, b_extrap=2, t_extrap=2):
                     b_extrap, t_extrap)
     return out.reshape(vt_shape)
 
-def interp2z_np(zt, z, v, zdim, zdimt=None, **kwargs):
+def interp2z_np(zt, z, v, zdim=None, zdimt=None, **kwargs):
     ''' Interpolates arrays from one vertical grid to another
     
     Parameters
@@ -245,6 +245,9 @@ def interp2z_np(zt, z, v, zdim, zdimt=None, **kwargs):
         #
         return vi.swapaxes(0, zdim[0])
 
+def dummy(*args, **kwargs):
+    return 1.
+
 def interp2z(zt, z, v, zt_dim=None, z_dim=None, **kwargs):
     ''' Interpolates xarrays from one vertical grid to another
     
@@ -282,39 +285,34 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None, **kwargs):
         assert z_dim, 'Could not find a vertical dimension for z'
     # check z and v have identical shapes
     assert z.dims==v.dims # may uselessly break if dimensions are transposed
-    # TODO: check alignment and reorder data properly
-    # between z and v first
+    # check dimension alignment and reorder data properly
+    _v, _z = xr.broadcast(v, z)
+    # same with zt?
     _zt = zt
-    _z = z
-    _v = v
     #
-    z_pos = v._get_axis_num(z_dim)
-    z_size = v[z_dim].size
+    z_pos = _v._get_axis_num(z_dim)
+    z_size = _v[z_dim].size
     #
-    if v.chunks:
-        # chunked dask array
-        # adjust chunks in the vertical dimension
-        _zt = _zt.chunk({zt_dim: -1})
-        _z = _z.chunk({z_dim: -1})
-        _v = _v.chunk({z_dim: -1})
-        # provide core dimensions if necessary
-        ufunc_kwargs = {}
-        if zt_dim!=z_dim or zt[zdimt].size!=z[zdim].size:
-            ufunc_kwargs.update(**{'input_core_dims': [[zt_dim], [z_dim], [z_dim], []],
-                                   'output_core_dims': [[zt_dim]]})
-        vout = xr.apply_ufunc(interp2z_np, _zt, _z, _v,
-                              (z_pos, z_size),
-                              kwargs=kwargs,
-                              dask='parallelized',
-                              output_dtypes=[np.float64],
-                              **ufunc_kwargs)
-    else:
-        # numpy array
-        vout = interp2z_np(_zt.data, _z.data, _v.data, 
-                           (z_pos, z_size),
-                           **kwargs
-                          )
-    # TODO (maybe): may need some realignment with initial data
+    # adjust chunks in the vertical dimension
+    _zt = _zt.chunk({zt_dim: -1})
+    _z = _z.chunk({z_dim: -1})
+    _v = _v.chunk({z_dim: -1})
+    # provide core dimensions if necessary
+    ufunc_kwargs = {}
+    if zt_dim!=z_dim or zt[zdimt].size!=z[zdim].size:
+        z_pos = -1 # core dimensions are moved to the last position
+        ufunc_kwargs.update(**{'input_core_dims': [[zt_dim], [z_dim], [z_dim]],
+                               'output_core_dims': [[zt_dim]]})
+    #
+    interp_kwargs = {'zdim': (z_pos, z_size)}
+    interp_kwargs.update(kwargs)
+    vout = xr.apply_ufunc(interp2z_np, _zt, _z, _v,
+                          kwargs=interp_kwargs,
+                          dask='parallelized',
+                          output_dtypes=[np.float64],
+                          **ufunc_kwargs)
+    # realign dimensions with v
+    vout = vout.transpose(*[zt_dim if d==z_dim else d for d in list(v.dims)])
     return vout
         
 # ------------------------------------------------------------------------------
