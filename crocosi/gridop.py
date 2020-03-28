@@ -265,6 +265,8 @@ def interp2z_np_3d(zt, z, v, b_extrap=2, t_extrap=2):
     zt, z, v must have the same number of dimensions.
     zt may have singleton dimensions along horizontal dimensions.
     z and v must have the same shape.
+    If you bring any modification to this code, make sure it does not break
+    tutorials/dev/interp2z.ipynb.
     """
     import crocosi.fast_interp3D as fi  # OpenMP accelerated C based interpolator
     # check shapes and number of dimensions
@@ -327,6 +329,8 @@ def interp2z_np(zt, z, v, zdim=None, zdimt=None, **kwargs):
     Notes
     -----
     v and z must have the same shape.
+    If you bring any modification to this code, make sure it does not break
+    tutorials/dev/interp2z.ipynb.
     '''
     # check v and z have identical shape
     assert v.shape==z.shape, \
@@ -390,7 +394,9 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None,
     Notes
     -----
     When zt_dim or z_dim are not provided, we search through a database
-    of known vertical dimension names
+    of known vertical dimension names.
+    If you bring any modification to this code, make sure it does not break
+    tutorials/dev/interp2z.ipynb.
     '''
     # search for vertical dimensions names
     _zdims_database = ['z', 's_rho','s_w'] # erase 'z' eventually
