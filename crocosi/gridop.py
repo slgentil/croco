@@ -365,7 +365,7 @@ def interp2z_np(zt, z, v, zdim=None, zdimt=None, **kwargs):
         return vi.swapaxes(0, zdim[0])
 
 def interp2z(zt, z, v, zt_dim=None, z_dim=None, 
-             override_dims=False,
+             override_dims=False, output_dims=None,
              **kwargs):
     ''' Interpolates xarrays from one vertical grid to another
     
@@ -384,6 +384,8 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None,
     override_dims: boolean, optional
         If True, allow zt and z to have same vertical dimension name but different
         dimension values
+    output_dims: list, optional
+        This list will adjust the order of output dimensions
     **kwargs: passed to interp2z_np_3D
 
     Returns
@@ -446,7 +448,9 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None,
                           output_dtypes=[np.float64],
                           **ufunc_kwargs)
     # reorder dimensions to match that of v (modulo change along vertical)
-    vout = vout.transpose(*[_zt_dim if d==z_dim else d for d in list(v.dims)])
+    if not output_dims:
+        output_dims = [_zt_dim if d==z_dim else d for d in list(_zt.dims)]
+    vout = vout.transpose(*output_dims)
     # swap vertical dim name back to original value
     if _zt_dim is not zt_dim:
         vout = vout.rename({_zt_dim: zt_dim})
