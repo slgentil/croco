@@ -1,12 +1,11 @@
 /*  Fast C/OpenMP interpolator for tvs_to_s_fast()
     Runs about 21x faster than single processor tvs_to_s
     Usage: vt = fast_interp(zt,ssh,vs,H)
-    Where: zt  is a 1D numpy array, size NZT      , type float64
+    Where: zt  is a 3D numpy array, size NZTxNYxNX, type float64
            z   is a 3D numpy array, size NZxNYxNX, type float64
            vs  is a 3D numpy array, size NZxNYxNX, type float32 or type float64
     It will almost certainly not work without modification
-    if the arguments are not exactly like above.
-    See tvs_to_s_fast() in utils.py for it's intended use.      */
+    if the arguments are not exactly like above.      */
 
 #define NPY_NO_DEPRECATED_API NPY_1_8_API_VERSION
 
@@ -28,9 +27,6 @@ static inline void myinterp(double *zsk, double *vsk, double *ztk, double *vtk, 
     npy_uint k, k0, k1 = 1; // initial guess for k1
     for (k=0;k<NZT;k++)
     {
-      //if (ztk[k] <= zsk[0])         vtk[k] = lin_int(zsk[0]   ,vsk[0]   ,zsk[1]   ,vsk[1]   ,ztk[k]);
-      //else if (ztk[k] >= zsk[NZ-1]) vtk[k] = lin_int(zsk[NZ-2],vsk[NZ-2],zsk[NZ-1],vsk[NZ-1],ztk[k]);
-      //if (ztk[k] <= zsk[0])         vtk[k] = vsk[0];
       if (ztk[k] <= zsk[0]){
           if (b_extrap == 1) vtk[k] = vsk[0];
           else if (b_extrap == 2) vtk[k] = lin_int(zsk[0],vsk[0],zsk[1],vsk[1],ztk[k]);
@@ -83,7 +79,8 @@ static PyObject* fast_interp3D(PyObject* self, PyObject* args)
     if (vt == NULL) return NULL;
 
 // These macros make the loops below much cleaner
-#define  ZT(k)        ( *((double*)PyArray_GETPTR1(zt,k    )) )
+//#define  ZT(k)        ( *((double*)PyArray_GETPTR1(zt,k    )) )
+#define  ZT(k, j, i)  ( *((double*)PyArray_GETPTR3(zt,k,j,i) ) )
 #define  Z(k, j, i)   ( *((double*)PyArray_GETPTR3(z,k,j,i) ) )
 #define  VT(k, j, i)  ( *((double*)PyArray_GETPTR3(vt,k,j,i)) )
 #define  DVS(k, j, i) ( *((double*)PyArray_GETPTR3(vs,k,j,i)) )
@@ -92,16 +89,16 @@ static PyObject* fast_interp3D(PyObject* self, PyObject* args)
 #pragma omp parallel shared(zt,z,vs,vt,NX,NY,NZ,NZT,nd,typ) private(i,j,k,zsk,vsk,ztk,vtk)
     {
       // Thread-local constant and work arrays
-      //invH = 1.0/DEPTH(0);
       zsk = malloc(sizeof(double)*NZ);
       vsk = malloc(sizeof(double)*NZ);
-      ztk = malloc(sizeof(double)*NZT); for (k=0;k<NZT;k++) ztk[k]=ZT(k);
+      ztk = malloc(sizeof(double)*NZT);
       vtk = malloc(sizeof(double)*NZT);
 #pragma omp for
       for (j=0;j<NY;j++) {
         for (i=0;i<NX;i++) {
           if (typ==NPY_FLOAT32)      for (k=0;k<NZ;k++) vsk[k] = (double)FVS(k,j,i); // data
           else if (typ==NPY_FLOAT64) for (k=0;k<NZ;k++) vsk[k] = DVS(k,j,i); // data
+          for (k=0;k<NZT;k++) ztk[k] = ZT(k,j,i);
           for (k=0;k<NZ;k++) zsk[k] = Z(k,j,i); // z values
           myinterp(zsk,vsk,ztk,vtk,NZ,NZT,b_extrap,t_extrap); // interpolate this column
           for (k=0;k<NZT;k++) VT(k,j,i) = vtk[k]; // copy to output
