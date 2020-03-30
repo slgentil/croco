@@ -1,11 +1,11 @@
-import sys
+#import sys # NL: imported but not used
 import xarray as xr
 import numpy as np
 from collections import OrderedDict
 
 from .postp import g_default
 
-# ------------------------------------------------------------------------------
+# ---------------------- horizontal grid manipulations -------------------------
 
 def _get_spatial_dims(v):
     """ Return an ordered dict of spatial dimensions in the s/z, y, x order
@@ -54,8 +54,58 @@ def x2x(v, grid, target):
         return x2u(v, grid)
     elif target is 'v':
         return x2v(v, grid)
-    
-# ------------------------------------------------------------------------------
+
+# ----------------------- horizontal grid interpolation ------------------------
+
+def hinterp(ds,var,coords=None):
+    """ This is needs proper documentation:
+    https://numpydoc.readthedocs.io/en/latest/format.html
+    """
+    import pyinterp
+    #create Tree object
+    mesh = pyinterp.RTree()
+
+    #L = ds.dims['x_r'] # NL: assigned but not used
+    #M = ds.dims['y_r']
+    #N = ds.dims['s_r']
+    z_r = get_z(ds)
+    #coords = np.array([coords])
+
+    # where I know the values
+    z_r = get_z(ds)
+    vslice = []
+    #lon_r = np.tile(ds.lon_r.values,ds.dims['s_r']).reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
+    lon_r = (np.tile(ds.lon_r.values,(ds.dims['s_r'],1,1))
+            .reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
+            )
+    lat_r = (np.tile(ds.lat_r.values,(ds.dims['s_r'],1,1))
+             .reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
+            )
+    z_r = get_z(ds)
+    mesh.packing(np.vstack((lon_r.flatten(), lat_r.flatten(), z_r.values.flatten())).T,
+                            var.values.flatten())
+
+    # where I want the values
+    zcoord = np.zeros_like(ds.lon_r.values)
+    zcoord[:] = coords
+    vslice, neighbors = mesh.inverse_distance_weighting(
+        np.vstack((ds.lon_r.values.flatten(), ds.lat_r.values.flatten(), zcoord.flatten())).T,
+        within=True)    # Extrapolation is forbidden)
+
+
+    # The undefined values must be set to nan.
+    print(ds.mask_rho.values)
+    #mask=np.where(ds.mask_rho.values==1.,) # NL: assigned but not used
+    vslice[int(ds.mask_rho.values)] = float("nan")
+
+    vslice = xr.DataArray(np.asarray(vslice.reshape(ds.dims['y_r'], ds.dims['x_r'])),
+                          dims=('x_r','y_r'))
+    yslice = ds.lat_r
+    xslice = ds.lon_r
+
+    return[xslice,yslice,vslice]
+
+# --------------------------- depth coordinate ---------------------------------
 
 def get_z(run, zeta=None, h=None, vgrid='r', 
           hgrid=None, vtransform=None):
@@ -133,7 +183,8 @@ def get_z(run, zeta=None, h=None, vgrid='r',
     
     return z.rename('z_'+vgrid)
 
-# ------------------------------------------------------------------------------
+# ---------------------------- vertical interpolation --------------------------
+# 
 
 def w2rho(data, grid, z_r=None, z_w=None):
     """ Linearly interpolates from w vertical grid to rho one.
@@ -181,45 +232,278 @@ def w2rho(data, grid, z_r=None, z_w=None):
     return w_i.assign_coords(z_rho=z_r)
 
 
-def interp2z_3d(z0, z, v, b_extrap=2, t_extrap=2):
+def _guess_dim_mapping(x, y):
+    # guess mapping
+    x_shape = {d+1: dsize for d, dsize in zip(range(x.ndim-1),x.shape[1:])}
+    y_shape = y.shape
+    ndim = y.ndim
+    dim_map = np.arange(ndim)
+    find_dim = lambda dsize, shape: \
+            next((d for d, size in shape.items() if size==dsize), -1)
+    for d, dsize in zip(np.arange(1,ndim), y_shape[1:]):
+        xd = find_dim(dsize, x_shape)
+        xd1 = find_dim(1, x_shape)
+        if xd>-1:
+            # use first matching element
+            dim_map[d] = xd
+            del x_shape[xd]
+        elif xd1>-1:
+            # or default to first singleton dimension
+            dim_map[d] = xd1
+            del x_shape[xd1]
+        else:
+            _msg = 'align_broadcast_but_dim0 could not align and broadcast' \
+                  +'arrays with shape: {} and {}'.format(x.shape, y_shape)
+            raise ValueError(_msg)
+    return dim_map
+
+def _align_dims_but_one(x,y, exclude=None):
+    """ Align dimensions of x against that of y but one
+    
+    Parameters
+    ----------
+    x, y: ndarray
+    dims: tuple, optional
+        Dimensions that need to be excluded from the alignment
+        By default exclude the first dimension
+>>>>>>> master
     """
-    b_extrap, t_extrap:
-        0 set to NaN
-        1 set to nearest neighboor
-        2 linear extrapolation
+    if exclude:
+        # swaps dimensions to first spot
+        _x = _align_dims_but_one(x.swapaxes(0,exclude[0]),
+                                 y.swapaxes(0,exclude[1]))
+        return _x.swapaxes(0, exclude[1])
+    # add dimensions of necessary to x
+    if x.ndim<y.ndim:
+        _x = x.reshape(x.shape + tuple(1 for d in range(y.ndim-x.ndim)))
+    else:
+        _x = x
+    # get mapping or crash
+    dim_map = _guess_dim_mapping(_x, y)
+    # transpose and broadcast
+    _x = np.transpose(_x, dim_map)
+    # could also broadcast
+    #_x = np.broadcast_to(_x, (_x.shape[0],)+y.shape[1:])
+    return _x
+
+def interp2z_np_3d(zt, z, v, b_extrap=2, t_extrap=2):
+    """ Interpolates 3D arrays from one vertical grid to another
+    
+    Parameters
+    ----------
+    zt: ndarray
+        Target vertical grid, may be 1D/2D/3D
+    z: ndarray
+        Initial vertical grid, may be 1D/2D/3D
+    v: ndarray
+        Initial data, may be 1D/2D/3D
+    b_extrap: int, optional
+        Bottom boundary condition. 1: closest value, 2: linear extrapolation (default), otherwise: NaN
+    t_extrap: int, optional
+        Top boundary condition. 1: closest value, 2: linear extrapolation (default), otherwise: NaN
+        
+    Returns
+    -------
+    vt: ndarray
+    
+    Notes
+    -----
+    The vertical dimension must be the first one.
+    zt, z, v must have the same number of dimensions.
+    zt may have singleton dimensions along horizontal dimensions.
+    z and v must have the same shape.
+    If you bring any modification to this code, make sure it does not break
+    tutorials/dev/interp2z.ipynb.
     """
     import crocosi.fast_interp3D as fi  # OpenMP accelerated C based interpolator
-    # check v and z have identical shape
-    assert v.ndim==z.ndim
-    # add dimensions if necessary
+    # check shapes and number of dimensions
+    assert v.shape==z.shape, \
+        'mismatch: v_shape={} but z_shape={}'.format(v.shape, z.shape)
+    assert v.ndim==zt.ndim, \
+        'mismatch: v.ndim={} but zt.ndim={}'.format(v.ndim, zt.ndim)    
+    # add dimensions to v and z to be 3D
     if v.ndim == 1:
-        lv = v.squeeze()[:,None,None]
-        lz = z.squeeze()[:,None,None]
+        _v = v.squeeze()[:,None,None]
+        _z = z.squeeze()[:,None,None]
+        _zt = zt.squeeze()[:,None,None]
     elif v.ndim == 2:
-        lv = v[...,None]
-        lz = z[...,None]
+        _v = v[...,None]
+        _z = z[...,None]
+        _zt = zt[...,None]
     else:
-        lz = z[...]
-        lv = v[...]
+        _z = z[...]
+        _v = v[...]
+        _zt = zt[...]
+    # broadcast zt along all dimensions but the first one
+    _zt = np.broadcast_to(_zt, (_zt.shape[0],)+_v.shape[1:])
     #
-    return fi.interp(z0.astype('float64'), lz.astype('float64'), lv.astype('float64'), 
-                     b_extrap, t_extrap).squeeze()
+    out = fi.interp(_zt.astype('float64'), 
+                    _z.astype('float64'),
+                    _v.astype('float64'), 
+                    b_extrap, t_extrap)
+    if v.ndim==1:
+        return out[:,0,0]
+    elif v.ndim==2:
+        return out[...,0]
+    else:
+        return out
 
-def interp2z(z0, z, v, b_extrap, t_extrap):
-    ''' interpolate vertically
+def interp2z_np(zt, z, v, zdim=None, zdimt=None, **kwargs):
+    ''' Interpolates arrays from one vertical grid to another
+    
+    Parameters
+    ----------
+    zt:  ndarray
+        Target vertical grid, may be 1D/2D/3D but NOT 4D
+    z:   ndarray
+        Initial vertical grid, may be 1D/2D/3D/4D
+    v: ndarray
+        Initial data, may be 1D/2D/3D/4D
+    zdim: tuple
+        Position and size of the vertical dimension for v and z 
+        as a tuple: (pos, size)
+    zdimt: tuple
+        Position and size of the vertical dimension for zt 
+        as a tuple: (pos, size)
+    **kwargs: passed to interp2z_np_3D
+
+    Returns
+    -------
+    vt: ndarray
+    Preserves v and z shapes, except for the vertical dimension whose size
+    will match that of zt
+
+    Notes
+    -----
+    v and z must have the same shape.
+    If you bring any modification to this code, make sure it does not break
+    tutorials/dev/interp2z.ipynb.
     '''
     # check v and z have identical shape
-    assert v.ndim==z.ndim
-    # test if temporal dimension is present
+    assert v.shape==z.shape, \
+            'v and z have different shapes: {}, {}'.format(v.shape, z.shape)
+    assert v.shape[zdim[0]]==zdim[1], \
+            'v shape and zdim are not consistent: {}, {}'.format(v.shape, zdim)
+    assert zt.shape[zdimt[0]]==zdimt[1], \
+            'zt shape and zdimt are not consistent: {}, {}'.format(zt.shape, zdimt)
+    # zdim and zdimt are not optional parameters in fact:
+    assert zdim, 'zdim was not provided'
+    assert zdimt, 'zdimt was not provided'
+    # align zt dimensions against that of v
+    _zt = _align_dims_but_one(zt, v, exclude=(zdimt[0], zdim[0]))
     if v.ndim == 4:
-        vi = [interp2z_3d(z0, z[...,t], v[...,t], b_extrap, t_extrap)[...,None] 
-                  for t in range(v.shape[-1])]
-        return np.concatenate(vi, axis=0) # (50, 722, 258, 1)
-        #return v*0 + v.shape[3]
+        # move vertical dimension in second position
+        _z = z.swapaxes(1,zdim[0])
+        _v = v.swapaxes(1,zdim[0])
+        _zt = _zt.swapaxes(1,zdim[0])
+        #
+        vi = [interp2z_np_3d(_zt[t,...], _z[t,...], _v[t,...], **kwargs)[None,...]
+                      for t in range(_v.shape[0])]
+        vi = np.concatenate(vi, axis=0)
+        #
+        return vi.swapaxes(1, zdim[0])
     else:
-        return interp2z_3d(z0, z, v, b_extrap, t_extrap)
+        _z = z.swapaxes(0, zdim[0])
+        _v = v.swapaxes(0, zdim[0])
+        _zt = _zt.swapaxes(0, zdim[0])
+        #
+        vi = interp2z_np_3d(_zt, _z, _v, **kwargs)
+        #
+        return vi.swapaxes(0, zdim[0])
 
-# ------------------------------------------------------------------------------
+def interp2z(zt, z, v, zt_dim=None, z_dim=None, 
+             override_dims=False, output_dims=None,
+             **kwargs):
+    ''' Interpolates xarrays from one vertical grid to another
+    
+    Parameters
+    ----------
+    zt:  xarray.DataArray
+        Target vertical grid
+    z:   xarray.DataArray
+        Initial vertical grid
+    v:   xarray.DataArray
+        Initial data
+    zt_dim: str, optional
+        Name of the target vertical dimension 
+    z_dim: str, optional
+        Name of the initial vertical dimension
+    override_dims: boolean, optional
+        If True, allow zt and z to have same vertical dimension name but different
+        dimension values
+    output_dims: list, optional
+        This list will adjust the order of output dimensions
+    **kwargs: passed to interp2z_np_3D
+
+    Returns
+    -------
+    vt: xarray.DataArray
+    Preserves v dimension order
+
+    Notes
+    -----
+    When zt_dim or z_dim are not provided, we search through a database
+    of known vertical dimension names.
+    If you bring any modification to this code, make sure it does not break
+    tutorials/dev/interp2z.ipynb.
+    '''
+    # search for vertical dimensions names
+    _zdims_database = ['z', 's_rho','s_w'] # erase 'z' eventually
+    if zt_dim is None:
+        zt_dim = next((d for d in zt.dims if d in _zdims_database), None)
+        assert zt_dim, 'Could not find a vertical dimension for zt'
+    if z_dim is None:
+        z_dim = next((d for d in v.dims if d in _zdims_database), None)
+        assert z_dim, 'Could not find a vertical dimension for z'
+    # test if z_dim and zt_dim are equal but refer to dimensions with different
+    # values
+    if z_dim==zt_dim and not v[z_dim].equals(zt[zt_dim]):
+        if override_dims:
+            _zt_dim = 'zt_swap'
+            _zt = zt.rename({zt_dim: _zt_dim})
+        else:
+            _msg = 'z and zt dimensions have same name but different values.' \
+                  +' This is not allowed unless override_dims=True'
+            raise ValueError(_msg)
+    else:
+        _zt_dim = zt_dim
+        _zt = zt
+    # broadcast variables against each other
+    _v, _z, _zt = xr.broadcast(v, z, _zt, exclude=[_zt_dim, z_dim])
+    #
+    pos_size = lambda v, dim: (v._get_axis_num(dim), v[dim].size)
+    z_pos, z_size = pos_size(_v, z_dim)
+    zt_pos, zt_size = pos_size(_zt, _zt_dim)
+    #
+    # adjust chunks in the vertical dimension
+    _zt = _zt.chunk({_zt_dim: -1})
+    _z = _z.chunk({z_dim: -1})
+    _v = _v.chunk({z_dim: -1})
+    # provide core dimensions if necessary
+    ufunc_kwargs = {}
+    if _zt_dim!=z_dim or _zt[_zt_dim].size!=_z[z_dim].size:
+        # core dimensions are moved to the last position
+        z_pos, zt_pos = -1, -1
+        ufunc_kwargs.update(**{'input_core_dims': [[_zt_dim], [z_dim], [z_dim]],
+                               'output_core_dims': [[_zt_dim]]})
+    #
+    interp_kwargs = {'zdim': (z_pos, z_size), 'zdimt': (zt_pos, zt_size)}
+    interp_kwargs.update(kwargs)
+    vout = xr.apply_ufunc(interp2z_np, _zt, _z, _v,
+                          kwargs=interp_kwargs,
+                          dask='parallelized',
+                          output_dtypes=[np.float64],
+                          **ufunc_kwargs)
+    # reorder dimensions to match that of v (modulo change along vertical)
+    if not output_dims:
+        output_dims = [_zt_dim if d==z_dim else d for d in list(_zt.dims)]
+    vout = vout.transpose(*output_dims)
+    # swap vertical dim name back to original value
+    if _zt_dim is not zt_dim:
+        vout = vout.rename({_zt_dim: zt_dim})
+    return vout
+
+# ----------------------------- physics & dynamics -----------------------------
     
 def get_N2(run, rho, z, g=g_default):
     """ Compute square buoyancy frequency N2 
@@ -232,50 +516,6 @@ def get_N2(run, rho, z, g=g_default):
     N2 = N2.fillna(N2.shift(s_w=-1))
     N2 = N2.fillna(N2.shift(s_w=1))
     return N2
-
-# ------------------------------------------------------------------------------
-
-def hinterp(ds,var,coords=None):
-    import pyinterp
-    #create Tree object
-    mesh = pyinterp.RTree()
-
-    L = ds.dims['x_r']
-    M = ds.dims['y_r']
-    N = ds.dims['s_r']
-    z_r = get_z(ds)
-    #coords = np.array([coords])
-
-    # where I know the values
-    z_r = get_z(ds)
-    vslice = []
-    #lon_r = np.tile(ds.lon_r.values,ds.dims['s_r']).reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
-    lon_r = np.tile(ds.lon_r.values,(ds.dims['s_r'],1,1)).reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
-    lat_r = np.tile(ds.lat_r.values,(ds.dims['s_r'],1,1)).reshape(ds.dims['s_r'], ds.dims['y_r'], ds.dims['x_r'])
-    z_r = get_z(ds)
-    mesh.packing(np.vstack((lon_r.flatten(), lat_r.flatten(), z_r.values.flatten())).T,
-                            var.values.flatten())
-
-    # where I want the values
-    zcoord = np.zeros_like(ds.lon_r.values)
-    zcoord[:] = coords
-    vslice, neighbors = mesh.inverse_distance_weighting(
-        np.vstack((ds.lon_r.values.flatten(), ds.lat_r.values.flatten(), zcoord.flatten())).T,
-        within=True)    # Extrapolation is forbidden)
-
-
-    # The undefined values must be set to nan.
-    print(ds.mask_rho.values)
-    mask=np.where(ds.mask_rho.values==1.,)
-    vslice[int(ds.mask_rho.values)] = float("nan")
-
-    vslice = xr.DataArray(np.asarray(vslice.reshape(ds.dims['y_r'], ds.dims['x_r'])),dims=('x_r','y_r'))
-    yslice = ds.lat_r
-    xslice = ds.lon_r
-
-    return[xslice,yslice,vslice]
-
-# ------------------------------------------------------------------------------
 
 def get_p(grid, rho, zw, zr=None, g=g_default):
     """ Compute (not reduced) pressure by integration from the surface, 
@@ -305,7 +545,9 @@ def get_p(grid, rho, zw, zr=None, g=g_default):
              .sortby(rho.s_rho, ascending=True)
              .assign_coords(z_r=zr)
             )
-    return _g*p.rename("p")
+    return g*p.rename("p")
+
+# !!! code below needs to be updated with xgcm approach
 
 def get_uv_from_psi(psi, ds):
     # note that u, v are computed at rho points
@@ -330,7 +572,7 @@ def get_pv(u, v, rho, rho_a, f, f0, zr, zw, ds):
              .rename({'eta_rho':'eta_psi', 'xi_u':'xi_psi'})
              .assign_coords(xi_psi=ds.xi_u.rename({'xi_u':'xi_psi'}),
                             eta_psi=ds.eta_v.rename({'eta_v':'eta_psi'})))
-    xi = psi2rho(xi_u+xi_v, ds)
+    xi = x2rho(xi_u+xi_v, ds) # NL: psi2rho replaced by x2rho, not checked
 
     # stretching term
     drho = (rho.shift(z_r=1)+rho)*0.5 * zr.diff('z_r')/rho_a.diff('z_r')
