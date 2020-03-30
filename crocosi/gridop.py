@@ -266,7 +266,6 @@ def _align_dims_but_one(x,y, exclude=None):
     dims: tuple, optional
         Dimensions that need to be excluded from the alignment
         By default exclude the first dimension
->>>>>>> master
     """
     if exclude:
         # swaps dimensions to first spot
@@ -457,7 +456,7 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None,
         assert z_dim, 'Could not find a vertical dimension for z'
     # test if z_dim and zt_dim are equal but refer to dimensions with different
     # values
-    if z_dim==zt_dim and not v[z_dim].equals(zt[zt_dim]):
+    if z_dim==zt_dim and not v.reset_coords()[z_dim].equals(zt.reset_coords()[zt_dim]):
         if override_dims:
             _zt_dim = 'zt_swap'
             _zt = zt.rename({zt_dim: _zt_dim})

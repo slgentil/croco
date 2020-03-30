@@ -69,12 +69,11 @@ class Vmodes(object):
                         nmodes=self.nmodes,
                         free_surf=self.free_surf,
                         sigma=self.sigma)
-        # merge error on z_w... but no z_w in get_vmodes dataset, so why? 
-        # It's okay if I return Vmodes without calling _compute_vmodes and then merge with get_vmodes outside of the class.
         self.ds = xr.merge([self.ds, dm], compat="override")
         pass
     
-    ### projection and reconstruction
+#############################################################################
+####### projection and reconstruction #######################################
     
     def project(self, data, vartype="p", **kwargs):
         """ Project a variable on vertical modes (p-modes or w-modes)
@@ -86,8 +85,8 @@ class Vmodes(object):
             array containing the data to be projected. 
         vartype: str, optional (default: "p", i.e. pressure modes)
             string specifying whether projection should be done w-modes ("w"), buoyancy modes ("b") or pressure modes (any other value)
-        zz: xarray.DataArray, optional (default: None)
-            array containing the z-grid of the data. Those will be interpolated onto the vmodes grid points prior to projection.
+        zz: xarray.DataArray or str or bool, optional (default: False)
+            array containing the z-grid of the data, or string containing the name of the z coord, or boolean saying wether we should interpolate (finding the z-coord by its own). The data will be interpolated onto the vmodes grid points prior to projection.
         isel: Dict, optional (default: None)
             indices applied to the vmodes dataset prior to projection
         align: bool, optional (default: True)
@@ -103,15 +102,14 @@ class Vmodes(object):
         project_puv, project_w, project_b, reconstruct
         
         """
-        
         if vartype == "w":
             return self.project_w(data, **kwargs)
         elif vartype == "b":
             return self.project_b(data, **kwargs)
         else:
             return self.project_puv(data, **kwargs)
-    
-    def project_puv(self, data, zz=None, isel=None, align=True):
+
+    def project_puv(self, data, zz=False, isel=None, align=True):
         """ projection on p-mode 
         compute int_z(phi_n * field) using sum
         
@@ -133,15 +131,22 @@ class Vmodes(object):
             dm = self.ds
         else:
             dm = self.ds.isel(isel)
+
         if align:
             data, dm = xr.align(data, dm, join="inner")
-        if zz is not None:
-            data = self._z2zmoy(data, zz, align=align)
+        if not( zz is None or zz is False ):
+            if zz is True:
+                zz = _get_z_coord(data)
+            if isinstance(zz, str):
+                zz = data.coords[zz]
+            elif align:
+                data, zz = xr.align(data, zz, join="inner")
+            data = gop.interp2z(dm[self._znames['zc']], zz, data)
         res = (dm.dz*data*dm.phi).sum("s_rho")/dm.norm
 
         return res
     
-    def project_w(self, data, zz=None, isel=None, align=True): 
+    def project_w(self, data, zz=False, isel=None, align=True): 
         """ projection on w-mode (varphi = -c**2/N2 * dphidz)
         for reconstructing, use w = wn*varphi (see reconstruct_w)
         
@@ -168,9 +173,16 @@ class Vmodes(object):
             dm = self.ds.isel(isel)
         if align:
             data, dm = xr.align(data, dm, join="inner")    
-        if zz is not None:
-            data = self._z2zmoy(data, zz)        
-        prov = (data * self._w2rho(-dm.dphidz, align=align) * dm.dz).sum(dim="s_rho")
+        if not( zz is None or zz is False ):
+            if zz is True:
+                zz = _get_z_coord(data)
+            if isinstance(zz, str):
+                zz = data.coords[zz]
+            elif align:
+                data, zz = xr.align(data, zz, join="inner")
+            data = gop.interp2z(dm[self._znames['zc']], zz, data)
+        zf, zc = self._znames['zf'], self._znames["zc"]
+        prov = (data * self._w2rho(-dm.dphidz, zc=dm[zc], zf=dm[zf]) * dm.dz).sum(dim="s_rho")
         if self.free_surf:
             prov += self.g * ( -dm.dphidz / dm.N2 
                               * self.xgrid.interp(data, "s", boundary="extrapolate") 
@@ -178,7 +190,7 @@ class Vmodes(object):
        
         return prov/dm.norm
     
-    def project_b(self, data, zz=None, isel=None, align=True): 
+    def project_b(self, data, zz=False, isel=None, align=True): 
         """ projection on b-mode (dphidz)
         for reconstructing, use -c**2*bn*dphidz (see reconstruct b)
         
@@ -204,9 +216,16 @@ class Vmodes(object):
             dm = self.ds.isel(isel)
         if align:
             data, dm = xr.align(data, dm, join="inner")    
-        if zz is not None:
-            data = self._z2zmoy(data, zz)    
-        prov = (data * self.xgrid.interp(dm.dphidz/dm.N2, "s") * dm.dz).sum("s_rho")
+        if not( zz is None or zz is False ):
+            if zz is True:
+                zz = _get_z_coord(data)
+            if isinstance(zz, str):
+                zz = data.coords[zz]
+            elif align:
+                data, zz = xr.align(data, zz, join="inner")
+            data = gop.interp2z(dm[self._znames['zc']], zz, data)
+        zf, zc = self._znames['zf'], self._znames["zc"]
+        prov = (data * self._w2rho(dm.dphidz/dm.N2, zc=dm[zc], zf=dm[zf])* dm.dz).sum("s_rho")
         if self.free_surf:
             prov += self.g * (self.xgrid.interp(data, "s", boundary="extrapolate")
                           * dm.dphidz / dm.N2**2
@@ -238,16 +257,17 @@ class Vmodes(object):
         """
         
         if vartype is None:
-            if sum(subst in modamp.name.lower() for subst in 'puvbw')==1:
-                vartype = next(subst for subst in 'puvw' if subst in modamp.name)
+            vartyps = "puvbw"
+            if sum(s in modamp.name.lower() for s in vartyps)==1:
+                vartype = next((s for s in vartyps if s in modamp.name.lower()))
             else: 
                 raise ValueError("unable to find what kind of basis to use for reconstruction")
                 
         if vartype in "puv":
             return self.reconstruct_puv(modamp, **kwargs)
-        elif vartype is "w":
+        elif vartype == "w":
             return self.reconstruct_w(modamp, **kwargs)
-        elif vartype is "b":
+        elif vartype == "b":
             return self.reconstruct_b(modamp, **kwargs)
         
     def reconstruct_puv(self, modamp, isel=None, align=True):
@@ -278,31 +298,37 @@ class Vmodes(object):
         return (-dm.c**2 * dm.dphidz * modamp).sum("mode")
     ### utilitaries 
     
-    def _z2zmoy(self, data, zz, align=True):
-        """ routine for interpolating data on the mean z-grid used for the modes
-        WARNING: I think it works only for initial data on same grid (e.g. dim are "s_rho")"""
-        # if not re-chunking, nanny restarts worker
-        if "s_rho" in data.dims: 
-            data = data.chunk({"s_rho":-1})
-        elif "s_w" in data.dims: 
-            raise("data should be on s_rho grid, but s_w found") #data = data.chunk({"s_w":-1})
-        zc = self['zc']
-        if align:
-            data, zc = xr.align(data, zc, join="inner")
-        prov = xr.apply_ufunc(gop.interp2z, zc, zz, data, 2, 2,
-                        dask='parallelized', output_dtypes=[np.float64])
-        return prov.rename(data.name)
-    
     def _w2rho(self, data, zf=None, zc=None, align=True):
         """ routine to interpolate fields from mean rho point to mean w point
         adapt to different ensemble of points if specified
-        WARNING: there is a hack: first arg of gridop.zi_w2rho should be a run object, 
-        but it works with Vmodes object because only xgrid is needed """
+        wrapper to gop.w2rho
+        could be replaced by xgrid.interp one correct metrics are provided
+        """
         if zf is None:
-            zf = self["zf"]
+            if align:
+                zf, data = xr.align(self["zf"], data, join="inner")
+            else:
+                zf= self["zf"]
         if zc is None:
-            zc = self["zc"]
+            if align:
+                zc, data = xr.align(self["zc"], data, join="inner")
+            else:
+                zc = self["zc"]
         return gop.w2rho(data, self.xgrid, zc, zf)
+
+def _get_z_coord(ds):
+    """ return name of z coordinate """
+    if "s_rho" in ds.dims:
+        zname = next((z for z in ['z_r', 'z_rho'] if z in ds.coords), None)
+    elif "s_w" in ds.dims:
+        zname = "z_w" if "z_w" in ds.coords else None
+    elif "z" in ds.dims:
+        zname = "z" if "z" in ds.coords else None
+    else:
+        raise ValueError("could not find z dimension")
+    if zname is None:
+        raise ValueError("could not find z coordinate")
+    return zname
 
 def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     """ wrapper for calling compute_vmodes with apply_ufunc. Includes unstacking of result
@@ -368,7 +394,7 @@ def compute_vmodes(zc_nd, zf_nd, N2f_nd,
     assert zc_nd.ndim==zf_nd.ndim==N2f_nd.ndim
     assert zf_nd.shape==N2f_nd.shape
     if "nmodes" in kwargs:
-        nmodes = kwarg["nmodes"]
+        nmodes = kwargs["nmodes"]
     if "free_surf" in kwargs:
         free_surf = kwargs["free_surf"]
         if "stacked" in kwargs:
@@ -459,3 +485,4 @@ def compute_vmodes_1D(zc, zf, N2f,
     dphif = Dz*phic
     # this would give w-modes: np.r_[np.zeros((1,nmodes+1)),(dzf[:,None]*phic).cumsum(axis=0)]
     return c, phic, dphif
+
