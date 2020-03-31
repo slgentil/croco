@@ -183,9 +183,30 @@ def get_z(run, zeta=None, h=None, vgrid='r',
     
     return z.rename('z_'+vgrid)
 
+def get_z_dim(ds):
+    """ return list of recognized vertical dimensions according to a reference list 
+    """
+    _zdims_database = ['z', 's_rho', 's_w']
+    dims = [d for d in ds.dims if d in _zdims_database]
+    dims = dims if dims else None # replace empty list by None
+    return prov
+
+def get_z_coord(ds):
+    """ return name of z coordinate in an xarray DataSet or DataArray"""
+    if "s_rho" in ds.dims:
+        zname = next((z for z in ['z_r', 'z_rho'] if z in ds.coords), None)
+    elif "s_w" in ds.dims:
+        zname = "z_w" if "z_w" in ds.coords else None
+    elif "z" in ds.dims:
+        zname = "z" if "z" in ds.coords else None
+    else:
+        raise ValueError("could not find z dimension")
+    if zname is None:
+        raise ValueError("could not find z coordinate")
+    return zname
+
 # ---------------------------- vertical interpolation --------------------------
 # 
-
 def w2rho(data, grid, z_r=None, z_w=None):
     """ Linearly interpolates from w vertical grid to rho one.
 
@@ -516,7 +537,7 @@ def get_N2(run, rho, z, g=g_default):
     N2 = N2.fillna(N2.shift(s_w=1))
     return N2
 
-def get_p(grid, rho, zw, zr=None, g=g_default):
+def get_p(grid, rho, zw, zr=None, grav=g_default):
     """ Compute (not reduced) pressure by integration from the surface, 
     taking rho at rho points and giving results on w points (z grid)
     with p=0 at the surface. If zr is not None, compute result on rho points
@@ -544,7 +565,7 @@ def get_p(grid, rho, zw, zr=None, g=g_default):
              .sortby(rho.s_rho, ascending=True)
              .assign_coords(z_r=zr)
             )
-    return g*p.rename("p")
+    return grav*p.rename("p")
 
 # !!! code below needs to be updated with xgcm approach
 

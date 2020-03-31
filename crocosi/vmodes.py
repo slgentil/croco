@@ -87,9 +87,9 @@ class Vmodes(object):
             array containing the data to be projected. 
         vartype: str, optional (default: "p", i.e. pressure modes)
             string specifying whether projection should be done w-modes ("w"), buoyancy modes ("b") or pressure modes (any other value)
-        zz: xarray.DataArray or str or bool, optional (default: False)
+        z: xarray.DataArray or str or bool, optional (default: False)
             array containing the z-grid of the data, or string containing the name of the z coord, or boolean saying wether we should interpolate (finding the z-coord by its own). The data will be interpolated onto the vmodes grid points prior to projection.
-        isel: Dict, optional (default: None)
+        sel: Dict, optional (default: None)
             indices applied to the vmodes dataset prior to projection
         align: bool, optional (default: True)
             wether alignment between the data and vmodes DataArray should be performed before projecting
@@ -111,7 +111,7 @@ class Vmodes(object):
         else:
             return self.project_puv(data, **kwargs)
 
-    def project_puv(self, data, zz=False, isel=None, align=True):
+    def project_puv(self, data, z=False, sel=None, align=True):
         """ projection on p-mode 
         compute int_z(phi_n * field) using sum
         
@@ -129,26 +129,26 @@ class Vmodes(object):
         
         """
 
-        if isel is None:
+        if sel is None:
             dm = self.ds
         else:
-            dm = self.ds.isel(isel)
+            dm = self.ds.sel(sel)
 
         if align:
             data, dm = xr.align(data, dm, join="inner")
-        if not( zz is None or zz is False ):
-            if zz is True:
-                zz = _get_z_coord(data)
-            if isinstance(zz, str):
-                zz = data.coords[zz]
+        if not( z is None or z is False ):
+            if z is True:
+                z = gop.get_z_coord(data)
+            if isinstance(z, str):
+                z = data.coords[z]
             elif align:
-                data, zz = xr.align(data, zz, join="inner")
-            data = gop.interp2z(dm[self._znames['zc']], zz, data)
+                data, z = xr.align(data, z, join="inner")
+            data = gop.interp2z(dm[self._znames['zc']], z, data)
         res = (dm.dz*data*dm.phi).sum("s_rho")/dm.norm
 
         return res
     
-    def project_w(self, data, zz=False, isel=None, align=True): 
+    def project_w(self, data, z=False, sel=None, align=True): 
         """ projection on w-mode (varphi = -c**2/N2 * dphidz)
         for reconstructing, use w = wn*varphi (see reconstruct_w)
         
@@ -169,20 +169,20 @@ class Vmodes(object):
         
         """
         
-        if isel is None:
+        if sel is None:
             dm = self.ds
         else:
-            dm = self.ds.isel(isel)
+            dm = self.ds.sel(sel)
         if align:
             data, dm = xr.align(data, dm, join="inner")    
-        if not( zz is None or zz is False ):
-            if zz is True:
-                zz = _get_z_coord(data)
-            if isinstance(zz, str):
-                zz = data.coords[zz]
+        if not( z is None or z is False ):
+            if z is True:
+                z = gop.get_z_coord(data)
+            if isinstance(z, str):
+                z = data.coords[z]
             elif align:
-                data, zz = xr.align(data, zz, join="inner")
-            data = gop.interp2z(dm[self._znames['zc']], zz, data)
+                data, z = xr.align(data, z, join="inner")
+            data = gop.interp2z(dm[self._znames['zc']], z, data)
         zf, zc = self._znames['zf'], self._znames["zc"]
         prov = (data * self._w2rho(-dm.dphidz, zc=dm[zc], zf=dm[zf]) * dm.dz).sum(dim="s_rho")
         if self.free_surf:
@@ -192,7 +192,7 @@ class Vmodes(object):
        
         return prov/dm.norm
     
-    def project_b(self, data, zz=False, isel=None, align=True): 
+    def project_b(self, data, z=False, sel=None, align=True): 
         """ projection on b-mode (dphidz)
         for reconstructing, use -c**2*bn*dphidz (see reconstruct b)
         
@@ -212,20 +212,20 @@ class Vmodes(object):
         project, project_w, reconstruct_b
         
         """
-        if isel is None:
+        if sel is None:
             dm = self.ds
         else:
-            dm = self.ds.isel(isel)
+            dm = self.ds.sel(sel)
         if align:
             data, dm = xr.align(data, dm, join="inner")    
-        if not( zz is None or zz is False ):
-            if zz is True:
-                zz = _get_z_coord(data)
-            if isinstance(zz, str):
-                zz = data.coords[zz]
+        if not( z is None or z is False ):
+            if z is True:
+                z = gop.get_z_coord(data)
+            if isinstance(z, str):
+                z = data.coords[z]
             elif align:
-                data, zz = xr.align(data, zz, join="inner")
-            data = gop.interp2z(dm[self._znames['zc']], zz, data)
+                data, z = xr.align(data, z, join="inner")
+            data = gop.interp2z(dm[self._znames['zc']], z, data)
         zf, zc = self._znames['zf'], self._znames["zc"]
         prov = (data * self._w2rho(dm.dphidz/dm.N2, zc=dm[zc], zf=dm[zf])* dm.dz).sum("s_rho")
         if self.free_surf:
@@ -242,9 +242,9 @@ class Vmodes(object):
         ___________
         projections: xarray.DataArray
             array containing the modal projection coefficients (modal amplitudes)
-        vartype: str, optional, {"p", "u", "v", "w", "b"} (default: "p", i.e. pressure modes)
-            string specifying whether reconstruction should be done using w-modes ("w"), buoyancy modes ("b") or pressure modes ("p", "u" or "v")
-        isel: Dict, optional (default: None)
+        vartype: {"p", "u", "v", "w", "b"}, optional 
+            string specifying whether reconstruction should be done using w-modes ("w"), buoyancy modes ("b") or pressure modes ("p", "u" or "v"). Default is "p".
+        sel: Dict, optional (default: None)
             indices applied to the vmodes dataset prior to reconstruction
         
         Returns
@@ -266,38 +266,38 @@ class Vmodes(object):
                 raise ValueError("unable to find what kind of basis to use for reconstruction")
                 
         if vartype in "puv":
-            return self.reconstruct_puv(modamp, **kwargs)
+            return self.reconstruct_puv(projections, **kwargs)
         elif vartype == "w":
-            return self.reconstruct_w(modamp, **kwargs)
+            return self.reconstruct_w(projections, **kwargs)
         elif vartype == "b":
-            return self.reconstruct_b(modamp, **kwargs)
+            return self.reconstruct_b(projections, **kwargs)
         
-    def reconstruct_puv(self, modamp, isel=None, align=True):
-        if isel is None:
+    def reconstruct_puv(self, projections, sel=None, align=True):
+        if sel is None:
             dm = self.ds
         else:
-            dm = self.ds.isel(isel)
+            dm = self.ds.sel(sel)
         if align:
-            modamp, dm = xr.align(modamp, dm, join="inner")    
-        return (modamp * dm.phi).sum("mode")
+            projections, dm = xr.align(projections, dm, join="inner")    
+        return (projections * dm.phi).sum("mode")
 
-    def reconstruct_w(self, modamp, isel=None, align=True):
-        if isel is None:
+    def reconstruct_w(self, projections, sel=None, align=True):
+        if sel is None:
             dm = self.ds
         else:
-            dm = self.ds.isel(isel)
+            dm = self.ds.sel(sel)
         if align:
-            modamp, dm = xr.align(modamp, dm, join="inner")    
-        return (-dm.c**2 / dm.N2 * dm.dphidz * modamp).sum("mode")
+            projections, dm = xr.align(projections, dm, join="inner")    
+        return (-dm.c**2 / dm.N2 * dm.dphidz * projections).sum("mode")
     
-    def reconstruct_b(self, modamp, isel=None, align=True):
-        if isel is None:
+    def reconstruct_b(self, projections, sel=None, align=True):
+        if sel is None:
             dm = self.ds
         else:
-            dm = self.ds.isel(isel)
+            dm = self.ds.sel(sel)
         if align:
-            modamp, dm = xr.align(modamp, dm, join="inner")    
-        return (-dm.c**2 * dm.dphidz * modamp).sum("mode")
+            projections, dm = xr.align(projections, dm, join="inner")    
+        return (-dm.c**2 * dm.dphidz * projections).sum("mode")
     ### utilitaries 
     
     def _w2rho(self, data, zf=None, zc=None, align=True):
@@ -318,19 +318,6 @@ class Vmodes(object):
                 zc = self["zc"]
         return gop.w2rho(data, self.xgrid, zc, zf)
 
-def _get_z_coord(ds):
-    """ return name of z coordinate """
-    if "s_rho" in ds.dims:
-        zname = next((z for z in ['z_r', 'z_rho'] if z in ds.coords), None)
-    elif "s_w" in ds.dims:
-        zname = "z_w" if "z_w" in ds.coords else None
-    elif "z" in ds.dims:
-        zname = "z" if "z" in ds.coords else None
-    else:
-        raise ValueError("could not find z dimension")
-    if zname is None:
-        raise ValueError("could not find z coordinate")
-    return zname
 
 def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     """ compute vertical modes
