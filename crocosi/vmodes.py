@@ -1,17 +1,19 @@
 """ vmodes.py python module
-WARNING this is a WIP, see ipython notebook for the current version under development
-this version is not working with the class Vmodes yet. """
+Defines class Vmodes and routines for computing vertical modes given a stratification profile
+the corresponding Sturm-Liouville problem is (phi'/N2)' + lam^2 phi = 0, with proper BCs. 
+"""
 import scipy.sparse as sp
 import scipy.sparse.linalg as la
 import numpy as np
 import xarray as xr
-import crocosi.gridop as gop
 
+import .gridop as gop
 from .postp import g_default
 
 # default values
 _sig = .1
 _nmodes = 10
+_free_surf = True
 
 ### N.B.: norm is H
 
@@ -23,7 +25,7 @@ class Vmodes(object):
                  zc, zf, N2,
                  free_surf=True,
                  persist=False,
-                 g=g_default, sigma=_sig):
+                 grav=g_default, sigma=_sig):
         """ Create a Vmode object
         
         Parameters
@@ -36,7 +38,7 @@ class Vmodes(object):
         self.xgrid = xgrid
         self.nmodes = nmodes
         self._znames = {"zc": zc.name, "zf": zf.name}
-        self.g = g
+        self.g = grav
         self.free_surf = free_surf
         self.sigma=_sig
         
@@ -68,7 +70,7 @@ class Vmodes(object):
                         self.ds.N2,
                         nmodes=self.nmodes,
                         free_surf=self.free_surf,
-                        sigma=self.sigma)
+                        sigma=self.sigma, g=self.g)
         self.ds = xr.merge([self.ds, dm], compat="override")
         pass
     
@@ -232,14 +234,14 @@ class Vmodes(object):
                          ).isel(s_w=-1).drop(self._znames["zf"])
         return -prov/dm.norm 
 
-    def reconstruct(self, modamp, vartype=None, **kwargs):
+    def reconstruct(self, projections, vartype=None, **kwargs):
         """ Reconstruct a variable from modal amplitudes
         Internally call reconstruct_puv or reconstruct w or reconstruct_b
         
         Parameters:
         ___________
-        modamp: xarray.DataArray
-            array containing the modal amplitudes 
+        projections: xarray.DataArray
+            array containing the modal projection coefficients (modal amplitudes)
         vartype: str, optional, {"p", "u", "v", "w", "b"} (default: "p", i.e. pressure modes)
             string specifying whether reconstruction should be done using w-modes ("w"), buoyancy modes ("b") or pressure modes ("p", "u" or "v")
         isel: Dict, optional (default: None)
@@ -258,8 +260,8 @@ class Vmodes(object):
         
         if vartype is None:
             vartyps = "puvbw"
-            if sum(s in modamp.name.lower() for s in vartyps)==1:
-                vartype = next((s for s in vartyps if s in modamp.name.lower()))
+            if sum(s in *.name.lower() for s in vartyps)==1:
+                vartype = next((s for s in vartyps if s in projections.name.lower()))
             else: 
                 raise ValueError("unable to find what kind of basis to use for reconstruction")
                 
@@ -331,18 +333,34 @@ def _get_z_coord(ds):
     return zname
 
 def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
-    """ wrapper for calling compute_vmodes with apply_ufunc. Includes unstacking of result
-    this is what you should need in your scripts, unless you are using numpy arrays only 
-    input:
-        - zc: z-levels at center of cells
-        - zf: z-levels at cell faces
-        - N2: BVF at cell faces 
-        - nmodes (default:10): number of vertical modes (+ barotropic)
+    """ compute vertical modes
+    Wrapper for calling `compute_vmodes` with DataArrays through apply_ufunc. 
     z levels must be in ascending order (first element is at bottom, last element is at surface)
-    output: xarray dataset with phase speed, pressure-modes (at center) and b-modes (at faces)
-    kwargs:
-        - free_surf (bool): use free surface boundary condition (default:True)
-        - sigma (scalar or None): for shift-invert in eig (default: 0.1)
+    
+    Parameters:
+    ___________
+    zc: DataArray
+        z-levels at center of cells
+    zf: DataArray
+        z-levels at cell faces (vertical dim is one element longer than zc)
+    N2: DataArray
+        Brunt-Vaisala Frequency at cell faces
+    nmodes: int, optional
+        number of vertical baroclinic modes (barotropic is added)
+    free_surf: bool, optional
+        whether to use free surface boundary condition or not
+    sigma: scalar or None, optional
+        parameter for shift-invert method in scipy.linalg.eig (default: _sig)
+    g: scalar, optional
+        gravity constant
+    Returns:
+    ________
+    xarray.DataSet: vertical modes (p and w) and eigenvalues
+    
+    See Also:
+    _________
+    compute_vmodes: routine for computing vertical modes from numpy arrays
+   
     """
     kworg = {"nmodes":nmodes, "stacked":True}
     if kwargs is not None:
@@ -381,7 +399,7 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     return dm  ### hard-coded norm = H
 
 def compute_vmodes(zc_nd, zf_nd, N2f_nd, 
-                   nmodes=_nmodes, free_surf=True,
+                   nmodes=_nmodes, free_surf=_free_surf,
                    g=g_default,
                    sigma=_sig, stacked=True,
                    **kwargs):
