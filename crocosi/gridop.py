@@ -5,6 +5,10 @@ from collections import OrderedDict
 
 from .postp import g_default
 
+### Default values and parameters
+_z_dim_database = ['z', 's_rho', 's_w']
+_z_coord_database = {"s_rho":["z_r", "z_rho"], "s_w":["z_w"], "z":["z"]}
+
 # ---------------------- horizontal grid manipulations -------------------------
 
 def _get_spatial_dims(v):
@@ -183,31 +187,37 @@ def get_z(run, zeta=None, h=None, vgrid='r',
     
     return z.rename('z_'+vgrid)
 
-def get_z_dim(ds):
+def get_z_dim(ds, z_dim_database=_z_dim_database):
     """ return list of recognized vertical dimensions according to a reference list 
     """
-    _zdims_database = ['z', 's_rho', 's_w']
-    dims = [d for d in ds.dims if d in _zdims_database]
+    dims = [d for d in ds.dims if d in z_dim_database]
     dims = dims if dims else None # replace empty list by None
-    return prov
+    return dims
 
-def get_z_coord(ds):
-    """ return name of z coordinate in an xarray DataSet or DataArray"""
-    if "s_rho" in ds.dims:
-        zname = next((z for z in ['z_r', 'z_rho'] if z in ds.coords), None)
-    elif "s_w" in ds.dims:
-        zname = "z_w" if "z_w" in ds.coords else None
-    elif "z" in ds.dims:
-        zname = "z" if "z" in ds.coords else None
-    else:
-        raise ValueError("could not find z dimension")
-    if zname is None:
+def get_z_coord(ds, coords=_z_coord_database, dims=_z_dim_database):
+    """ return list of names of z coordinate in an xarray DataSet or DataArray"""
+    #if "s_rho" in ds.dims:
+        #zname = next((z for z in ['z_r', 'z_rho'] if z in ds.coords), None)
+    #elif "s_w" in ds.dims:
+        #zname = "z_w" if "z_w" in ds.coords else None
+    #elif "z" in ds.dims:
+        #zname = "z" if "z" in ds.coords else None
+    zname = []
+    for dim in dims:
+        if dim in ds.dims:
+            zname += [z for z in coords[dim] if z in ds.coords]
+    if not zname:
         raise ValueError("could not find z coordinate")
     return zname
 
+def get_xgrid_ax_name(xgrid, sdim):
+    """ return name of ax in xgrid object that match the list od dimensions 'sdim' """
+    return next(( lax.name for lax in xgrid.axes.values() \
+                    if all([dim in lax.coords.values() for dim in sdim.values()]) ))
+
 # ---------------------------- vertical interpolation --------------------------
 # 
-def w2rho(data, grid, z_r=None, z_w=None):
+def w2rho(data, grid, z_r=None, z_w=None, sdims=["s_rho", "s_w"]):
     """ Linearly interpolates from w vertical grid to rho one.
 
     Parameters
@@ -220,6 +230,8 @@ def w2rho(data, grid, z_r=None, z_w=None):
         Vertical grid at cell centers (rho). If not provided will search for variable `z_r` in `data`.
     z_w: xarray.DataArray, optional
         Vertical grid at cell faces (w). If not provided will search for variable `z_w` in `data`.
+    s_dims: list of two str, optional
+        names of vertical dimensions in, resp. , z_r and z_w (default: s_rho, s_w)
 
     Returns
     -------
@@ -240,15 +252,16 @@ def w2rho(data, grid, z_r=None, z_w=None):
         
     if z_r is None:
         z_r = data.z_r
-
-    dzr = grid.diff(z_w, "s") #.diff("s_w")
+    s_rho, s_w = s_dims
+    xgrid_s = get_xgrid_ax_name(grid,s_dims)
+    dzr = grid.diff(z_w, xgrid_s) #.diff("s_w")
     idn, iup = slice(0,-1), slice(1,None)
-    rna = {"s_w":"s_rho"}
-    z_w, data = z_w.drop("s_w"), data.drop("s_w")
+    rna = {s_w:s_rho}
+    z_w, data = z_w.drop(s_w), data.drop(s_w)
     # TODO use shift instead of isel (if the routine is maintained) 
-    w1 = (z_w.isel(s_w=iup).rename(rna) - z_r)/dzr
-    w2 = (z_r - z_w.isel(s_w=idn).rename(rna))/dzr
-    w_i = (w1*data.isel(s_w=idn).rename(rna) + w2*data.isel(s_w=iup).rename(rna))
+    w1 = (z_w.isel({s_w:iup}).rename(rna) - z_r)/dzr
+    w2 = (z_r - z_w.isel({s_w:idn}).rename(rna))/dzr
+    w_i = (w1*data.isel({s_w:idn}).rename(rna) + w2*data.isel({s_w:iup}).rename(rna))
 
     return w_i.assign_coords(z_rho=z_r)
 

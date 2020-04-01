@@ -7,7 +7,7 @@ import scipy.sparse.linalg as la
 import numpy as np
 import xarray as xr
 
-import .gridop as gop
+from . import gridop as gop
 from .postp import g_default
 
 # default values
@@ -20,10 +20,14 @@ _free_surf = True
 # This should be a class
 class Vmodes(object):
     """ Description of the class
+    Notes:
+    ______
+    zc, zf, N2 should be ordered from bottom to top, and zf and N2 have the same z dimension
+    vertical dimension names should be "s_rho" and "s_w" (with corresponding "s" axis in xgcm grid object), for compatibility with gridop methods.
     """
-    def __init__(self, xgrid, nmodes,
-                 zc, zf, N2,
-                 free_surf=True,
+    def __init__(self, xgrid, zc, zf, N2, 
+                 nmodes=_nmodes,
+                 free_surf=_free_surf,
                  persist=False,
                  grav=g_default, sigma=_sig):
         """ Create a Vmode object
@@ -38,6 +42,10 @@ class Vmodes(object):
         self.xgrid = xgrid
         self.nmodes = nmodes
         self._znames = {"zc": zc.name, "zf": zf.name}
+        sdim = {"zc": gop.get_z_dim(zc)[0], "zf": gop.get_z_dim(zf)[0]}
+        self._zdims = sdim
+        xgrid_z = gop.get_xgrid_ax_name(xgrid,sdim)
+        self._xgrid_z = xgrid_z
         self.g = grav
         self.free_surf = free_surf
         self.sigma=_sig
@@ -50,8 +58,8 @@ class Vmodes(object):
             self.ds = self.ds.assign_coords({zf.name:zf})
         self._compute_vmodes()
         
-        self.ds['H'] = np.abs(zf.sel(s_w=-1,method='nearest'))
-        self.ds['dz'] = xgrid.diff(zf, "s").rename("dz")
+        self.ds['H'] = np.abs(zf.isel({sdim['zf']:0}))
+        self.ds['dz'] = xgrid.diff(zf, xgrid_z).rename("dz")
         
         if persist:
             self.ds.persist()
@@ -138,13 +146,13 @@ class Vmodes(object):
             data, dm = xr.align(data, dm, join="inner")
         if not( z is None or z is False ):
             if z is True:
-                z = gop.get_z_coord(data)
+                z, = gop.get_z_coord(data)
             if isinstance(z, str):
                 z = data.coords[z]
             elif align:
                 data, z = xr.align(data, z, join="inner")
             data = gop.interp2z(dm[self._znames['zc']], z, data)
-        res = (dm.dz*data*dm.phi).sum("s_rho")/dm.norm
+        res = (dm.dz*data*dm.phi).sum(self._zdims['zc'])/dm.norm
 
         return res
     
@@ -177,18 +185,18 @@ class Vmodes(object):
             data, dm = xr.align(data, dm, join="inner")    
         if not( z is None or z is False ):
             if z is True:
-                z = gop.get_z_coord(data)
+                z, = gop.get_z_coord(data)
             if isinstance(z, str):
                 z = data.coords[z]
             elif align:
                 data, z = xr.align(data, z, join="inner")
             data = gop.interp2z(dm[self._znames['zc']], z, data)
         zf, zc = self._znames['zf'], self._znames["zc"]
-        prov = (data * self._w2rho(-dm.dphidz, zc=dm[zc], zf=dm[zf]) * dm.dz).sum(dim="s_rho")
+        prov = (data * self._w2rho(-dm.dphidz, zc=dm[zc], zf=dm[zf]) * dm.dz).sum(self._zdims['zc'])
         if self.free_surf:
             prov += self.g * ( -dm.dphidz / dm.N2 
-                              * self.xgrid.interp(data, "s", boundary="extrapolate") 
-                             ).isel(s_w=-1).drop(self._znames["zf"])
+                              * self.xgrid.interp(data, self._xgrid_z, boundary="extrapolate") 
+                             ).isel({self._zdims["zf"]:-1}).drop(self._znames["zf"])
        
         return prov/dm.norm
     
@@ -220,7 +228,7 @@ class Vmodes(object):
             data, dm = xr.align(data, dm, join="inner")    
         if not( z is None or z is False ):
             if z is True:
-                z = gop.get_z_coord(data)
+                z, = gop.get_z_coord(data)
             if isinstance(z, str):
                 z = data.coords[z]
             elif align:
@@ -229,9 +237,9 @@ class Vmodes(object):
         zf, zc = self._znames['zf'], self._znames["zc"]
         prov = (data * self._w2rho(dm.dphidz/dm.N2, zc=dm[zc], zf=dm[zf])* dm.dz).sum("s_rho")
         if self.free_surf:
-            prov += self.g * (self.xgrid.interp(data, "s", boundary="extrapolate")
+            prov += self.g * (self.xgrid.interp(data, self._xgrid_z, boundary="extrapolate")
                           * dm.dphidz / dm.N2**2
-                         ).isel(s_w=-1).drop(self._znames["zf"])
+                         ).isel({self._zdims['zf']:-1}).drop(self._znames["zf"])
         return -prov/dm.norm 
 
     def reconstruct(self, projections, vartype=None, **kwargs):
@@ -260,7 +268,7 @@ class Vmodes(object):
         
         if vartype is None:
             vartyps = "puvbw"
-            if sum(s in *.name.lower() for s in vartyps)==1:
+            if sum(s in projections.name.lower() for s in vartyps)==1:
                 vartype = next((s for s in vartyps if s in projections.name.lower()))
             else: 
                 raise ValueError("unable to find what kind of basis to use for reconstruction")
@@ -316,7 +324,7 @@ class Vmodes(object):
                 zc, data = xr.align(self["zc"], data, join="inner")
             else:
                 zc = self["zc"]
-        return gop.w2rho(data, self.xgrid, zc, zf)
+        return gop.w2rho(data, self.xgrid, zc, zf, s_dims=[self._zdims["zc"],self._zdims["zf"]])
 
 
 def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
@@ -340,6 +348,8 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
         parameter for shift-invert method in scipy.linalg.eig (default: _sig)
     g: scalar, optional
         gravity constant
+    z_dims: list of str, optional
+        vertical dimension names in zc, zf (default: "s_rho", "s_w")
     Returns:
     ________
     xarray.DataSet: vertical modes (p and w) and eigenvalues
@@ -350,15 +360,22 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
    
     """
     kworg = {"nmodes":nmodes, "stacked":True}
+    z_dims = None
     if kwargs is not None:
+        z_dims = kwargs.pop("z_dims", None)
         kworg.update(kwargs)
-    N = zc.s_rho.size
+    if z_dims:
+        s_rho, s_w = z_dims
+    else:
+        s_rho, s_w = "s_rho", "s_w"
+
+    N = zc[s_rho].size
     res = xr.apply_ufunc(compute_vmodes, 
-                         zc.chunk({"s_rho":-1}), 
-                         zf.chunk({"s_w":-1}),
-                         N2.chunk({"s_w":-1}), 
+                         zc.chunk({s_rho:-1}), 
+                         zf.chunk({s_w:-1}),
+                         N2.chunk({s_w:-1}), 
                          kwargs=kworg, 
-                         input_core_dims=[["s_rho"],["s_w"],["s_w"]],
+                         input_core_dims=[[s_rho],[s_w],[s_w]],
                          dask='parallelized', 
                          output_dtypes=[np.float64],
                          output_core_dims=[["s_stack","mode"]],
@@ -369,18 +386,18 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     c = res.isel(s_stack=0).rename('c')
     phi = (res.isel(s_stack=slice(1,N+1))
            .rename('phi')
-           .rename({'s_stack': 's_rho'})
+           .rename({'s_stack': s_rho})
            #.assign_coords(z_rho=zc)
           )
     dphidz = (res.isel(s_stack=slice(N+1,2*N+2))
               .rename('dphidz')
-              .rename({'s_stack': 's_w'})
+              .rename({'s_stack': s_w})
             #  .assign_coords(z_w=zf)
              )
     # merge data into a single dataset
-    other_dims = tuple([dim for dim in zc.dims if dim!="s_rho"]) # extra dims    
-    dm = (xr.merge([c, phi, dphidz, -zf.isel(s_w=0, drop=True).rename('norm')])
-          .transpose(*('mode','s_rho','s_w')+other_dims)
+    other_dims = tuple([dim for dim in zc.dims if dim!=s_rho]) # extra dims    
+    dm = (xr.merge([c, phi, dphidz, -zf.isel({s_w:0}, drop=True).rename('norm')])
+          .transpose(*('mode',s_rho,s_w)+other_dims)
           #.assign_coords(norm=-zf.isel(s_w=0, drop=True)) #, N2=N2
          )
     return dm  ### hard-coded norm = H
