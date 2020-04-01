@@ -44,7 +44,7 @@ class Vmodes(object):
         self._znames = {"zc": zc.name, "zf": zf.name}
         sdim = {"zc": gop.get_z_dim(zc)[0], "zf": gop.get_z_dim(zf)[0]}
         self._zdims = sdim
-        xgrid_z = gop.get_xgrid_ax_name(xgrid,sdim)
+        xgrid_z = gop.get_xgrid_ax_name(xgrid,sdim.values())
         self._xgrid_z = xgrid_z
         self.g = grav
         self.free_surf = free_surf
@@ -78,7 +78,8 @@ class Vmodes(object):
                         self.ds.N2,
                         nmodes=self.nmodes,
                         free_surf=self.free_surf,
-                        sigma=self.sigma, g=self.g)
+                        sigma=self.sigma, g=self.g, 
+                        z_dims=[self._zdims['zc'], self._zdims['zf']])
         self.ds = xr.merge([self.ds, dm], compat="override")
         pass
     

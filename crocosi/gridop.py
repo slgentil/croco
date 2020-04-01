@@ -211,13 +211,13 @@ def get_z_coord(ds, coords=_z_coord_database, dims=_z_dim_database):
     return zname
 
 def get_xgrid_ax_name(xgrid, sdim):
-    """ return name of ax in xgrid object that match the list od dimensions 'sdim' """
+    """ return name of ax in xgrid object that match the list of dimensions 'sdim' """
     return next(( lax.name for lax in xgrid.axes.values() \
-                    if all([dim in lax.coords.values() for dim in sdim.values()]) ))
+                    if all([dim in lax.coords.values() for dim in sdim]) ))
 
 # ---------------------------- vertical interpolation --------------------------
 # 
-def w2rho(data, grid, z_r=None, z_w=None, sdims=["s_rho", "s_w"]):
+def w2rho(data, grid, z_r=None, z_w=None, s_dims=["s_rho", "s_w"]):
     """ Linearly interpolates from w vertical grid to rho one.
 
     Parameters
