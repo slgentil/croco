@@ -445,9 +445,12 @@ def compute_vmodes(zc_nd, zf_nd, N2f_nd,
             return cn.reshape(nxy+(nmodes,)), phin.reshape(nxy+(-1,nmodes)), \
                         dphi.reshape(nxy+(-1,nmodes))
     else:
-        return compute_vmodes_1D(zc_nd, zf_nd, N2f_nd, nmodes, \
+        cn, phin, dphi = compute_vmodes_1D(zc_nd, zf_nd, N2f_nd, nmodes, \
                                 free_surf=free_surf, g=g, sigma=sigma)
-
+        if stacked:
+            return np.vstack([cn[None,:],phin,dphi]) #.reshape(nxy+(-1,nmodes+1))   
+        else:
+            return cn, phin, dphi
             
 def compute_vmodes_1D(zc, zf, N2f, 
                       nmodes=_nmodes, free_surf=True, 
