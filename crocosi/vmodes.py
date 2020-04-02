@@ -19,11 +19,69 @@ _free_surf = True
 
 # This should be a class
 class Vmodes(object):
-    """ Description of the class
+    """ Class for vertical modes computation and manipulation (projection and reconstruction)
+    The vertical modes 'phi' are defined following the standard Sturm-Liouville problem (e.g. Gill, 1982 or any standard GFD textbook), see below.
+    Those are referred as 'pressure-like' modes. Their vertical derivatives, named 'dphidz', are referred as 'w-like' modes.
+
+    Parameters:
+    ___________
+    xgrid: xgcm.Grid 
+        xgcm grid object associated with the dataset, required for grid manipulations
+    zc: xarray.Datarray
+        vertical grid at cell centers
+    zf: xarray.Datarray
+        vertical grid at cell interfaces
+    N2: xarray.Datarray
+        Brunt-vaisala frequency, at cell interfaces
+    nmodes: int, optional
+        number of baroclinic modes to compute (barotropic mode will be added)
+    free_surf: bool, optional
+        whether using a free-surface condition or rigid lid
+    persist: bool, optional
+        persist the dask dataset containing the modes or not
+    grav: float, optional
+        gravity constant
+    sigma: float, optional
+        parameter for shift-invert method in scipy.linalg.eig (default: _sig)
+        
+    Attributes:
+    ___________
+    xgrid: xgcm.Grid
+    nmodes: float
+    ds: xarray.Dataset
+        dataset containing the vertical modes and associated data
+    g: float
+    free_surf: float
+    sigma: float
+
+    Methods:
+    ________
+    project(data, vartype="p", **kwargs)
+        project 'data' on vertical modes
+    project_puv(data, z=False, sel=None, align=True)
+        project 'data' on pressure-like vertical modes
+    project_w(data, z=False, sel=None, align=True) 
+        project 'data' on w-like vertical modes
+    project_b(data, z=False, sel=None, align=True)
+        project 'data' on b-like vertical modes
+    reconstruct(projections, vartype=None, **kwargs)
+        reconstruct field from projections coefficient (modal amplitudes)
+    reconstruct_puv(projections, sel=None, align=True)
+        reconstruct field from projections coefficient using pressure-like modes
+    reconstruct_w(projections, sel=None, align=True)
+        reconstruct field from projections coefficient using w-like modes
+    reconstruct_b(projections, sel=None, align=True)
+        reconstruct field from projections coefficient using w-like modes
+
     Notes:
     ______
     zc, zf, N2 should be ordered from bottom to top, and zf and N2 have the same z dimension
-    vertical dimension names should be "s_rho" and "s_w" (with corresponding "s" axis in xgcm grid object), for compatibility with gridop methods.
+    The vertical modes are definied following the equation:
+    .. math:: (\phi'/N^2)' + k^2\phi=0 
+    with boundary condition :math:`\phi'=0` at the bottom and :math:`g\phi' + N^2\phi=0` at the surface (or :math:`\phi'=0` for a rigid lid condition). 
+    Computation of the vertical modes is performed using second order finite difference
+    The eigenvalue used in this class is c=1/k.
+
     """
     def __init__(self, xgrid, zc, zf, N2, 
                  nmodes=_nmodes,
@@ -32,12 +90,30 @@ class Vmodes(object):
                  grav=g_default, sigma=_sig):
         """ Create a Vmode object
         
-        Parameters
-        ----------
-            xgrid: xgcm.Grid
-                xgcm grid object required for grid manipulations
-            ...
+        Parameters:
+        ___________
+        xgrid: xgcm.Grid 
+            xgcm grid object associated with the dataset, required for grid manipulations
+        zc: xarray.Datarray
+            vertical grid at cell centers
+        zf: xarray.Datarray
+            vertical grid at cell interfaces
+        N2: xarray.Datarray
+            Brunt-vaisala frequency, at cell interfaces
+        nmodes: int, optional
+            number of baroclinic modes to compute (barotropic mode will be added)
+        free_surf: bool, optional
+            whether using a free-surface condition or rigid lid
+        persist: bool, optional
+            persist the dask dataset containing the modes or not
+        grav: float, optional
+            gravity constant
+        sigma: float, optional
+            parameter for shift-invert method in scipy.linalg.eig (default: _sig)
             
+        Notes:
+        ______
+        zc, zf, N2 should be ordered from bottom to top, and zf and N2 have the same z dimension
         """
         self.xgrid = xgrid
         self.nmodes = nmodes
@@ -71,8 +147,18 @@ class Vmodes(object):
             return self.ds[self._znames[item]]
         return self.ds[item]
 
+    def __repr__(self):
+        strout = 'Vmode object with dimensions {}\n'.format(tuple(self.ds.dims.keys()))
+        strout += '  Number of modes = {}\n'.format(self.nmodes)
+        strout += '  N2, min/max = {0:.1e}, {1:.1e}\n'.format(\
+                                self['N2'].min().values, self['N2'].max().values)
+        strout += '  Options / parameters: grav: {0:.2f}, free_surf: {1}, eig_sigma: {2:.1e}\n'\
+                            .format(self.g, self.free_surf, self.sigma)
+        return strout
+
     def _compute_vmodes(self):
-        """ compute vertical modes and store the results into the dataset """
+        """ compute vertical modes and store the results into the dataset 
+        wrapper of external function get_vmodes """
         dm = get_vmodes(self['zc'],
                         self['zf'],
                         self.ds.N2,
@@ -88,7 +174,7 @@ class Vmodes(object):
     
     def project(self, data, vartype="p", **kwargs):
         """ Project a variable on vertical modes (p-modes or w-modes)
-        Internally call project_puv or project_w
+        Internally calls project_puv or project_w
         
         Parameters:
         ___________
@@ -282,6 +368,14 @@ class Vmodes(object):
             return self.reconstruct_b(projections, **kwargs)
         
     def reconstruct_puv(self, projections, sel=None, align=True):
+        """ Reconstruct a variable from modal amplitudes, using pressure-like modes
+            
+        See also
+        ________
+        reconstruct
+        
+        """
+
         if sel is None:
             dm = self.ds
         else:
@@ -291,6 +385,13 @@ class Vmodes(object):
         return (projections * dm.phi).sum("mode")
 
     def reconstruct_w(self, projections, sel=None, align=True):
+        """ Reconstruct a variable from modal amplitudes, using w-like modes and w-like normalization
+            
+        See also
+        ________
+        reconstruct
+        
+        """
         if sel is None:
             dm = self.ds
         else:
@@ -300,6 +401,13 @@ class Vmodes(object):
         return (-dm.c**2 / dm.N2 * dm.dphidz * projections).sum("mode")
     
     def reconstruct_b(self, projections, sel=None, align=True):
+        """ Reconstruct a variable from modal amplitudes, using w-like modes and b-like normalization
+            
+        See also
+        ________
+        reconstruct
+        
+        """
         if sel is None:
             dm = self.ds
         else:
@@ -351,6 +459,7 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
         gravity constant
     z_dims: list of str, optional
         vertical dimension names in zc, zf (default: "s_rho", "s_w")
+
     Returns:
     ________
     xarray.DataSet: vertical modes (p and w) and eigenvalues
@@ -358,6 +467,7 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     See Also:
     _________
     compute_vmodes: routine for computing vertical modes from numpy arrays
+    Vmodes: class for computing and manipulating vertical modes
    
     """
     kworg = {"nmodes":nmodes, "stacked":True}
@@ -409,10 +519,47 @@ def compute_vmodes(zc_nd, zf_nd, N2f_nd,
                    sigma=_sig, stacked=True,
                    **kwargs):
     """
-    wrapper for vectorizing compute_vmodes_1D over elements of axes other than vertical dim
-    that's not elegant, nor efficient
-    here z is last axis (because it is core dim)
+    Compute vertical modes from stratification.
+    wrapper for vectorizing compute_vmodes_1D over dimensions of numpy arrays other than the vertical one
+
+    Parameters:
+    ___________
+    zc_nd: (...,N) ndarray
+        vertical grid at cell centers
+    zf_nd: (...,N+1) ndarray
+        vertical grid at cell interfaces
+    N2f_nd: (...,N+1) ndarray
+        Brunt-Vaisala frequency at cell interfaces
+    nmodes: int, optional
+        number of baroclinic modes to compute (barotropic mode will be added)
+    free_surf: bool, optional
+        whether using a free-surface condition or rigid lid
+    grav: float, optional
+        gravity constant
+    sigma: float, optional
+        parameter for shift-invert method in scipy.linalg.eig (default: _sig)
+    stacked: bool
+        whether the result should be returned as a stacked array of size (..., 2N+2). Default is True
+
+    Returns:
+    res: ndarray (...,2N+2,nmodes) 
+        stacked array of eigenvalues, p-like modes and w-like modes
+    OR
+    c: (...,nmodes) ndarray
+        eigenvalues (pseudo phase speed, c=1/sqrt(k))
+    phi: (...,N,nmodes) ndarray
+        p-like modes at cell centers
+    dphidz: (...,N+1,nmodes) ndarray
+        w-like modes at cell interfaces
+
+    Notes:
+    ______
+    z dimension must be the last axis 
     you can use this if you are using numpy (but make sure z is last dim)
+    The vertical modes are definied following the equation:
+    .. math:: (\phi'/N^2)' + k^2\phi=0 
+    with boundary condition :math:`\phi'=0` at the bottom and :math:`g\phi' + N^2\phi=0` at the surface (or :math:`\phi'=0` for a rigid lid condition). 
+    Computation of the vertical modes is performed using second order finite difference
     """
     assert zc_nd.ndim==zf_nd.ndim==N2f_nd.ndim
     assert zf_nd.shape==N2f_nd.shape
@@ -455,11 +602,45 @@ def compute_vmodes(zc_nd, zf_nd, N2f_nd,
 def compute_vmodes_1D(zc, zf, N2f, 
                       nmodes=_nmodes, free_surf=True, 
                       g=g_default, sigma=_sig):
-    """ compute vertical modes: solution of SL problem (phi'/N^2)'+k*phi=0'
-    returns phi at rho points, dphi at w points and c=1/sqrt(k) 
-    normalization such that int(phi^2)=H, w-modes=d(phi)/dz
+    """
+    Compute vertical modes from stratification.
+
+    Parameters:
+    ___________
+    zc: (N) ndarray
+        vertical grid at cell centers
+    zf: (N+1) ndarray
+        vertical grid at cell interfaces
+    N2f: (N+1) ndarray
+        Brunt-Vaisala frequency at cell interfaces
+    nmodes: int, optional
+        number of baroclinic modes to compute (barotropic mode will be added)
+    free_surf: bool, optional
+        whether using a free-surface condition or rigid lid
+    g: float, optional
+        gravity constant
+    sigma: float, optional
+        parameter for shift-invert method in scipy.linalg.eig (default: _sig)
+
+    Returns:
+    ________
+    c: (nmodes) ndarray
+        eigenvalues (pseudo phase speed, c=1/sqrt(k))
+    phi: (N,nmodes) ndarray
+        p-like modes at cell centers
+    dphidz: (N+1,nmodes) ndarray
+        w-like modes at cell interfaces
+
+    Notes:
+    ______
     copy-pasted from M. Dunphy's vmodes_MD.py
-    TODO: correct rigid lid & barotropic mode """
+    WARNING maybe the barotropic mode for rigid lid is wrong 
+    The vertical modes are definied following the equation:
+    .. math:: (\phi'/N^2)' + k^2\phi=0 
+    with boundary condition :math:`\phi'=0` at the bottom and :math:`g\phi' + N^2\phi=0` at the surface (or :math:`\phi'=0` for a rigid lid condition). 
+    Computation of the vertical modes is performed using second order finite difference
+
+    """ 
     # Precompute a few quantities
     assert zc.ndim==zf.ndim==N2f.ndim==1
     assert len(zc)+1==len(N2f)==len(zf)
