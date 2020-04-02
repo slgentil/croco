@@ -1,9 +1,13 @@
-import sys
+#import sys # NL: imported but not used
 import xarray as xr
 import numpy as np
 from collections import OrderedDict
 
 from .postp import g_default
+
+### Default values and parameters
+_z_dim_database = ['z', 's_rho', 's_w']
+_z_coord_database = {"s_rho":["z_r", "z_rho"], "s_w":["z_w"], "z":["z"]}
 
 # ---------------------- horizontal grid manipulations -------------------------
 
@@ -65,9 +69,9 @@ def hinterp(ds,var,coords=None):
     #create Tree object
     mesh = pyinterp.RTree()
 
-    L = ds.dims['x_r']
-    M = ds.dims['y_r']
-    N = ds.dims['s_r']
+    #L = ds.dims['x_r'] # NL: assigned but not used
+    #M = ds.dims['y_r']
+    #N = ds.dims['s_r']
     z_r = get_z(ds)
     #coords = np.array([coords])
 
@@ -95,7 +99,7 @@ def hinterp(ds,var,coords=None):
 
     # The undefined values must be set to nan.
     print(ds.mask_rho.values)
-    mask=np.where(ds.mask_rho.values==1.,)
+    #mask=np.where(ds.mask_rho.values==1.,) # NL: assigned but not used
     vslice[int(ds.mask_rho.values)] = float("nan")
 
     vslice = xr.DataArray(np.asarray(vslice.reshape(ds.dims['y_r'], ds.dims['x_r'])),
@@ -183,8 +187,84 @@ def get_z(run, zeta=None, h=None, vgrid='r',
     
     return z.rename('z_'+vgrid)
 
+def get_z_dim(ds, z_dim_database=_z_dim_database):
+    """ return list of recognized vertical dimensions according to a reference list 
+    """
+    dims = [d for d in ds.dims if d in z_dim_database]
+    dims = dims if dims else None # replace empty list by None
+    return dims
+
+def get_z_coord(ds, coords=_z_coord_database, dims=_z_dim_database):
+    """ return list of names of z coordinate in an xarray DataSet or DataArray"""
+    #if "s_rho" in ds.dims:
+        #zname = next((z for z in ['z_r', 'z_rho'] if z in ds.coords), None)
+    #elif "s_w" in ds.dims:
+        #zname = "z_w" if "z_w" in ds.coords else None
+    #elif "z" in ds.dims:
+        #zname = "z" if "z" in ds.coords else None
+    zname = []
+    for dim in dims:
+        if dim in ds.dims:
+            zname += [z for z in coords[dim] if z in ds.coords]
+    if not zname:
+        raise ValueError("could not find z coordinate")
+    return zname
+
+def get_xgrid_ax_name(xgrid, sdim):
+    """ return name of ax in xgrid object that match the list of dimensions 'sdim' """
+    return next(( lax.name for lax in xgrid.axes.values() \
+                    if all([dim in lax.coords.values() for dim in sdim]) ))
+
 # ---------------------------- vertical interpolation --------------------------
 # 
+def w2rho(data, grid, z_r=None, z_w=None, s_dims=["s_rho", "s_w"]):
+    """ Linearly interpolates from w vertical grid to rho one.
+
+    Parameters
+    ----------
+    data: xarray.DataArray
+       Array to be interpolated. May contain `z_w` and `z_r` as coordinates.
+    grid: xgcm.Grid
+        Grid object containing grid information required for the interpolation
+    z_r: xarray.DataArray, optional 
+        Vertical grid at cell centers (rho). If not provided will search for variable `z_r` in `data`.
+    z_w: xarray.DataArray, optional
+        Vertical grid at cell faces (w). If not provided will search for variable `z_w` in `data`.
+    s_dims: list of two str, optional
+        names of vertical dimensions in, resp. , z_r and z_w (default: s_rho, s_w)
+
+    Returns
+    -------
+    xarray.DataArray
+        Interpolated array
+
+    Notes
+    -----
+    The linear interpolation leverages `xgcm`_ library.
+
+    .. _xgcm:
+       https://xgcm.readthedocs.io/en/latest/
+    This routine should give the same result as xgcm.interp with updated metrics
+    """
+    
+    if z_w is None:
+        z_w = data.z_w
+        
+    if z_r is None:
+        z_r = data.z_r
+    s_rho, s_w = s_dims
+    xgrid_s = get_xgrid_ax_name(grid,s_dims)
+    dzr = grid.diff(z_w, xgrid_s) #.diff("s_w")
+    idn, iup = slice(0,-1), slice(1,None)
+    rna = {s_w:s_rho}
+    z_w, data = z_w.drop(s_w), data.drop(s_w)
+    # TODO use shift instead of isel (if the routine is maintained) 
+    w1 = (z_w.isel({s_w:iup}).rename(rna) - z_r)/dzr
+    w2 = (z_r - z_w.isel({s_w:idn}).rename(rna))/dzr
+    w_i = (w1*data.isel({s_w:idn}).rename(rna) + w2*data.isel({s_w:iup}).rename(rna))
+
+    return w_i.assign_coords(z_rho=z_r)
+
 
 def _guess_dim_mapping(x, y):
     # guess mapping
@@ -410,7 +490,7 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None,
         assert z_dim, 'Could not find a vertical dimension for z'
     # test if z_dim and zt_dim are equal but refer to dimensions with different
     # values
-    if z_dim==zt_dim and not v[z_dim].equals(zt[zt_dim]):
+    if z_dim==zt_dim and not v.reset_coords()[z_dim].equals(zt.reset_coords()[zt_dim]):
         if override_dims:
             _zt_dim = 'zt_swap'
             _zt = zt.rename({zt_dim: _zt_dim})
@@ -470,7 +550,7 @@ def get_N2(run, rho, z, g=g_default):
     N2 = N2.fillna(N2.shift(s_w=1))
     return N2
 
-def get_p(grid, rho, zw, zr=None, g=g_default):
+def get_p(grid, rho, zw, zr=None, grav=g_default):
     """ Compute (not reduced) pressure by integration from the surface, 
     taking rho at rho points and giving results on w points (z grid)
     with p=0 at the surface. If zr is not None, compute result on rho points
@@ -498,7 +578,7 @@ def get_p(grid, rho, zw, zr=None, g=g_default):
              .sortby(rho.s_rho, ascending=True)
              .assign_coords(z_r=zr)
             )
-    return _g*p.rename("p")
+    return grav*p.rename("p")
 
 # !!! code below needs to be updated with xgcm approach
 
@@ -525,7 +605,7 @@ def get_pv(u, v, rho, rho_a, f, f0, zr, zw, ds):
              .rename({'eta_rho':'eta_psi', 'xi_u':'xi_psi'})
              .assign_coords(xi_psi=ds.xi_u.rename({'xi_u':'xi_psi'}),
                             eta_psi=ds.eta_v.rename({'eta_v':'eta_psi'})))
-    xi = psi2rho(xi_u+xi_v, ds)
+    xi = x2rho(xi_u+xi_v, ds) # NL: psi2rho replaced by x2rho, not checked
 
     # stretching term
     drho = (rho.shift(z_r=1)+rho)*0.5 * zr.diff('z_r')/rho_a.diff('z_r')

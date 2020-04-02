@@ -43,7 +43,7 @@ class Run(object):
         self.dirname = os.path.expanduser(dirname)
         self.verbose = verbose
         self.prefix = prefix
-        if os.path.isfile(self.dirname+'t1/grid.nc'):
+        if os.path.isfile(self.dirname+'t1/{}grid.nc'.format(prefix)):
             _nc_default = ['grid']
         else:
             # for backward compatibility
