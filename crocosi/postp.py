@@ -445,7 +445,104 @@ class Run(object):
         
         if 'grid' not in self.open_nc: # backward compatibility
             self.grid = ds
-    
+            
+    ### store/load diagnostics
+    def store_diagnostic(self, name, data, 
+                         overwrite=False,
+                         file_format=None, 
+                         directory='diagnostics/',
+                         **kwargs
+                        ):
+        """ Write diagnostics to disk
+        
+        Parameters
+        ----------
+        name: str
+            Name of a diagnostics to store on disk
+        data: xr.Dataset, xr.DataArray (other should be implemented)
+            Data to be stored
+        overwrite: boolean, optional
+            Overwrite an existing diagnostic. Default is False
+        file_format: str, optional
+            Storage file format (supported at the moment: zarr, netcdf)
+        directory: str, optional
+            Directory where diagnostics will be stored (absolute or relative to output directory).
+            Default is 'diagnostics/'
+        **kwargs:
+            Any keyword arguments that will be passed to the file writer
+        """
+        # create diagnostics dir if not present
+        if os.path.isdir(directory):
+            # directory is an absolute path
+            _dir = directory
+        elif os.path.isdir(os.path.join(self.dirname, directory)):
+            # directory is relative
+            _dir = os.path.join(self.dirname, directory)
+        else:
+            # need to create the directory
+            _dir = os.path.join(self.dirname, directory)
+            os.mkdir(_dir)
+            print('Create new diagnostic directory {}'.format(_dir))
+        #
+        if isinstance(data, xr.DataArray):
+            self.store_diagnostic(name, data.to_dataset(),
+                                  overwrite=overwrite,
+                                  file_format=file_format,
+                                  directory=directory,
+                                  **kwargs
+                                 )
+        elif isinstance(data, xr.Dataset):
+            success=False
+            if file_format is None or file_format.lower() in ['zarr', '.zarr']:
+                _file = os.path.join(_dir, name+'.zarr')
+                if _check_file_overwrite(_file, overwrite):
+                    data.to_zarr(_file, **kwargs)
+                    success=True
+            elif file_format.lower() in ['nc', 'netcdf']:
+                _file = os.path.join(_dir, name+'.nc')
+                if _check_file_overwrite(_file, overwrite):
+                    data.to_netcdf(_file, **kwargs)
+                    success=True
+        if success:
+            print('data stored in {}'.format(_dir))
+
+    def load_diagnostic(self, name, 
+                        directory='diagnostics/', 
+                        **kwargs):
+        """ Load diagnostics from disk
+        
+        Parameters
+        ----------
+        name: str, list
+            Name of a diagnostics or list of names of diagnostics to load
+        directory: str, optional
+            Directory where diagnostics will be stored (absolute or relative to output directory).
+            Default is 'diagnostics/'
+        **kwargs:
+            Any keyword arguments that will be passed to the file reader
+        """
+        if os.path.isdir(directory):
+            # directory is an absolute path
+            _dir = directory
+        elif os.path.isdir(os.path.join(self.dirname, directory)):
+            # directory is relative
+            _dir = os.path.join(self.dirname, directory)
+        else:
+            raise OSError('Directory does not exist')
+        # find the diagnostic file
+        _file = glob(os.path.join(_dir,name+'.*'))
+        assert len(_file)==1, 'More that one diagnostic file {}'.format(_file)
+        _file = _file[0]
+        # get extension
+        _extension = _file.split('.')[-1]
+        if _extension=='zarr':
+            return xr.open_zarr(_file, **kwargs)
+        elif _extension=='nc':
+            return xr.open_dataset(_file, **kwargs)
+        else:
+            raise NotImplementedError('{} extension not implemented yet'
+                                      .format(_extension))
+        
     ### wrappers (gop, xgcm grid)
     
     # horizontal grid moving
@@ -514,3 +611,13 @@ def _compute_metrics(ds):
     ds['rAu'] = ds['dx_u']*ds['dy_u']
     ds['rAv'] = ds['dx_v']*ds['dy_v']
     return ds
+
+def _check_file_overwrite(file, overwrite):
+    """ Check whether one can overwrite a file, return False otherwise
+    """
+    _isfile = os.path.isfile(file)
+    if not _isfile or (_isfile and overwrite):
+        return True
+    else:
+        print('Cannot overwrite {}'.format(file))
+        return
