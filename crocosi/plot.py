@@ -1,6 +1,8 @@
 import os
 
 import numpy as np
+import xarray as xr
+
 from dask import delayed
 import threading
 
@@ -26,20 +28,20 @@ def get_cmap_colors(Nc, cmap='plasma'):
 
 # -------------------------------- movies --------------------------------------
 
-def movie_figure(da, atom_plot, i=0, test=False,
+def movie_figure(atom_plot, *da, i=0, test=False,
                  overwrite=True, fig_suffix=None, fig_dir=None, 
-                 figsize=(4,5), ax_kwargs={}, **plt_kwargs):
+                 figsize=(4,5), ax_kwargs={}, **atom_kwargs):
     """ Generate a figure, make a plot and store figure. 
     May be distributed across workers
     
     Parameters
     ----------
-    da: xarray DataArray
-        Variable containing data that will be plotted
     atom_plot: method
         Atomic plot method used, should look like:
-        def atom_plot(da, ax, ax_kwargs, **plt_kwargs):
+        def atom_plot(ax, *da, test=..., ax_kwargs=..., **plt_kwargs):
             ...
+    *da: xarray DataArray, or other
+        Variables containing data that will be plotted
     i: integer, optional
         Index that will be used in filename. Default is 0
     test: boolean, optional
@@ -55,18 +57,24 @@ def movie_figure(da, atom_plot, i=0, test=False,
         Figure size. Default to (4,5)
     ax_kwargs: dict, optional
         Dictionnary of keyword arguments passed on the axis
-    **plt_kwargs:
-        Keyword arguments passed on xarray plot call.
+    **atom_kwargs:
+        Keyword arguments passed on xarray atomic plot call.
     """
     
     if fig_dir is None:
         fig_dir = os.environ['SCRATCH']+'/figs/'
         
     if test:
-        da = da.isel(time=i)
+        _da = []
+        for d in da:
+            if isinstance(d, xr.DataArray):
+                _da.append(d.isel(time=i))
+            else:
+                _da.append(d)
+        da = tuple(_da)
         
     if fig_suffix is None:
-        fig_suffix = da.name
+        fig_suffix = '_'.join(d.name for d in da if hasattr(d,'name'))
         
     figname = fig_dir+fig_suffix+'_t%05d' %(i)+'.png'
     
@@ -80,7 +88,7 @@ def movie_figure(da, atom_plot, i=0, test=False,
             fig = plt.figure(figsize=figsize)
             ax = fig.add_subplot(1,1,1)
             #
-            atom_plot(da, ax, ax_kwargs, **plt_kwargs)
+            atom_plot(ax, *da, test=test, ax_kwargs=ax_kwargs, **atom_kwargs)
             #
             if not test:
                 fig.savefig(figname, bbox_inches = 'tight')
@@ -92,39 +100,42 @@ def movie_figure(da, atom_plot, i=0, test=False,
     if not test:
         return m
 
-def movie_wrapper(da, atom_plot, client, Nt=None, Nb=None, **get_kwargs):
+def movie_wrapper(atom_plot, client, *da, Nt=None, Nb=None, **kwargs):
     """ wrap figure generation in delayed objects that can be distributed to
     workers. Send by batches of Nb figures.
     
     Parameters
     ----------
-    
-    da: Dask array
-        contain data to be plotted.
-        
+    atom_plot: method
+        Atomic plot method used, should look like:
+        def atom_plot(ax, *da, test=..., ax_kwargs=..., **plt_kwargs):
+            ...
+    *da: xarray.DataArray's
+        Contain data to be plotted
     Nt: int, optional
-        Number of figures generated. Default to entire dataset.
-
+        Number of figures generated. Default to entire dataset
     Nb: int, optional
         Number of figures to generate in each batch. Default to number of 
-        available threads.
-        
+        available threads
     **kwargs: optional
-        Keyword arguments passed on to get_fig.
-    
+        Keyword arguments passed on to movie_figure
     """
     if Nt is None:
-        Nt = da.time.size
+        Nt = max([d.time.size for d in da])
     if Nb is None:
         Nb = len(client.nthreads())
     #
     rg = range(0,Nt)
     II = np.array_split(rg,len(rg)/Nb)
-    #
     print('%d batches to be done'%len(II))
+    #
+    delayed_fig = delayed(movie_figure)
+    #
     for I in II:
         print(' batch %d-%d'%(I[0],I[-1]))
-        values = [delayed(movie_figure)(da.isel(time=i), atom_plot, 
-                                        i, **get_kwargs) for i in I]
+        values = [delayed_fig(atom_plot, 
+                              *(d.isel(time=i) for d in da),
+                              i=i, **kwargs) 
+                  for i in I]
         futures = client.compute(values)
         results = client.gather(futures)
