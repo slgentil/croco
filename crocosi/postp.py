@@ -472,17 +472,8 @@ class Run(object):
             Any keyword arguments that will be passed to the file writer
         """
         # create diagnostics dir if not present
-        if os.path.isdir(directory):
-            # directory is an absolute path
-            _dir = directory
-        elif os.path.isdir(os.path.join(self.dirname, directory)):
-            # directory is relative
-            _dir = os.path.join(self.dirname, directory)
-        else:
-            # need to create the directory
-            _dir = os.path.join(self.dirname, directory)
-            os.mkdir(_dir)
-            print('Create new diagnostic directory {}'.format(_dir))
+        _dir = _check_diagnostic_directory(directory, self.dirname, 
+                                           create=True)
         #
         if isinstance(data, xr.DataArray):
             self.store_diagnostic(name, data.to_dataset(),
@@ -521,14 +512,7 @@ class Run(object):
         **kwargs:
             Any keyword arguments that will be passed to the file reader
         """
-        if os.path.isdir(directory):
-            # directory is an absolute path
-            _dir = directory
-        elif os.path.isdir(os.path.join(self.dirname, directory)):
-            # directory is relative
-            _dir = os.path.join(self.dirname, directory)
-        else:
-            raise OSError('Directory does not exist')
+        _dir = _check_diagnostic_directory(directory, self.dirname)
         # find the diagnostic file
         _file = glob(os.path.join(_dir,name+'.*'))
         assert len(_file)==1, 'More that one diagnostic file {}'.format(_file)
@@ -575,6 +559,51 @@ class Run(object):
     def get_p(self, *args, **kwargs):
         return gop.get_p(self.xgrid, *args, **kwargs)
     
+    # vertical modes
+    #   store:
+    def store_vmodes(self, 
+                     name, 
+                     vmodes, 
+                     projections=None, 
+                     directory='diagnostics/',
+                     **kwargs):
+        """ store Vmode object and projections in a diagnostic directory
+        
+        Parameters
+        ----------
+        name: str
+            Name of the vertical modes
+        vmodes: Vmodes object
+            Vertical mode object
+        projections: xarray.Dataset
+            Projections to load
+        directory: str, optional
+            Directory where diagnostics will be stored (absolute or relative to output directory).
+            Default is 'diagnostics/'
+        **kwargs: passed to to_zarr
+        """
+        _dir = _check_diagnostic_directory(directory, self.dirname, create=True)
+        file_path = os.path.join(_dir, name+'.zarr')
+        return vmodes.store(file_path, projections=projections, **kwargs)
+        
+    #   load:
+    def load_vmodes(self, name, persist=None, directory='diagnostics/'):
+        """ load Vmode object and projections from a diagnostic directory
+        
+        Parameters
+        ----------
+        name: str
+            Name of the vertical modes
+        persist: boolean
+            Turns data loading on/off, default is False
+        directory: str, optional
+            Directory where diagnostics will be stored (absolute or relative to output directory).
+            Default is 'diagnostics/'        
+        """
+        from .vmodes import load_vmodes as load_vm
+        _dir = _check_diagnostic_directory(directory, self.dirname, create=True)
+        file_path = os.path.join(_dir, name+'.zarr')
+        return load_vm(file_path, self.xgrid, persist=persist)
 
 def _compute_metrics(ds):
     """ Compute metrics from data available in grid.nc
@@ -621,3 +650,26 @@ def _check_file_overwrite(file, overwrite):
     else:
         print('Cannot overwrite {}'.format(file))
         return
+    
+
+def _check_diagnostic_directory(directory, dirname, 
+                                create=False):
+    """ Check existence of a directory and create it if necessary
+    """
+    # create diagnostics dir if not present
+    if os.path.isdir(directory):
+        # directory is an absolute path
+        _dir = directory
+    elif os.path.isdir(os.path.join(dirname, directory)):
+        # directory is relative
+        _dir = os.path.join(dirname, directory)
+    else:
+        if create:
+            # need to create the directory
+            _dir = os.path.join(dirname, directory)
+            os.mkdir(_dir)
+            print('Create new diagnostic directory {}'.format(_dir))
+        else:
+            raise OSError('Directory does not exist')
+    return _dir
+    

@@ -2,6 +2,7 @@
 Defines class Vmodes and routines for computing vertical modes given a stratification profile
 the corresponding Sturm-Liouville problem is (phi'/N2)' + lam^2 phi = 0, with proper BCs. 
 """
+import os
 import scipy.sparse as sp
 import scipy.sparse.linalg as la
 import numpy as np
@@ -16,6 +17,9 @@ _nmodes = 10
 _free_surf = True
 
 ### N.B.: norm is H
+
+_core_attrs = ['nmodes', '_xgrid_z', 'g', 
+               'free_surf', 'sigma']
 
 # This should be a class
 class Vmodes(object):
@@ -421,7 +425,7 @@ class Vmodes(object):
         """ routine to interpolate fields from mean rho point to mean w point
         adapt to different ensemble of points if specified
         wrapper to gop.w2rho
-        could be replaced by xgrid.interp one correct metrics are provided
+        could be replaced by xgrid.interp once correct metrics are provided
         """
         if zf is None:
             if align:
@@ -434,6 +438,87 @@ class Vmodes(object):
             else:
                 zc = self["zc"]
         return gop.w2rho(data, self.xgrid, zc, zf, s_dims=[self._zdims["zc"],self._zdims["zf"]])
+
+#############################################################################
+####### store/load #######################################
+
+    def store(self, file_path, projections=None, **kwargs):
+        """ Store Vmodes object along with projections into zarr archives
+        
+        Parameters
+        ----------
+        file_path: str
+            File path where data will be stored, e.g. '/home/roger/vmodes.zarr'
+        projections: xarray.Dataset
+            Dataset containing projections
+        **kwargs:
+            kwargs passed to `to_zarr`
+        """
+        ds = self._wrap_in_dataset()
+        _file = file_path
+        # undesired singleton time coordinates
+        ds = _move_singletons_as_attrs(ds)
+        #
+        ds.to_zarr(file_path, **kwargs)
+        print('Store vertical modes in {}'.format(file_path))
+        #
+        if projections:
+            _file = file_path.strip('.zarr')+'_projections.zarr'
+            ds = _move_singletons_as_attrs(projections)
+            ds.to_zarr(_file, **kwargs)
+            print('Store projections in {}'.format(_file))
+    
+    def _wrap_in_dataset(self):
+        """ wrap critical data in a xarray dataset
+        """
+        # we won't store xgrid as the intend is to store this in a zarr archive
+        # transfer attributes to ds
+        ds = self.ds.assign_attrs(**{a: getattr(self, a) for a in _core_attrs})
+        # znames
+        ds = ds.assign_attrs(zc_name=self._znames['zc'],
+                             zf_name=self._znames['zf'])    
+        return ds
+
+
+def load_vmodes(file_path, xgrid, persist=False):
+    """ load vertical modes from a file
+    
+    Parameters
+    ----------
+    file_path: str
+        Path to vmode datafile (zarr archive)
+    xgrid: xgcm.Grid object
+        Required for grid manipulations
+    """
+    ds = xr.open_zarr(file_path)
+    vm = Vmodes(xgrid,
+                ds[ds.zc_name], ds[ds.zf_name], 
+                ds['N2'], 
+                nmodes=ds.nmodes,
+                free_surf=ds.free_surf,
+                persist=persist,
+                grav=ds.g, sigma=ds.sigma)
+    # search for projections:
+    _pfile = file_path.strip('.zarr')+'_projections.zarr'
+    if os.path.isdir(_pfile):
+        ds_proj = xr.open_zarr(_pfile)
+        if persist:
+            ds_proj = ds_proj.persist()
+        return vm, ds_proj
+    else:
+        return vm
+
+def _move_singletons_as_attrs(ds):
+    """ change singleton variables and coords to attrs
+    This seems to be required for zarr archiving
+    """
+    for c in ds.coords:
+        if ds[c].size==1:
+            ds = ds.drop_vars(c).assign_attrs({c: ds[c].values})
+    for v in ds.data_vars:
+        if ds[v].size==1:
+            ds = ds.drop_vars(v).assign_attrs({v: ds[v].values})
+    return ds
 
 
 def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
