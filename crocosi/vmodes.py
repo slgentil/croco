@@ -16,16 +16,15 @@ _sig = .1
 _nmodes = 10
 _free_surf = True
 
-### N.B.: norm is H
-
 _core_attrs = ['nmodes', '_xgrid_z', 'g', 
                'free_surf', 'sigma']
 
-# This should be a class
 class Vmodes(object):
     """ Class for vertical modes computation and manipulation (projection and reconstruction)
-    The vertical modes 'phi' are defined following the standard Sturm-Liouville problem (e.g. Gill, 1982 or any standard GFD textbook), see below.
-    Those are referred as 'pressure-like' modes. Their vertical derivatives, named 'dphidz', are referred as 'w-like' modes.
+    The vertical modes 'phi' are defined following the standard Sturm-Liouville problem 
+    (e.g. Gill, 1982 or any standard GFD textbook), see below.
+    Those are referred as 'pressure-like' modes. 
+    Their vertical derivatives, named 'dphidz', are referred as 'w-like' modes.
 
     Parameters:
     ___________
@@ -82,10 +81,11 @@ class Vmodes(object):
     zc, zf, N2 should be ordered from bottom to top, and zf and N2 have the same z dimension
     The vertical modes are definied following the equation:
     .. math:: (\phi'/N^2)' + k^2\phi=0 
-    with boundary condition :math:`\phi'=0` at the bottom and :math:`g\phi' + N^2\phi=0` at the surface (or :math:`\phi'=0` for a rigid lid condition). 
+    with boundary conditions
+        :math:`\phi'=0` at the bottom
+        :math:`g\phi' + N^2\phi=0` at the surface (or :math:`\phi'=0` for a rigid lid condition). 
     Computation of the vertical modes is performed using second order finite difference
     The eigenvalue used in this class is c=1/k.
-
     """
     def __init__(self, xgrid, zc, zf, N2, 
                  nmodes=_nmodes,
@@ -117,7 +117,8 @@ class Vmodes(object):
             
         Notes:
         ______
-        zc, zf, N2 should be ordered from bottom to top, and zf and N2 have the same z dimension
+        zc, zf, N2 should be ordered from bottom to top, and zf and N2 have 
+        the same z dimension
         """
         self.xgrid = xgrid
         self.nmodes = nmodes
@@ -171,11 +172,8 @@ class Vmodes(object):
                         sigma=self.sigma, g=self.g, 
                         z_dims=[self._zdims['zc'], self._zdims['zf']])
         self.ds = xr.merge([self.ds, dm], compat="override")
-        pass
     
-#############################################################################
-####### projection and reconstruction #######################################
-    
+    # projections
     def project(self, data, vartype="p", **kwargs):
         """ Project a variable on vertical modes (p-modes or w-modes)
         Internally calls project_puv or project_w
@@ -333,6 +331,7 @@ class Vmodes(object):
                          ).isel({self._zdims['zf']:-1}).drop(self._znames["zf"])
         return -prov/dm.norm 
 
+    # reconstructions
     def reconstruct(self, projections, vartype=None, **kwargs):
         """ Reconstruct a variable from modal amplitudes
         Internally call reconstruct_puv or reconstruct w or reconstruct_b
@@ -419,8 +418,8 @@ class Vmodes(object):
         if align:
             projections, dm = xr.align(projections, dm, join="inner")    
         return (-dm.c**2 * dm.dphidz * projections).sum("mode")
-    ### utilitaries 
     
+    # utilitaries 
     def _w2rho(self, data, zf=None, zc=None, align=True):
         """ routine to interpolate fields from mean rho point to mean w point
         adapt to different ensemble of points if specified
@@ -439,9 +438,7 @@ class Vmodes(object):
                 zc = self["zc"]
         return gop.w2rho(data, self.xgrid, zc, zf, s_dims=[self._zdims["zc"],self._zdims["zf"]])
 
-#############################################################################
-####### store/load #######################################
-
+    # store/load 
     def store(self, file_path, projections=None, **kwargs):
         """ Store Vmodes object along with projections into zarr archives
         
@@ -472,9 +469,10 @@ class Vmodes(object):
         """ wrap critical data in a xarray dataset
         """
         # we won't store xgrid as the intend is to store this in a zarr archive
-        # transfer attributes to ds
+        #
+        # One should try to figure out whether minimal information can be extracted
+        # from the xgrid object and store as attribute to the xarray dataset
         ds = self.ds.assign_attrs(**{a: getattr(self, a) for a in _core_attrs})
-        # znames
         ds = ds.assign_attrs(zc_name=self._znames['zc'],
                              zf_name=self._znames['zf'])    
         return ds
@@ -643,7 +641,9 @@ def compute_vmodes(zc_nd, zf_nd, N2f_nd,
     you can use this if you are using numpy (but make sure z is last dim)
     The vertical modes are definied following the equation:
     .. math:: (\phi'/N^2)' + k^2\phi=0 
-    with boundary condition :math:`\phi'=0` at the bottom and :math:`g\phi' + N^2\phi=0` at the surface (or :math:`\phi'=0` for a rigid lid condition). 
+    with boundary conditions:
+        :math:`\phi'=0` at the bottom
+        :math:`g\phi' + N^2\phi=0` at the surface (or :math:`\phi'=0` for a rigid lid condition). 
     Computation of the vertical modes is performed using second order finite difference
     """
     assert zc_nd.ndim==zf_nd.ndim==N2f_nd.ndim
