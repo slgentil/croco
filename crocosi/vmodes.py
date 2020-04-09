@@ -16,6 +16,9 @@ _sig = .1
 _nmodes = 10
 _free_surf = True
 
+# core attribute and variables
+_core_variables = ['phi', 'dphidz', 
+                   'c', 'norm']
 _core_attrs = ['nmodes', '_xgrid_z', 'g', 
                'free_surf', 'sigma']
 
@@ -183,9 +186,12 @@ class Vmodes(object):
         data: xarray.DataArray
             array containing the data to be projected. 
         vartype: str, optional (default: "p", i.e. pressure modes)
-            string specifying whether projection should be done w-modes ("w"), buoyancy modes ("b") or pressure modes (any other value)
+            string specifying whether projection should be done w-modes ("w"), 
+            buoyancy modes ("b") or pressure modes (any other value)
         z: xarray.DataArray or str or bool, optional (default: False)
-            array containing the z-grid of the data, or string containing the name of the z coord, or boolean saying wether we should interpolate (finding the z-coord by its own). The data will be interpolated onto the vmodes grid points prior to projection.
+            array containing the z-grid of the data, or string containing the name of the z coord, 
+            or boolean saying wether we should interpolate (finding the z-coord by its own). 
+            The data will be interpolated onto the vmodes grid points prior to projection.
         sel: Dict, optional (default: None)
             indices applied to the vmodes dataset prior to projection
         align: bool, optional (default: True)
@@ -496,13 +502,22 @@ def load_vmodes(file_path, xgrid, persist=False):
                 free_surf=ds.free_surf,
                 persist=persist,
                 grav=ds.g, sigma=ds.sigma)
+    # transfer mode from ds to vm
+    for v in _core_variables:
+        if v in ds:
+            vm.ds[v] = ds[v]
+        elif v in ds.attrs:
+            # singleton cases (norm)
+            vm.ds[v] = ds.attrs[v]
+    if persist:
+        vm.ds = vm.ds.persist()
     # search for projections:
     _pfile = file_path.strip('.zarr')+'_projections.zarr'
     if os.path.isdir(_pfile):
-        ds_proj = xr.open_zarr(_pfile)
+        projections = xr.open_zarr(_pfile)
         if persist:
-            ds_proj = ds_proj.persist()
-        return vm, ds_proj
+            ds_proj = projections.persist()
+        return vm, projections
     else:
         return vm
 
@@ -589,10 +604,10 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
             #  .assign_coords(z_w=zf)
              )
     # merge data into a single dataset
-    other_dims = tuple([dim for dim in zc.dims if dim!=s_rho]) # extra dims    
-    dm = (xr.merge([c, phi, dphidz, -zf.isel({s_w:0}, drop=True).rename('norm')])
+    other_dims = tuple([dim for dim in zc.dims if dim!=s_rho]) # extra dims
+    norm = -zf.isel({s_w:0}, drop=True).rename('norm')
+    dm = (xr.merge([c, phi, dphidz, norm])
           .transpose(*('mode',s_rho,s_w)+other_dims)
-          #.assign_coords(norm=-zf.isel(s_w=0, drop=True)) #, N2=N2
          )
     return dm  ### hard-coded norm = H
 
