@@ -2,6 +2,7 @@
 Defines class Vmodes and routines for computing vertical modes given a stratification profile
 the corresponding Sturm-Liouville problem is (phi'/N2)' + lam^2 phi = 0, with proper BCs. 
 """
+import os
 import scipy.sparse as sp
 import scipy.sparse.linalg as la
 import numpy as np
@@ -15,13 +16,18 @@ _sig = .1
 _nmodes = 10
 _free_surf = True
 
-### N.B.: norm is H
+# core attribute and variables
+_core_variables = ['phi', 'dphidz', 
+                   'c', 'norm']
+_core_attrs = ['nmodes', '_xgrid_z', 'g', 
+               'free_surf', 'sigma']
 
-# This should be a class
 class Vmodes(object):
     """ Class for vertical modes computation and manipulation (projection and reconstruction)
-    The vertical modes 'phi' are defined following the standard Sturm-Liouville problem (e.g. Gill, 1982 or any standard GFD textbook), see below.
-    Those are referred as 'pressure-like' modes. Their vertical derivatives, named 'dphidz', are referred as 'w-like' modes.
+    The vertical modes 'phi' are defined following the standard Sturm-Liouville problem 
+    (e.g. Gill, 1982 or any standard GFD textbook), see below.
+    Those are referred as 'pressure-like' modes. 
+    Their vertical derivatives, named 'dphidz', are referred as 'w-like' modes.
 
     Parameters:
     ___________
@@ -78,10 +84,11 @@ class Vmodes(object):
     zc, zf, N2 should be ordered from bottom to top, and zf and N2 have the same z dimension
     The vertical modes are definied following the equation:
     .. math:: (\phi'/N^2)' + k^2\phi=0 
-    with boundary condition :math:`\phi'=0` at the bottom and :math:`g\phi' + N^2\phi=0` at the surface (or :math:`\phi'=0` for a rigid lid condition). 
+    with boundary conditions
+        :math:`\phi'=0` at the bottom
+        :math:`g\phi' + N^2\phi=0` at the surface (or :math:`\phi'=0` for a rigid lid condition). 
     Computation of the vertical modes is performed using second order finite difference
     The eigenvalue used in this class is c=1/k.
-
     """
     def __init__(self, xgrid, zc, zf, N2, 
                  nmodes=_nmodes,
@@ -113,7 +120,8 @@ class Vmodes(object):
             
         Notes:
         ______
-        zc, zf, N2 should be ordered from bottom to top, and zf and N2 have the same z dimension
+        zc, zf, N2 should be ordered from bottom to top, and zf and N2 have 
+        the same z dimension
         """
         self.xgrid = xgrid
         self.nmodes = nmodes
@@ -167,11 +175,8 @@ class Vmodes(object):
                         sigma=self.sigma, g=self.g, 
                         z_dims=[self._zdims['zc'], self._zdims['zf']])
         self.ds = xr.merge([self.ds, dm], compat="override")
-        pass
     
-#############################################################################
-####### projection and reconstruction #######################################
-    
+    # projections
     def project(self, data, vartype="p", **kwargs):
         """ Project a variable on vertical modes (p-modes or w-modes)
         Internally calls project_puv or project_w
@@ -181,9 +186,12 @@ class Vmodes(object):
         data: xarray.DataArray
             array containing the data to be projected. 
         vartype: str, optional (default: "p", i.e. pressure modes)
-            string specifying whether projection should be done w-modes ("w"), buoyancy modes ("b") or pressure modes (any other value)
+            string specifying whether projection should be done w-modes ("w"), 
+            buoyancy modes ("b") or pressure modes (any other value)
         z: xarray.DataArray or str or bool, optional (default: False)
-            array containing the z-grid of the data, or string containing the name of the z coord, or boolean saying wether we should interpolate (finding the z-coord by its own). The data will be interpolated onto the vmodes grid points prior to projection.
+            array containing the z-grid of the data, or string containing the name of the z coord, 
+            or boolean saying wether we should interpolate (finding the z-coord by its own). 
+            The data will be interpolated onto the vmodes grid points prior to projection.
         sel: Dict, optional (default: None)
             indices applied to the vmodes dataset prior to projection
         align: bool, optional (default: True)
@@ -329,6 +337,7 @@ class Vmodes(object):
                          ).isel({self._zdims['zf']:-1}).drop(self._znames["zf"])
         return -prov/dm.norm 
 
+    # reconstructions
     def reconstruct(self, projections, vartype=None, **kwargs):
         """ Reconstruct a variable from modal amplitudes
         Internally call reconstruct_puv or reconstruct w or reconstruct_b
@@ -415,13 +424,13 @@ class Vmodes(object):
         if align:
             projections, dm = xr.align(projections, dm, join="inner")    
         return (-dm.c**2 * dm.dphidz * projections).sum("mode")
-    ### utilitaries 
     
+    # utilitaries 
     def _w2rho(self, data, zf=None, zc=None, align=True):
         """ routine to interpolate fields from mean rho point to mean w point
         adapt to different ensemble of points if specified
         wrapper to gop.w2rho
-        could be replaced by xgrid.interp one correct metrics are provided
+        could be replaced by xgrid.interp once correct metrics are provided
         """
         if zf is None:
             if align:
@@ -434,6 +443,95 @@ class Vmodes(object):
             else:
                 zc = self["zc"]
         return gop.w2rho(data, self.xgrid, zc, zf, s_dims=[self._zdims["zc"],self._zdims["zf"]])
+
+    # store/load 
+    def store(self, file_path, projections=None, **kwargs):
+        """ Store Vmodes object along with projections into zarr archives
+        
+        Parameters
+        ----------
+        file_path: str
+            File path where data will be stored, e.g. '/home/roger/vmodes.zarr'
+        projections: xarray.Dataset
+            Dataset containing projections
+        **kwargs:
+            kwargs passed to `to_zarr`
+        """
+        ds = self._wrap_in_dataset()
+        _file = file_path
+        # undesired singleton time coordinates
+        ds = _move_singletons_as_attrs(ds)
+        #
+        ds.to_zarr(file_path, **kwargs)
+        print('Store vertical modes in {}'.format(file_path))
+        #
+        if projections:
+            _file = file_path.strip('.zarr')+'_projections.zarr'
+            ds = _move_singletons_as_attrs(projections)
+            ds.to_zarr(_file, **kwargs)
+            print('Store projections in {}'.format(_file))
+    
+    def _wrap_in_dataset(self):
+        """ wrap critical data in a xarray dataset
+        """
+        # we won't store xgrid as the intend is to store this in a zarr archive
+        #
+        # One should try to figure out whether minimal information can be extracted
+        # from the xgrid object and store as attribute to the xarray dataset
+        ds = self.ds.assign_attrs(**{a: getattr(self, a) for a in _core_attrs})
+        ds = ds.assign_attrs(zc_name=self._znames['zc'],
+                             zf_name=self._znames['zf'])    
+        return ds
+
+
+def load_vmodes(file_path, xgrid, persist=False):
+    """ load vertical modes from a file
+    
+    Parameters
+    ----------
+    file_path: str
+        Path to vmode datafile (zarr archive)
+    xgrid: xgcm.Grid object
+        Required for grid manipulations
+    """
+    ds = xr.open_zarr(file_path)
+    vm = Vmodes(xgrid,
+                ds[ds.zc_name], ds[ds.zf_name], 
+                ds['N2'], 
+                nmodes=ds.nmodes,
+                free_surf=ds.free_surf,
+                persist=persist,
+                grav=ds.g, sigma=ds.sigma)
+    # transfer mode from ds to vm
+    for v in _core_variables:
+        if v in ds:
+            vm.ds[v] = ds[v]
+        elif v in ds.attrs:
+            # singleton cases (norm)
+            vm.ds[v] = ds.attrs[v]
+    if persist:
+        vm.ds = vm.ds.persist()
+    # search for projections:
+    _pfile = file_path.strip('.zarr')+'_projections.zarr'
+    if os.path.isdir(_pfile):
+        projections = xr.open_zarr(_pfile)
+        if persist:
+            ds_proj = projections.persist()
+        return vm, projections
+    else:
+        return vm
+
+def _move_singletons_as_attrs(ds):
+    """ change singleton variables and coords to attrs
+    This seems to be required for zarr archiving
+    """
+    for c in ds.coords:
+        if ds[c].size==1:
+            ds = ds.drop_vars(c).assign_attrs({c: ds[c].values})
+    for v in ds.data_vars:
+        if ds[v].size==1:
+            ds = ds.drop_vars(v).assign_attrs({v: ds[v].values})
+    return ds
 
 
 def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
@@ -506,10 +604,10 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
             #  .assign_coords(z_w=zf)
              )
     # merge data into a single dataset
-    other_dims = tuple([dim for dim in zc.dims if dim!=s_rho]) # extra dims    
-    dm = (xr.merge([c, phi, dphidz, -zf.isel({s_w:0}, drop=True).rename('norm')])
+    other_dims = tuple([dim for dim in zc.dims if dim!=s_rho]) # extra dims
+    norm = -zf.isel({s_w:0}, drop=True).rename('norm')
+    dm = (xr.merge([c, phi, dphidz, norm])
           .transpose(*('mode',s_rho,s_w)+other_dims)
-          #.assign_coords(norm=-zf.isel(s_w=0, drop=True)) #, N2=N2
          )
     return dm  ### hard-coded norm = H
 
@@ -558,7 +656,9 @@ def compute_vmodes(zc_nd, zf_nd, N2f_nd,
     you can use this if you are using numpy (but make sure z is last dim)
     The vertical modes are definied following the equation:
     .. math:: (\phi'/N^2)' + k^2\phi=0 
-    with boundary condition :math:`\phi'=0` at the bottom and :math:`g\phi' + N^2\phi=0` at the surface (or :math:`\phi'=0` for a rigid lid condition). 
+    with boundary conditions:
+        :math:`\phi'=0` at the bottom
+        :math:`g\phi' + N^2\phi=0` at the surface (or :math:`\phi'=0` for a rigid lid condition). 
     Computation of the vertical modes is performed using second order finite difference
     """
     assert zc_nd.ndim==zf_nd.ndim==N2f_nd.ndim
