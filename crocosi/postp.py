@@ -26,19 +26,39 @@ class Run(object):
     Class Run contains several xarray classes for each netCDF file type
     (ave, his, etc.), a grid object, and online output diagnostics (e.g. energy, ...).
     """
-    def __init__(self, dirname, prefix='', open_nc=[],
-                 tdir_max=0, 
-                 grid_params={}, chunk_time=1, 
+    def __init__(self,
+                 dirname, prefix='',
+                 open_nc=[],
+                 tdir_max=0,
+                 grid_params={},
                  grid_periodicity=False, 
+                 chunk_time=1,
                  verbose=False):
-        """
-        Constructor; we inspect a run directory and assemble scDataset
-                     classes for ave, his, etc., construct a CGrid class, and
-                     read the energy diagnostics from output.mpi
-        Parameters: dirname - directory to search for model output
-                    verbose - if True, prints diagnostics as it works
-                    open_nc - a list of nc files to open in addition to 'grid',
-                              which may be an empty list.
+        """ Run object that gathers output and grid information
+
+        Parameters
+        ----------
+        dirname: str
+            Path to base directory where model output lies
+        prefix: str, optional
+            Prefix to all netcdf output files (e.g. 'file_')
+        open_nc: list, optional
+            List of outputs to load, file names should look like: 
+            [prefix+nc+'*.nc' for nc in open_nc]
+            Default is to load no outputs, i.e. open_nc is empty
+        tdir_max: int, optional
+            Maximum run iteration loaded, default is 0
+        grid_params: dict, optional
+            Relevant grid parameters: y0, beta, yr_beta
+        grid_periodicity: boolean, list, optional
+            Passed to xgcm:
+            Whether the grid is periodic (i.e. "wrap-around"). If a list is
+            specified (e.g. ``['xi', 'eta']``), the axis names in the list will be
+            be periodic and any other axes founds will be assumed non-periodic.
+        chunk_time: int, optional
+            Time chunk size, default is 1.
+        verbose: boolean, optional
+            Prints information if true. False by default
         """
         self.dirname = os.path.expanduser(dirname)
         self.verbose = verbose
@@ -549,6 +569,7 @@ class Run(object):
     
     # vertical grid
     def get_z(self, *args, **kwargs):
+        # should add mechanism to automatically load h from grid
         return gop.get_z(self, *args, **kwargs)
     
     # buoyancy frequency
