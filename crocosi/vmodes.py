@@ -190,12 +190,12 @@ class Vmodes(object):
             buoyancy modes ("b") or pressure modes (any other value)
         z: xarray.DataArray or str or bool, optional (default: False)
             array containing the z-grid of the data, or string containing the name of the z coord, 
-            or boolean saying wether we should interpolate (finding the z-coord by its own). 
+            or boolean saying whether we should interpolate (finding the z-coord by its own). 
             The data will be interpolated onto the vmodes grid points prior to projection.
         sel: Dict, optional (default: None)
             indices applied to the vmodes dataset prior to projection
         align: bool, optional (default: True)
-            wether alignment between the data and vmodes DataArray should be performed before projecting
+            whether alignment between the data and vmodes DataArray should be performed before projecting
         
         Returns
         _______
