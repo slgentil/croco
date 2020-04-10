@@ -45,9 +45,9 @@ def x2v(v, grid):
     """
     dims = _get_spatial_dims(v)
     vout = v.copy()
-    if dims['x'] == 'x_rho':
+    if dims['x'] == 'x_u':
         vout = grid.interp(vout, 'xi')
-    if dims['y'] == 'y_v':
+    if dims['y'] == 'y_rho':
         vout = grid.interp(vout, 'eta')
     return vout
 
