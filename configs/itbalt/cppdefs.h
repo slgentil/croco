@@ -52,6 +52,7 @@
 */
 ! to tag OSI parameter in output.mpi file
 # define OSI 'OSI: '
+
 ! resolution (dx in km)
 # define RESOLUTION 4
 ! narrow channel for internal tide test case
@@ -70,8 +71,8 @@
 # endif
 
 # undef  FLOATS
-# undef  SIGMA_FLOATS
-# undef  DEPTH_FLOATS
+# undef  SIGMA_FLOATS  /* float stays at fixed sigma levels */
+# undef  DEPTH_FLOATS  /* float stays at fixed depth levels */
 # undef  FLOAT_DEBUG
 
 ! old but necessary options

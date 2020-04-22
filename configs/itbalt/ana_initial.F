@@ -625,20 +625,19 @@ C$    integer omp_get_thread_num
 !       nmode_itide = 2
 !      start_time_itide = 0.0D0
 
-
 ! new formulation
 !       lf = f(Istr+1,Jstr+1)
 !       ll = sqrt(omega_itide**2-lf**2)/c_vmodes(nmode_itide)
-       Arc_itide = 0.0D+0
-       Ars_itide = 0.0D+0
-       Auc_itide = 0.0D+0
-       Aus_itide = 0.0D+0
+!       Arc_itide = 0.0D+0
+!       Ars_itide = 0.0D+0
+!       Auc_itide = 0.0D+0
+!       Aus_itide = 0.0D+0
 ! scaling follows reponse to a dirac
 ! should use speeds that include rotation
 ! should produce a 1 cm tidal sea level amplitude for mode 1
-       Avc_itide = Az_itide/dely_itide
-     &       *c_vmodes(nmode_itide)**2/c_vmodes(2)
-     &       *2.27D+0
+!       Avc_itide = Az_itide/dely_itide
+!     &       *c_vmodes(nmode_itide)**2/c_vmodes(2)
+!     &       *2.27D+0
 
 # ifdef ITIDEP
 ! alternative: mulitple amplitudes can be generated
@@ -652,48 +651,34 @@ C$    integer omp_get_thread_num
        dAtide_cos_mode(nmode) = 0.0
        dAtide_sin_mode(nmode) = 0.0
 ! first baroclinic mode
-       nmode = 2
-       Atide_cos_mode(nmode) = Az_itide/dely_itide
-     &       *c_vmodes(nmode)**2/c_vmodes(2)
-     &       *2.27D+0
-       Atide_sin_mode(nmode) = 0.0
-       dAtide_cos_mode(nmode) = 0.0
-       dAtide_sin_mode(nmode) = 0.0
-!       MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)') 
-!     &    'Truth Atide_cos_mode(',nmode,') = ',
-!     &    Atide_cos_mode(nmode)
-!       MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-!     &    'Truth Atide_sin_mode(',nmode,') = ',
-!     &    Atide_sin_mode(nmode)
-! higher modes
-       do nmode=3,10
-        Atide_cos_mode(nmode) = 0.0 
+!       nmode = 2
+!       Atide_cos_mode(nmode) = Az_itide/dely_itide
+!     &       *c_vmodes(nmode)**2/c_vmodes(2)
+!     &       *2.27D+0
+!       Atide_sin_mode(nmode) = 0.0
+!       dAtide_cos_mode(nmode) = 0.0
+!       dAtide_sin_mode(nmode) = 0.0
+! baroclinic modes
+       do nmode=2,10
+        if ( nmode .eq. nmode_itide ) then
+          Atide_cos_mode(nmode) = Az_itide/dely_itide
+     &           *c_vmodes(nmode)**2/c_vmodes(2)
+     &           *2.27D+0
+        endif
         Atide_sin_mode(nmode) = 0.0
         dAtide_cos_mode(nmode) = 0.0
         dAtide_sin_mode(nmode) = 0.0
-!        MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-!     &    'Truth Atide_cos_mode(',nmode,') = ',
-!     &    Atide_cos_mode(nmode)
-!        MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-!     &    'Truth Atide_sin_mode(',nmode,') = ',
-!     &    Atide_sin_mode(nmode)
        enddo
        call params_output('itideptb_truth_Acos_mode', Atide_cos_mode)
        call params_output('itideptb_truth_Asin_mode', Atide_sin_mode)
 !!
 !! first guess
 !!
-       if ( flag_ptb .ge. 1 ) then
+       if ( flag_ptb .eq. 1 ) then
 ! first guess is 0 for now
         do nmode=1,10
          Atide_cos_mode(nmode) = 0.0 
          Atide_sin_mode(nmode) = 0.0 
-!         MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-!     &    'First guess Atide_cos_mode(',nmode,') = ',
-!     &    Atide_cos_mode(nmode)
-!         MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-!     &    'First guess Atide_sin_mode(',nmode,') = ',
-!     &    Atide_sin_mode(nmode)
         enddo
         call params_output('itideptb_fguess_Acos_mode', Atide_cos_mode)
         call params_output('itideptb_fguess_Asin_mode', Atide_sin_mode)        
@@ -701,31 +686,29 @@ C$    integer omp_get_thread_num
 !!
 !! perturbation on first guess
 !! 
-       if ( flag_ptb .ge. 2 ) then
-!       nmode_ptb=4
-!        MPI_master_only write(*,*) 'nmode_ptb = ', nmode_ptb
-!        MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-!     &    'Pertubation dcos(',nmode_ptb,') = ', dcos_ptb
-!         MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-!     &    'Perturbation dsin_ptb(',nmode_ptb,') = ', dsin_ptb
-!        Atide_cos_mode(nmode_ptb) = Atide_cos_mode(nmode_ptb) + dcos_ptb
-!        Atide_sin_mode(nmode_ptb) = Atide_sin_mode(nmode_ptb) + dsin_ptb
-!        MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-!     &    'Atide_cos_mode(',nmode_ptb,') = ', Atide_cos_mode(nmode_ptb)
-!         MPI_master_only write( stdout,'(3x,A,I2,A,1PE15.8)')
-!     &    'Atide_sin_mode(',nmode_ptb,') = ', Atide_sin_mode(nmode_ptb)
-        call params_output('itideptb_nmode', nmode_ptb)
-        call params_output('itideptb_dcos', dcos_ptb)
-        call params_output('itideptb_dsin', dsin_ptb)
-        call params_output('itideptb_full_Acos_mode', Atide_cos_mode)
-        call params_output('itideptb_full_Asin_mode', Atide_sin_mode)        
+       if ( flag_ptb .eq. 2 ) then
+!         Atide_cos_mode(nmode_ptb) = Atide_cos_mode(nmode_ptb) + dcos_ptb
+!         Atide_sin_mode(nmode_ptb) = Atide_sin_mode(nmode_ptb) + dsin_ptb
+         Atide_cos_mode(nmode_ptb) = dcos_ptb
+         Atide_sin_mode(nmode_ptb) = dsin_ptb
+         call params_output('itideptb_normalized', 0.0)
+       elseif ( flag_ptb .eq. 3 ) then
+         Atide_cos_mode(nmode_ptb) = Atide_cos_mode(nmode_ptb) * dcos_ptb
+         Atide_sin_mode(nmode_ptb) = Atide_sin_mode(nmode_ptb) * dsin_ptb
+         call params_output('itideptb_normalized', 1.0)
        endif
+       call params_output('itideptb_nmode', nmode_ptb)
+       call params_output('itideptb_dcos', dcos_ptb)
+       call params_output('itideptb_dsin', dsin_ptb)
+       call params_output('itideptb_full_Acos_mode', Atide_cos_mode)
+       call params_output('itideptb_full_Asin_mode', Atide_sin_mode)
+       
 ! ....
 # endif /* ITIDEP */
 
-       Avs_itide = 0.0D+0
-       Azc_itide = 0.0D+0
-       Azs_itide = 0.0D+0
+!       Avs_itide = 0.0D+0
+!       Azc_itide = 0.0D+0
+!       Azs_itide = 0.0D+0
 !       Arc_itide = 6.5372914D0
 !       Ars_itide = 0.0D0
 !       Auc_itide = 0.0D0
@@ -780,29 +763,29 @@ C$    integer omp_get_thread_num
 !% real( A*exp(k*x+l*y-omega*t) ) = 
 !%   Ar*cos()-Ai*sin()
 
-       if ( .not. flag_itide ) then
-        Arc_itide = 0.0D0
-        Ars_itide = 0.0D0
-        Auc_itide = 0.0D0
-        Aus_itide = 0.0D0
-        Avc_itide = 0.0D0
-        Avs_itide = 0.0D0
-        Azc_itide = 0.0D0
-        Azs_itide = 0.0D0
-        Awc_itide = 0.0D0
-        Aws_itide = 0.0D0
-       endif
-       
-       call params_output('itide_Ar_cos', Arc_itide)
-       call params_output('itide_Ar_sin', Ars_itide)       
-       call params_output('itide_Au_cos', Auc_itide)
-       call params_output('itide_Au_sin', Aus_itide)       
-       call params_output('itide_Av_cos', Avc_itide)
-       call params_output('itide_Av_sin', Avs_itide)       
-       call params_output('itide_Az_cos', Azc_itide)
-       call params_output('itide_Az_sin', Azs_itide)       
-       call params_output('itide_Aw_cos', Awc_itide)
-       call params_output('itide_Aw_sin', Aws_itide)
+!       if ( .not. flag_itide ) then
+!        Arc_itide = 0.0D0
+!        Ars_itide = 0.0D0
+!        Auc_itide = 0.0D0
+!        Aus_itide = 0.0D0
+!        Avc_itide = 0.0D0
+!        Avs_itide = 0.0D0
+!        Azc_itide = 0.0D0
+!        Azs_itide = 0.0D0
+!        Awc_itide = 0.0D0
+!        Aws_itide = 0.0D0
+!       endif
+!       
+!       call params_output('itide_Ar_cos', Arc_itide)
+!       call params_output('itide_Ar_sin', Ars_itide)       
+!       call params_output('itide_Au_cos', Auc_itide)
+!       call params_output('itide_Au_sin', Aus_itide)       
+!       call params_output('itide_Av_cos', Avc_itide)
+!       call params_output('itide_Av_sin', Avs_itide)       
+!       call params_output('itide_Az_cos', Azc_itide)
+!       call params_output('itide_Az_sin', Azs_itide)       
+!       call params_output('itide_Aw_cos', Awc_itide)
+!       call params_output('itide_Aw_sin', Aws_itide)
 
 #    endif
 ! aponte jetn )

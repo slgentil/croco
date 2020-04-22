@@ -1,8 +1,7 @@
 #include "cppdefs.h"
 !
 ! aponte jet (
-#if defined JETN  || defined JETR
-# if defined ITIDE
+#if defined VMODES
 ! aponte vmodes (
 ! start with a wrapper 
       subroutine vmodes(Istr,Iend,Jstr,Jend)
@@ -136,11 +135,30 @@
 !       write(*,*) 'phiw ', phiw(:,2)
 !      endif
 
+      if (mynode==0) then
+        call var2cdf(zr_vmodes,size(shape(zr_vmodes)), 
+     &                 shape(zr_vmodes),'vmodes_zr.nc')
+        call var2cdf(zw_vmodes,size(shape(zw_vmodes)), 
+     &                 shape(zw_vmodes),'vmodes_zw.nc')
+        call var2cdf(c_vmodes,size(shape(c_vmodes)), 
+     &                 shape(c_vmodes),'vmodes_c.nc')
+        call var2cdf(phiuv,size(shape(phiuv)), 
+     &                 shape(phiuv),'vmodes_phiuv.nc')
+        call var2cdf(phir,size(shape(phir)), 
+     &                 shape(phir),'vmodes_phir.nc')
+        call var2cdf(phiw,size(shape(phiw)), 
+     &                 shape(phiw),'vmodes_phiw.nc')
+        call var2cdf(N2_vmodes,size(shape(N2_vmodes)), 
+     &                 shape(N2_vmodes),'vmodes_N2.nc')
+        call var2cdf(T0_vmodes,size(shape(T0_vmodes)), 
+     &                 shape(T0_vmodes),'vmodes_T0.nc')
+       endif
+       
 ! write c and modes to ascii file
        if (.false.) then
           write (filename, "(A7,I0.3)") "vmodes.", mynode
           open(unit=12, file= trim(filename), action="write") 
-   
+
           write(12,'(1X,e16.8)',advance='no') 0.0
           write(rowfmt,'(A,I4,A)') '(', N,'(1X,e16.8))'
           write(12,rowfmt,advance='no') (T0_vmodes(k), k=1,N)
@@ -422,6 +440,5 @@
 
       end subroutine vmodes_core
 ! aponte vmodes )
-#  endif
-# endif
+# endif /* VMODES */
 ! aponte jet )
