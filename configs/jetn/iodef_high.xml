@@ -74,7 +74,7 @@
           </field_group>
       </file>
 
-      <file id="file_st1" name="sta1" output_freq="600s" sync_freq="1d" split_freq="50d"  enabled=".FALSE.">
+      <file id="file_st1" name="sta1" output_freq="600s" sync_freq="1d" split_freq="50d"  enabled=".TRUE.">
           <field_group id="st1_fields" operation="instant" >
             <field field_ref="temp" name="T_station1" grid_ref="sta1_rho" />
             <field field_ref="u" name="u_station1" grid_ref="sta1_u" />
@@ -83,7 +83,7 @@
           </field_group>
       </file>
 
-      <file id="file_st2" name="sta2" output_freq="600s" sync_freq="1d" split_freq="50d"  enabled=".FALSE.">
+      <file id="file_st2" name="sta2" output_freq="600s" sync_freq="1d" split_freq="50d"  enabled=".TRUE.">
           <field_group id="st2_fields" operation="instant" >
             <field field_ref="temp" name="T_station2" grid_ref="sta2_rho" />
             <field field_ref="u" name="u_station2" grid_ref="sta2_u" />
@@ -118,7 +118,7 @@
           </field_group>
       </file>
 
-      <file id="file_surf" name="surf" output_freq="1d" sync_freq="1d" split_freq="50d"   enabled=".TRUE.">
+      <file id="file_surf" name="surf" output_freq="600s" sync_freq="1d" split_freq="50d"   enabled=".TRUE.">
           <field_group id="surf_fields" operation="instant" >
             <field field_ref="zeta" name="ssh" grid_ref="rho_2D" />
             <field field_ref="temp" name="T" grid_ref="rho_3Dxy" />
@@ -128,7 +128,7 @@
           </field_group>
       </file>
 
-      <file id="file_swath" name="swath" output_freq="0.5h" sync_freq="1d" split_freq="10d" enabled=".FALSE.">
+      <file id="file_swath" name="swath" output_freq="0.5h" sync_freq="1d" split_freq="10d" enabled=".TRUE.">
           <field_group id="swath_fields" operation="instant" >
             <field field_ref="zeta" name="ssh_swath" grid_ref="rho_2Dswath" />
             <field field_ref="u" name="u_swath" grid_ref="u_3Dswath" />
@@ -137,13 +137,6 @@
             <field field_ref="omega" name="omega_swath" grid_ref="w_3Dswath" />
             <field field_ref="temp" name="t_swath" grid_ref="rho_3Dswath" />
             <field field_ref="P" name="P_swath" grid_ref="rho_3Dswath" />
-          </field_group>
-      </file>
-
-      <file id="file_fst" name="fst" output_freq="1d" sync_freq="1d" enabled=".FALSE.">
-          <field_group id="fst_fields" operation="instant" >
-            <field field_ref="Ffst" name="Ffst" grid_ref="rho_3D" />
-            <field field_ref="Wfst" name="Wfst"  />
           </field_group>
       </file>
 

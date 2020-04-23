@@ -70,13 +70,13 @@ diagspec:       navgspec nwrtspec spec_nlev /filename /levels
                 2 4 6 8 16
 
 itide:  flag_itide   omega_itide   nmode_itide   Az_itide  y_itide    start_time_itide 
-            T      1.45444104333e-4     2         2.0e-2   400.0e+3      1500
+            T      1.45444104333e-4     2         2.0e-2   400.0e+3       500
 
 itidep: flag_ptb   dcos_ptb   dsin_ptb   nmode_ptb    scale_ptb
             0       -1.0e-6     0.0e-6       2           1.0e0
 
 jet: flag_jet   flag_jet_perturb  jet_ywidth  jet_weight jet_decay_start
-       T              T            800.0e+3      0.75      4000
+       T              T            800.0e+3      0.75        500
 
 tidal_diag: omega_tdiag
             1.45444104333e-4 

@@ -151,6 +151,14 @@
 # endif
         enddo
       enddo
+
+! Flag that kills all sponges but not the zonal relaxation (0=no sponges)
+        cff_kill_sponges=1.0
+# ifdef JET_EDDY
+        cff_kill_sponges=0.0
+# endif
+        MPI_master_only  write(*,*) 'cff_kill_sponges = ', cff_kill_sponges
+
 !
 !-------------------------------------------------------------------
 ! Compute nudging coefficients in nudging layers
@@ -221,13 +229,6 @@
         endif
 
 #else /* Y_STRETCH_RELAX */
-
-! Flag that kills all sponges but not the zonal relaxation (0=no sponges)
-        cff_kill_sponges=1.0
-# ifdef JET_EDDY
-        cff_kill_sponges=0.0
-# endif
-        if (mynode==0)  write(*,*) 'cff_kill_sponges = ', cff_kill_sponges
 
         if ( rl_flag_south ) then
 
