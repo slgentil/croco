@@ -506,16 +506,20 @@ class Run(object):
             success=False
             if file_format is None or file_format.lower() in ['zarr', '.zarr']:
                 _file = os.path.join(_dir, name+'.zarr')
-                if _check_file_overwrite(_file, overwrite):
-                    data.to_zarr(_file, **kwargs)
-                    success=True
+                write_kwargs = dict(kwargs)
+                if overwrite:
+                    write_kwargs.update({'mode': 'w'})
+                data.to_zarr(_file, **write_kwargs)
+                success=True
             elif file_format.lower() in ['nc', 'netcdf']:
                 _file = os.path.join(_dir, name+'.nc')
-                if _check_file_overwrite(_file, overwrite):
-                    data.to_netcdf(_file, **kwargs)
-                    success=True
-        if success:
-            print('data stored in {}'.format(_dir))
+                write_kwargs = dict(kwargs)
+                if overwrite:
+                    write_kwargs.update({'mode': 'w'})
+                data.to_netcdf(_file, **write_kwargs)
+                success=True
+            if success:
+                print('data stored in {}'.format(_file))
 
     def load_diagnostic(self, name, 
                         directory='diagnostics/', 

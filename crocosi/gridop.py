@@ -183,7 +183,7 @@ def get_z(run, zeta=None, h=None, vgrid='r',
     sdims = list(_get_spatial_dims(z).values())
     sdims = tuple(filter(None,sdims)) # delete None values
     reordered_dims = tuple(d for d in z.dims if d not in sdims) + sdims
-    z = z.transpose(*reordered_dims)
+    z = z.transpose(*reordered_dims, transpose_coords=True)
     
     return z.rename('z_'+vgrid)
 
