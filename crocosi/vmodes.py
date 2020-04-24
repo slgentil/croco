@@ -9,7 +9,7 @@ import numpy as np
 import xarray as xr
 
 from . import gridop as gop
-from .postp import g_default
+from .postp import grav
 
 # default values
 _sig = .1
@@ -94,7 +94,7 @@ class Vmodes(object):
                  nmodes=_nmodes,
                  free_surf=_free_surf,
                  persist=False,
-                 grav=g_default, sigma=_sig):
+                 g=grav, sigma=_sig):
         """ Create a Vmode object
         
         Parameters:
@@ -130,7 +130,7 @@ class Vmodes(object):
         self._zdims = sdim
         xgrid_z = gop.get_xgrid_ax_name(xgrid,sdim.values())
         self._xgrid_z = xgrid_z
-        self.g = grav
+        self.g = g
         self.free_surf = free_surf
         self.sigma=_sig
         
@@ -160,7 +160,7 @@ class Vmodes(object):
         strout += '  Number of modes = {}\n'.format(self.nmodes)
         strout += '  N2, min/max = {0:.1e}, {1:.1e}\n'.format(\
                                 self['N2'].min().values, self['N2'].max().values)
-        strout += '  Options / parameters: grav: {0:.2f}, free_surf: {1}, eig_sigma: {2:.1e}\n'\
+        strout += '  Options / parameters: g={0:.2f}, free_surf={1}, eig_sigma={2:.1e}\n'\
                             .format(self.g, self.free_surf, self.sigma)
         return strout
 
@@ -501,7 +501,7 @@ def load_vmodes(file_path, xgrid, persist=False):
                 nmodes=ds.nmodes,
                 free_surf=ds.free_surf,
                 persist=persist,
-                grav=ds.g, sigma=ds.sigma)
+                g=ds.g, sigma=ds.sigma)
     # transfer mode from ds to vm
     for v in _core_variables:
         if v in ds:
@@ -613,7 +613,7 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
 
 def compute_vmodes(zc_nd, zf_nd, N2f_nd, 
                    nmodes=_nmodes, free_surf=_free_surf,
-                   g=g_default,
+                   g=grav,
                    sigma=_sig, stacked=True,
                    **kwargs):
     """
@@ -632,7 +632,7 @@ def compute_vmodes(zc_nd, zf_nd, N2f_nd,
         number of baroclinic modes to compute (barotropic mode will be added)
     free_surf: bool, optional
         whether using a free-surface condition or rigid lid
-    grav: float, optional
+    g: float, optional
         gravity constant
     sigma: float, optional
         parameter for shift-invert method in scipy.linalg.eig (default: _sig)
@@ -701,7 +701,7 @@ def compute_vmodes(zc_nd, zf_nd, N2f_nd,
             
 def compute_vmodes_1D(zc, zf, N2f, 
                       nmodes=_nmodes, free_surf=True, 
-                      g=g_default, sigma=_sig):
+                      g=grav, sigma=_sig):
     """
     Compute vertical modes from stratification.
 

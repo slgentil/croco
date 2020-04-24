@@ -3,7 +3,7 @@ import xarray as xr
 import numpy as np
 from collections import OrderedDict
 
-from .postp import g_default
+from .postp import grav
 
 ### Default values and parameters
 _z_dim_database = ['z', 's_rho', 's_w']
@@ -538,7 +538,7 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None,
 
 # ----------------------------- physics & dynamics -----------------------------
     
-def get_N2(run, rho, z, g=g_default):
+def get_N2(run, rho, z, g=grav):
     """ Compute square buoyancy frequency N2 
     ... doc to be improved
     """
@@ -550,7 +550,7 @@ def get_N2(run, rho, z, g=g_default):
     N2 = N2.fillna(N2.shift(s_w=1))
     return N2
 
-def get_p(grid, rho, zw, zr=None, grav=g_default):
+def get_p(grid, rho, zw, zr=None, g=grav):
     """ Compute (not reduced) pressure by integration from the surface, 
     taking rho at rho points and giving results on w points (z grid)
     with p=0 at the surface. If zr is not None, compute result on rho points
@@ -578,7 +578,7 @@ def get_p(grid, rho, zw, zr=None, grav=g_default):
              .sortby(rho.s_rho, ascending=True)
              .assign_coords(z_r=zr)
             )
-    return grav*p.rename("p")
+    return g*p.rename("p")
 
 # !!! code below needs to be updated with xgcm approach
 
