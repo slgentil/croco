@@ -68,15 +68,14 @@
 ! turn jet_decay on off
 # define JET_DECAY
 # undef JET_EDDY
-! perturbed internal tide formulation
-# define ITIDEP
 
 ! turn beta on off
 # define BETAON
 
 ! type of wavemaker
 # define WMAKER_TEST 5
-# undef ITIDEP
+! perturbed internal tide formulation
+# define ITIDEP
 
 # undef FERMI_MEM
 
