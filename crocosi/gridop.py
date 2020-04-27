@@ -490,7 +490,7 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None,
         assert z_dim, 'Could not find a vertical dimension for z'
     # test if z_dim and zt_dim are equal but refer to dimensions with different
     # values
-    if z_dim==zt_dim and not v.reset_coords()[z_dim].equals(zt.reset_coords()[zt_dim]):
+    if z_dim==zt_dim and not (v[z_dim] == zt[zt_dim]).all():
         if override_dims:
             _zt_dim = 'zt_swap'
             _zt = zt.rename({zt_dim: _zt_dim})
