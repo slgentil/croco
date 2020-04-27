@@ -146,7 +146,7 @@ class Vmodes(object):
         self.ds['dz'] = xgrid.diff(zf, xgrid_z).rename("dz")
         
         if persist:
-            self.ds.persist()
+            self.ds = self.ds.persist()
      
     def __getitem__(self, item):
         """ Enables calls such as vm['N2']
