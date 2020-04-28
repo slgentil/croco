@@ -7,7 +7,10 @@ from .postp import grav
 
 ### Default values and parameters
 _z_dim_database = ['z', 's_rho', 's_w']
-_z_coord_database = {"s_rho":["z_r", "z_rho"], "s_w":["z_w"], "z":["z"]}
+_z_coord_database = {"s_rho": ["z_r", "z_rho"], 
+                     "s_w": ["z_w"], 
+                     "z": ["z"]
+                    }
 
 # ---------------------- horizontal grid manipulations -------------------------
 
