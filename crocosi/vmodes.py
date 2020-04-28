@@ -9,7 +9,7 @@ import numpy as np
 import xarray as xr
 
 from . import gridop as gop
-from .postp import grav
+from .postp import grav, _move_singletons_as_attrs
 
 # default values
 _sig = .1
@@ -539,18 +539,6 @@ def load_vmodes(file_path, xgrid, persist=False):
         return vm, projections
     else:
         return vm
-
-def _move_singletons_as_attrs(ds):
-    """ change singleton variables and coords to attrs
-    This seems to be required for zarr archiving
-    """
-    for c in ds.coords:
-        if ds[c].size==1:
-            ds = ds.drop_vars(c).assign_attrs({c: ds[c].values})
-    for v in ds.data_vars:
-        if ds[v].size==1:
-            ds = ds.drop_vars(v).assign_attrs({v: ds[v].values})
-    return ds
 
 def _check_hdim_mismatch(data, dm):
     # test if mismatching horizontal dimensions will trigger broadcasting

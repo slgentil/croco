@@ -509,7 +509,7 @@ class Run(object):
                 write_kwargs = dict(kwargs)
                 if overwrite:
                     write_kwargs.update({'mode': 'w'})
-                data.to_zarr(_file, **write_kwargs)
+                _move_singletons_as_attrs(data).to_zarr(_file, **write_kwargs)
                 success=True
             elif file_format.lower() in ['nc', 'netcdf']:
                 _file = os.path.join(_dir, name+'.nc')
@@ -698,3 +698,15 @@ def _check_diagnostic_directory(directory, dirname,
             raise OSError('Directory does not exist')
     return _dir
     
+def _move_singletons_as_attrs(ds):
+    """ change singleton variables and coords to attrs
+    This seems to be required for zarr archiving
+    """
+    for c in ds.coords:
+        if ds[c].size==1:
+            ds = ds.drop_vars(c).assign_attrs({c: ds[c].values})
+    for v in ds.data_vars:
+        if ds[v].size==1:
+            ds = ds.drop_vars(v).assign_attrs({v: ds[v].values})
+    return ds
+
