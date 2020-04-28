@@ -236,9 +236,12 @@ class Vmodes(object):
             dm = self.ds
         else:
             dm = self.ds.sel(sel)
-
+            
         if align:
             data, dm = xr.align(data, dm, join="inner")
+            
+        _check_hdim_mismatch(data, dm)
+            
         if not( z is None or z is False ):
             if z is True:
                 z, = gop.get_z_coord(data)
@@ -247,6 +250,7 @@ class Vmodes(object):
             elif align:
                 data, z = xr.align(data, z, join="inner")
             data = gop.interp2z(dm[self._znames['zc']], z, data)
+            
         res = (dm.dz*data*dm.phi).sum(self._zdims['zc'])/dm.norm
 
         return res
@@ -276,8 +280,12 @@ class Vmodes(object):
             dm = self.ds
         else:
             dm = self.ds.sel(sel)
+            
         if align:
-            data, dm = xr.align(data, dm, join="inner")    
+            data, dm = xr.align(data, dm, join="inner")
+            
+        _check_hdim_mismatch(data, dm)
+
         if not( z is None or z is False ):
             if z is True:
                 z, = gop.get_z_coord(data)
@@ -286,8 +294,10 @@ class Vmodes(object):
             elif align:
                 data, z = xr.align(data, z, join="inner")
             data = gop.interp2z(dm[self._znames['zc']], z, data)
+        
         zf, zc = self._znames['zf'], self._znames["zc"]
         prov = (data * self._w2rho(-dm.dphidz, zc=dm[zc], zf=dm[zf]) * dm.dz).sum(self._zdims['zc'])
+        
         if self.free_surf:
             prov += self.g * ( -dm.dphidz / dm.N2 
                               * self.xgrid.interp(data, self._xgrid_z, boundary="extrapolate") 
@@ -319,8 +329,12 @@ class Vmodes(object):
             dm = self.ds
         else:
             dm = self.ds.sel(sel)
+            
         if align:
-            data, dm = xr.align(data, dm, join="inner")    
+            data, dm = xr.align(data, dm, join="inner")
+            
+        _check_hdim_mismatch(data, dm)
+        
         if not( z is None or z is False ):
             if z is True:
                 z, = gop.get_z_coord(data)
@@ -329,12 +343,15 @@ class Vmodes(object):
             elif align:
                 data, z = xr.align(data, z, join="inner")
             data = gop.interp2z(dm[self._znames['zc']], z, data)
+
         zf, zc = self._znames['zf'], self._znames["zc"]
         prov = (data * self._w2rho(dm.dphidz/dm.N2, zc=dm[zc], zf=dm[zf])* dm.dz).sum("s_rho")
+        
         if self.free_surf:
             prov += self.g * (self.xgrid.interp(data, self._xgrid_z, boundary="extrapolate")
                           * dm.dphidz / dm.N2**2
                          ).isel({self._zdims['zf']:-1}).drop(self._znames["zf"])
+        
         return -prov/dm.norm 
 
     # reconstructions
@@ -516,7 +533,7 @@ def load_vmodes(file_path, xgrid, persist=False):
     if os.path.isdir(_pfile):
         projections = xr.open_zarr(_pfile)
         if persist:
-            ds_proj = projections.persist()
+            projections = projections.persist()
         return vm, projections
     else:
         return vm
@@ -533,7 +550,16 @@ def _move_singletons_as_attrs(ds):
             ds = ds.drop_vars(v).assign_attrs({v: ds[v].values})
     return ds
 
-
+def _check_hdim_mismatch(data, dm):
+    # test if mismatching horizontal dimensions will trigger broadcasting
+    dims_data = gop._get_spatial_dims(data)
+    dims_vm = gop._get_spatial_dims(dm)
+    for d in ['x', 'y']:
+        assert (dims_vm[d]==None) or (dims_data[d]==None) or (dims_vm[d]==dims_data[d]), \
+            'Data and vertical mode have mismatching horizontal dimensions ' \
+            +' ({},{}), '.format(dims_vm[d], dims_data[d]) \
+            +'consider horizontally interpolating data first'
+    
 def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
     """ compute vertical modes
     Wrapper for calling `compute_vmodes` with DataArrays through apply_ufunc. 
