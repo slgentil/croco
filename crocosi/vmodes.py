@@ -195,7 +195,9 @@ class Vmodes(object):
         sel: Dict, optional (default: None)
             indices applied to the vmodes dataset prior to projection
         align: bool, optional (default: True)
-            whether alignment between the data and vmodes DataArray should be performed before projecting
+            whether alignment between the data and vmodes DataArray should be performed before projecting.
+            Note that any mismatch between data and vertical modes horizontal grids will raise an error
+            (horizontal interpolation needs to be performed prior to projection)
         
         Returns
         _______
