@@ -3,11 +3,14 @@ import xarray as xr
 import numpy as np
 from collections import OrderedDict
 
-from .postp import g_default
+from .postp import grav
 
 ### Default values and parameters
 _z_dim_database = ['z', 's_rho', 's_w']
-_z_coord_database = {"s_rho":["z_r", "z_rho"], "s_w":["z_w"], "z":["z"]}
+_z_coord_database = {"s_rho": ["z_r", "z_rho"], 
+                     "s_w": ["z_w"], 
+                     "z": ["z"]
+                    }
 
 # ---------------------- horizontal grid manipulations -------------------------
 
@@ -183,7 +186,7 @@ def get_z(run, zeta=None, h=None, vgrid='r',
     sdims = list(_get_spatial_dims(z).values())
     sdims = tuple(filter(None,sdims)) # delete None values
     reordered_dims = tuple(d for d in z.dims if d not in sdims) + sdims
-    z = z.transpose(*reordered_dims)
+    z = z.transpose(*reordered_dims, transpose_coords=True)
     
     return z.rename('z_'+vgrid)
 
@@ -490,7 +493,7 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None,
         assert z_dim, 'Could not find a vertical dimension for z'
     # test if z_dim and zt_dim are equal but refer to dimensions with different
     # values
-    if z_dim==zt_dim and not v.reset_coords()[z_dim].equals(zt.reset_coords()[zt_dim]):
+    if z_dim==zt_dim and not (v[z_dim] == zt[zt_dim]).all():
         if override_dims:
             _zt_dim = 'zt_swap'
             _zt = zt.rename({zt_dim: _zt_dim})
@@ -538,7 +541,7 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None,
 
 # ----------------------------- physics & dynamics -----------------------------
     
-def get_N2(run, rho, z, g=g_default):
+def get_N2(run, rho, z, g=grav):
     """ Compute square buoyancy frequency N2 
     ... doc to be improved
     """
@@ -550,7 +553,7 @@ def get_N2(run, rho, z, g=g_default):
     N2 = N2.fillna(N2.shift(s_w=1))
     return N2
 
-def get_p(grid, rho, zw, zr=None, grav=g_default):
+def get_p(grid, rho, zw, zr=None, g=grav):
     """ Compute (not reduced) pressure by integration from the surface, 
     taking rho at rho points and giving results on w points (z grid)
     with p=0 at the surface. If zr is not None, compute result on rho points
@@ -578,7 +581,7 @@ def get_p(grid, rho, zw, zr=None, grav=g_default):
              .sortby(rho.s_rho, ascending=True)
              .assign_coords(z_r=zr)
             )
-    return grav*p.rename("p")
+    return g*p.rename("p")
 
 # !!! code below needs to be updated with xgcm approach
 

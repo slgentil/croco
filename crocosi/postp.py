@@ -11,7 +11,7 @@ import xarray as xr
 from glob import glob
 
 second2day = 1./86400.
-g_default = 9.81
+grav = 9.81
 
 import crocosi.gridop as gop
 
@@ -506,16 +506,20 @@ class Run(object):
             success=False
             if file_format is None or file_format.lower() in ['zarr', '.zarr']:
                 _file = os.path.join(_dir, name+'.zarr')
-                if _check_file_overwrite(_file, overwrite):
-                    data.to_zarr(_file, **kwargs)
-                    success=True
+                write_kwargs = dict(kwargs)
+                if overwrite:
+                    write_kwargs.update({'mode': 'w'})
+                _move_singletons_as_attrs(data).to_zarr(_file, **write_kwargs)
+                success=True
             elif file_format.lower() in ['nc', 'netcdf']:
                 _file = os.path.join(_dir, name+'.nc')
-                if _check_file_overwrite(_file, overwrite):
-                    data.to_netcdf(_file, **kwargs)
-                    success=True
-        if success:
-            print('data stored in {}'.format(_dir))
+                write_kwargs = dict(kwargs)
+                if overwrite:
+                    write_kwargs.update({'mode': 'w'})
+                data.to_netcdf(_file, **write_kwargs)
+                success=True
+            if success:
+                print('data stored in {}'.format(_file))
 
     def load_diagnostic(self, name, 
                         directory='diagnostics/', 
@@ -694,3 +698,15 @@ def _check_diagnostic_directory(directory, dirname,
             raise OSError('Directory does not exist')
     return _dir
     
+def _move_singletons_as_attrs(ds):
+    """ change singleton variables and coords to attrs
+    This seems to be required for zarr archiving
+    """
+    for c in ds.coords:
+        if ds[c].size==1:
+            ds = ds.drop_vars(c).assign_attrs({c: ds[c].values})
+    for v in ds.data_vars:
+        if ds[v].size==1:
+            ds = ds.drop_vars(v).assign_attrs({v: ds[v].values})
+    return ds
+
