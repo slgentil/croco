@@ -626,7 +626,7 @@ class Run(object):
             Default is 'diagnostics/'        
         """
         from .vmodes import load_vmodes as load_vm
-        _dir = _check_diagnostic_directory(directory, self.dirname, create=True)
+        _dir = _check_diagnostic_directory(directory, self.dirname, create=False)
         file_path = os.path.join(_dir, name+'.zarr')
         return load_vm(file_path, self.xgrid, persist=persist)
 
