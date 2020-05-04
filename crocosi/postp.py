@@ -14,6 +14,9 @@ from glob import glob
 second2day = 1./86400.
 grav = 9.81
 
+# ideal dask size
+_chunk_size_threshold = 4000*3000
+
 import crocosi.gridop as gop
 
 def tofloat(x):
@@ -28,8 +31,10 @@ class Run(object):
     (ave, his, etc.), a grid object, and online output diagnostics (e.g. energy, ...).
     """
     def __init__(self,
-                 dirname, prefix='',
+                 dirname, 
+                 prefix='',
                  outputs=[],
+                 read_zarr=True,
                  tdir_max=0,
                  grid_params={},
                  grid_periodicity=False, 
@@ -43,10 +48,11 @@ class Run(object):
             Path to base directory where model output lies
         prefix: str, optional
             Prefix to all netcdf output files (e.g. 'file_')
-        outputs: list, optional
+        outputs: list, str, optional
             List of outputs to load, file names should look like: 
             [prefix+nc+'*.nc' for nc in outputs]
             Default is to load no outputs, i.e. outputs is empty
+            If 'all', all available outputs will be loaded
         tdir_max: int, optional
             Maximum run iteration loaded, default is 0
         grid_params: dict, optional
@@ -64,27 +70,21 @@ class Run(object):
         self.dirname = os.path.expanduser(dirname)
         self.verbose = verbose
         self.prefix = prefix
-        if isfile(self.dirname+'t1/{}grid.nc'.format(prefix)):
-            _nc_default = ['grid']
-        else:
-            # for backward compatibility
-            _nc_default = ['his']
-        self.outputs = list(set(_nc_default + outputs))
         self.zarr_dir = join(self.dirname, 'zarr')
         self.tdir_max = tdir_max # limits the number of t directories
         #
         self._grid_params = grid_params
         self.grid_periodicity = grid_periodicity
         #
-        if isinstance(chunk_time,dict):
+        self._explore_tree(outputs)   # Find files that we know how to handle
+        self._read_input_params()  # Scan croco.in for parameters
+        self._read_output_stats()  # Scan output.mpi for parameters and stats
+        #
+        if isinstance(chunk_time, dict):
             self._chunk_time = chunk_time
         else:
             self._chunk_time = {nc:chunk_time for nc in self.outputs}
-        #
-        self._explore_tree()   # Find files that we know how to handle
-        self._read_input_params()  # Scan croco.in for parameters
-        self._read_output_stats()  # Scan output.mpi for parameters and stats
-        self._open_data_files()   # Open the NetCDF files as scDatasets
+        self._open_data_files(read_zarr)   # Open the NetCDF files as scDatasets
         self._read_grid()    # Read the horizontal/vertical grid
 
     def __repr__(self):
@@ -135,7 +135,7 @@ class Run(object):
         for item in self.outputs:
             yield item, self.ds[item]
 
-    def _explore_tree(self):
+    def _explore_tree(self, outputs):
         if self.verbose:
             print("Analysing directory " + self.dirname)
 
@@ -155,7 +155,20 @@ class Run(object):
         self.segs = ['t' + str(x) for x in sorted(_segs)]
         if self.verbose:
             print("Found " + str(len(self.segs)) + " segments")
-
+        #
+        # find all avaible outputs
+        self._find_available_outputs()
+        if isfile(join(self.dirname,'t1/{}grid.nc'.format(self.prefix))):
+            _outputs = ['grid']
+        else:
+            # for backward compatibility
+            _outputs = ['his']
+        if isinstance(outputs, str) and outputs=='all':
+            _outputs += self.outputs_avail
+        elif isinstance(outputs, list):
+            _outputs += outputs
+        self.outputs = list(set(_outputs))
+        #
         # Now loop over segments in sequential order
         self.log_files = []
         self.nc_files = {s: [] for s in self.outputs}
@@ -172,12 +185,23 @@ class Run(object):
                 # Append sorted intermediate lists, such that the entire list is
                 # in the correct order for accumulation with scDataset
                 self.nc_files[key].extend(sorted(filename))
-                
+        #
         if self.verbose:
             for key in self.outputs:
                 print("Found " + str(len(self.nc_files[key])) + " " + key + " files")
 
-    def _open_data_files(self):
+    def _find_available_outputs(self):
+        """ Find all available outputs
+        Note that outputs must not have an underscore (e.g. 'my_output...' not allowed)
+        """
+        outputs = set()
+        for file_path in glob(join(self.dirname, self.segs[0], '*.nc')):
+            file = file_path.split('/')[-1].split('.')[0]
+            if 'rst' not in file and 'vmodes' not in file:
+                outputs.add(file.split('_')[0].replace(self.prefix,''))
+        self.outputs_avail = list(outputs)
+                                
+    def _open_data_files(self, read_zarr):
         """ 
         Open data files (preferentially zarr archives, otherwise ncfiles)
         """
@@ -188,7 +212,7 @@ class Run(object):
         for key in self.outputs:
             # check exsistence of zarr archives
             zarr_archive = join(self.zarr_dir, key+'.zarr')
-            if isdir(zarr_archive):
+            if isdir(zarr_archive) and read_zarr:
                 _ds = xr.open_zarr(zarr_archive)
             else:
                 _ds = self._create_xrDataset(key)
@@ -216,20 +240,23 @@ class Run(object):
                     ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[key],
                                                     's_rho': 1})
                 except ValueError:
-                    ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[key]})
-
-                t0 = pd.Timestamp(ds.time_counter.time_origin).to_datetime64()
-                _timevars = (t for t in ['time_counter', 'time_center', 'time_instant'] if t in ds)
-                for tvar in _timevars:
-                    t = ds[tvar]
-                    t = ((t-t0)/np.timedelta64(1, 's') + offsets[td])*second2day
-                    ds[tvar] = t
+                    try:
+                        ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[key]})
+                    except ValueError:
+                        ds = xr.open_dataset(f)
+                if 'time_counter' in ds:
+                    t0 = pd.Timestamp(ds.time_counter.time_origin).to_datetime64()
+                    _timevars = (t for t in ['time_counter', 'time_center', 'time_instant'] if t in ds)
+                    for tvar in _timevars:
+                        t = ds[tvar]
+                        t = ((t-t0)/np.timedelta64(1, 's') + offsets[td])*second2day
+                        ds[tvar] = t
                 # drop coordinates for easier concatenation
                 #ds = ds.drop([k for k in ds.coords \
                 #                if k not in ['time_counter','time_centered']])
                 datasets.append(ds)
         ds = xr.concat(datasets, dim='time_counter',
-                        coords='minimal', compat='override')
+                       coords='minimal', compat='override')
         ds = ds.rename_dims({'time_counter':'time'})
         ds = ds.set_coords([c for c in ds.data_vars if 'time' in c])
         ds = self._adjust_grid(ds)
@@ -491,7 +518,7 @@ class Run(object):
         zarr_archive = join(self.zarr_dir, key+'.zarr')
         return isdir(zarr_archive)
 
-    def store_zarr(self, chunks={}, **kwargs):
+    def store_zarr(self, chunks={}, auto_chunks=True, **kwargs):
         """ writes data in zarr archives
         
         Parameters
@@ -502,37 +529,37 @@ class Run(object):
         **kwargs:
             Passed to xr.to_zarr method
         """
-        assert len(self.segs)==len(self._segs_avail), \
+        assert len(self.segs)==len(self.segs_avail), \
             'Cannot store zarr archives if the full dataset is not loaded.' \
             +'Reload without limiting tdir_max.'
         D = {}
-        for key in self.outputs: # filter out grid?
+        for key in self.outputs:
             ds = self[key]
             ds = _move_singletons_as_attrs(ds)
             #
             if key in chunks:
                 ds = ds.chunk(chunks[key])
-            # check each avariable average chunk sizes and stops if necessary
-            n_threshold = 4000*3000
-            # loop around vars, coords
-            for k in ds: # .data_vars
-                averaged_chunk_size = 1
-                assert averaged_chunk_size > size_threshold, \
-                    '{} chunks are two small, rechunk such that chunk sizes' \
-                    +' exceed 4000x3000 elements on average'
-            for k in ds.coords:
-                averaged_chunk_size = None
-                assert averaged_chunk_size > size_threshold, \
-                    '{} chunks are two small, rechunk such that chunk sizes' \
-                    +' exceed 4000x3000 elements on average'
+            elif auto_chunks:
+                ds = auto_rechunk(ds)
+            # loop around vars, coords to check chunk sizes
+            for k, da in ds.items(): # data_vars
+                _check_chunks_sizes(da)
+            for k, da in ds.coords.items():
+                _check_chunks_sizes(da)
             # datasets are first collected in a list
             D[key] = ds
         for key, ds in D.items():
-            zarr_archive = join(self.zarr_dir, key+'.zarr')            
+            zarr_archive = join(self.zarr_dir, key+'.zarr')
+            # need to get rid of several variables whose (time) units crashes to_zarr
+            _to_delete = ['time_centered', 'time_centered_bounds', 
+                          'time_counter_bounds', 'time_instant_bounds']
+            for v in _to_delete:
+                if v in ds:
+                    del ds[v]
             ds.to_zarr(zarr_archive, **kwargs)
-            print('{} stored in {}'.format(key,zarr_archive))
+            print('{} stored in {}'.format(key, zarr_archive))
             
-    def delete_nc(self, outputs=None):
+    def delete_nc(self, outputs=None, test=True):
         """ Delete netcdf files if zarr corresponding zarr archives have
         been produced
         
@@ -542,12 +569,16 @@ class Run(object):
             Output keys to delete, all keys available otherwise
         """
         if outputs is None:
-            outputs = self.outputs
+            outputs = self.outputs_avail
         for key in outputs:
+            # check there is a corresponding zarr archive
+            assert self._is_zarr_archive(key), \
+                    '{} output has not been converted to zarr'.format(key)
             files = [join(self.dirname, x[0], x[1]) for x in self.nc_files[key]]
             for f in files:
-                if _is_zarr_archive(key) and isfile(f):
-                    os.remove(f)
+                if isfile(f):
+                    if not test:
+                        os.remove(f)
                     print('{} deleted'.format(f))
     
     ### store/load diagnostics
@@ -794,3 +825,51 @@ def _move_singletons_as_attrs(ds):
             ds = ds.drop_vars(v).assign_attrs({v: ds[v].values})
     return ds
 
+def _check_chunks_sizes(da):
+    """ checks that chunk sizes are above the _chunk_size_threshold
+    """
+    averaged_chunk_size, total_size = _get_averaged_chunk_size(da)
+    assert averaged_chunk_size==total_size or averaged_chunk_size>_chunk_size_threshold, \
+        '{} chunks are two small, rechunk such that chunk sizes'.format(da.name) \
+        + ' exceed {} elements on average,'.format(_chunk_size_threshold) \
+        + ' there are currently ' \
+        + '{} points per chunks on average'.format(averaged_chunk_size)
+
+def _get_averaged_chunk_size(da):
+    """ returns the averaged number of elements in the dataset
+    """
+    # total number of elements
+    total_size = int(np.array(list(da.sizes.values())).prod())
+    # averaged number of chunks along each dimension:
+    if da.chunks:
+        chunk_size_dims = np.array([np.max(d) for d in da.chunks])
+        chunk_size = int(chunk_size_dims.prod())
+    else:
+        chunk_size = total_size
+    return chunk_size, total_size
+
+def auto_rechunk_da(da):
+    dims = ['x_rho', 'x_u', 'y_rho', 'y_v', 's_rho', 's_w', 'time']
+    for d in dims:
+        # gather da number of elements and chunk sizes
+        averaged_chunk_size, total_size = _get_averaged_chunk_size(da)
+        # exit if there is one chunk
+        if averaged_chunk_size==total_size:
+            break
+        # rechunk along dimenion d
+        if (d in da.dims) and averaged_chunk_size<_chunk_size_threshold:
+            dim_chunk_size = np.median(da.chunks[da.get_axis_num(d)])
+            # simple rule of 3
+            new_chunk_size = int(dim_chunk_size) \
+                        * (np.ceil(_chunk_size_threshold/averaged_chunk_size))
+            # bounded by dimension size
+            new_chunk_size = min(da[d].size, new_chunk_size)
+            da = da.chunk({d: new_chunk_size})
+    return da
+
+def auto_rechunk(ds):
+    for k, da in ds.items(): # data_vars
+        ds = ds.assign(**{k: auto_rechunk_da(da)})
+    for k, da in ds.coords.items():
+        ds = ds.assign_coords(**{k: auto_rechunk_da(da)})
+    return ds
