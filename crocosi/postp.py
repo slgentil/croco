@@ -4,6 +4,7 @@ Module postp
 """
 
 import os, fnmatch
+from os.path import join, isfile, isdir
 import numpy as np
 from numpy import ma
 import pandas as pd
@@ -28,7 +29,7 @@ class Run(object):
     """
     def __init__(self,
                  dirname, prefix='',
-                 open_nc=[],
+                 outputs=[],
                  tdir_max=0,
                  grid_params={},
                  grid_periodicity=False, 
@@ -42,10 +43,10 @@ class Run(object):
             Path to base directory where model output lies
         prefix: str, optional
             Prefix to all netcdf output files (e.g. 'file_')
-        open_nc: list, optional
+        outputs: list, optional
             List of outputs to load, file names should look like: 
-            [prefix+nc+'*.nc' for nc in open_nc]
-            Default is to load no outputs, i.e. open_nc is empty
+            [prefix+nc+'*.nc' for nc in outputs]
+            Default is to load no outputs, i.e. outputs is empty
         tdir_max: int, optional
             Maximum run iteration loaded, default is 0
         grid_params: dict, optional
@@ -63,48 +64,52 @@ class Run(object):
         self.dirname = os.path.expanduser(dirname)
         self.verbose = verbose
         self.prefix = prefix
-        if os.path.isfile(self.dirname+'t1/{}grid.nc'.format(prefix)):
+        if isfile(self.dirname+'t1/{}grid.nc'.format(prefix)):
             _nc_default = ['grid']
         else:
             # for backward compatibility
             _nc_default = ['his']
-        self.open_nc = list(set(_nc_default + open_nc))
+        self.outputs = list(set(_nc_default + outputs))
+        self.zarr_dir = join(self.dirname, 'zarr')
         self.tdir_max = tdir_max # limits the number of t directories
+        #
         self._grid_params = grid_params
         self.grid_periodicity = grid_periodicity
+        #
         if isinstance(chunk_time,dict):
             self._chunk_time = chunk_time
         else:
-            self._chunk_time = {nc:chunk_time for nc in self.open_nc}
+            self._chunk_time = {nc:chunk_time for nc in self.outputs}
         #
-        self._findfiles()   # Find files that we know how to handle
+        self._explore_tree()   # Find files that we know how to handle
         self._read_input_params()  # Scan croco.in for parameters
         self._read_output_stats()  # Scan output.mpi for parameters and stats
-        self._open_ncfiles()   # Open the NetCDF files as scDatasets
+        self._open_data_files()   # Open the NetCDF files as scDatasets
         self._read_grid()    # Read the horizontal/vertical grid
 
     def __repr__(self):
         return ("Run: "+self.dirname+"\n"
-                "  datasets suffixes: "+" / ".join(s for s in self.open_nc)+"\n"
+                "  output keys: "+" / ".join(s for s in self.outputs)+"\n"
         )
         
     #def _repr_html_(self):
     #    return ("<b>"+self.dirname+"</b>"
-    #            "<p>"+"".join(self.ds[s].__repr__() for s in self.open_nc)+"</p>"
+    #            "<p>"+"".join(self.ds[s].__repr__() for s in self.outputs)+"</p>"
     #    )
         
     def __del__(self):
         """ Close any files linked to the datasets
         """
-        for s in self.open_nc:
+        for s in self.outputs:
             self.ds[s].close()
 
     def __getitem__(self, key):
-        """ Load data set by providing suffix
+        """ Load data set by providing key
         """
-        _gettable_attrs = ['grid', 'xgrid'] # grid is for backward compatibility, should be in open_nc
-        # assert key in self.open_nc
-        if key in self.open_nc:
+        # grid is for backward compatibility, should be in self.outputs
+        _gettable_attrs = ['grid', 'xgrid']
+        # assert key in self.outputs
+        if key in self.outputs:
             return self.ds[key]
         elif key in _gettable_attrs:
             return getattr(self, key)
@@ -115,9 +120,9 @@ class Run(object):
 
     def __setitem__(self, key, item):
         """
-        Load data set by providing suffix
+        Load data set by providing key
         """
-        if key in self.open_nc:
+        if key in self.outputs:
             self.ds[key] = item
         elif key in self.params_input.keys():
             self.params_input[key] = item
@@ -127,64 +132,77 @@ class Run(object):
     def __iter__(self):
         """ this allows looping over datasets
         """
-        for item in self.open_nc:
+        for item in self.outputs:
             yield item, self.ds[item]
 
-    def _findfiles(self):
+    def _explore_tree(self):
         if self.verbose:
             print("Analysing directory " + self.dirname)
 
         # Find the list of segments (t1, t2, ...), a.k.a. chains
-        self.segs = []
+        _segs = []
+        _segs_avail = []
         for item in os.listdir(self.dirname):
-            if os.path.isdir(os.path.join(self.dirname, item)):
+            if isdir(join(self.dirname, item)):
                 if item != "t0" and item[0] == "t" and item[1:].isdigit():
+                    i = int(item[1:])
+                    _segs_avail.append(i)
                     # Drop the 't' prefix so we can sort by increasing integer
-                    if (self.tdir_max>0 and int(item[1:])<=self.tdir_max) or (self.tdir_max==0):
-                        self.segs.append(int(item[1:]))
+                    if (self.tdir_max>0 and i<=self.tdir_max) or (self.tdir_max==0):
+                        _segs.append(i)
         # Sort and restore the 't'
-        self.segs = ['t' + str(x) for x in sorted(self.segs)]
+        self.segs_avail = ['t' + str(x) for x in sorted(_segs_avail)]
+        self.segs = ['t' + str(x) for x in sorted(_segs)]
         if self.verbose:
             print("Found " + str(len(self.segs)) + " segments")
 
         # Now loop over segments in sequential order
         self.log_files = []
-        self.filename = {s: [] for s in self.open_nc}
+        self.nc_files = {s: [] for s in self.outputs}
         for segname in self.segs:
-            if os.path.isfile(os.path.join(self.dirname, segname, "output.mpi")):
+            if isfile(join(self.dirname, segname, "output.mpi")):
                 self.log_files.append((segname, "output.mpi"))
-            for suffix in self.open_nc:
+            for key in self.outputs:
                 # We use intermediate lists for each segment so we can sort them
                 filename = []
-                for cfile in os.listdir(os.path.join(self.dirname, segname)):
+                for cfile in os.listdir(join(self.dirname, segname)):
                     if fnmatch.fnmatchcase(cfile, self.prefix+"*.nc"):
-                        if fnmatch.fnmatchcase(cfile, self.prefix+suffix+"*.nc"):
+                        if fnmatch.fnmatchcase(cfile, self.prefix+key+"*.nc"):
                             filename.append((segname, cfile))
                 # Append sorted intermediate lists, such that the entire list is
                 # in the correct order for accumulation with scDataset
-                self.filename[suffix].extend(sorted(filename))
+                self.nc_files[key].extend(sorted(filename))
                 
         if self.verbose:
-            for suffix in self.open_nc:
-                print("Found " + str(len(self.filename[suffix])) + " " + suffix + " files")
+            for key in self.outputs:
+                print("Found " + str(len(self.nc_files[key])) + " " + key + " files")
 
-    def _open_ncfiles(self):
+    def _open_data_files(self):
+        """ 
+        Open data files (preferentially zarr archives, otherwise ncfiles)
         """
-        Constructs xarray datasets for each list in self.open_nc
-        """
-        # Open datasets found in list self.open_nc
+        # Open datasets found in list self.outputs
         if self.verbose:
-            print("Opening NC datasets: ", self.open_nc)
+            print("Opening datasets: ", self.outputs)
         self.ds = {}
-        for suffix in self.open_nc:
-            if len(self.filename[suffix]) > 0 :
-                self.ds[suffix] = self._create_xrDataset(self.filename[suffix], suffix)
+        for key in self.outputs:
+            # check exsistence of zarr archives
+            zarr_archive = join(self.zarr_dir, key+'.zarr')
+            if isdir(zarr_archive):
+                _ds = xr.open_zarr(zarr_archive)
+            else:
+                _ds = self._create_xrDataset(key)
+            #
+            self.ds[key] = _ds
 
-    def _create_xrDataset(self, ncset, suffix):
+    def _create_xrDataset(self, key):
         # Helper function to synthesise inputs and call xarray
+        assert len(self.nc_files[key]) > 0, \
+                'No output with key {} to be found'.format(key)
+        ncset = self.nc_files[key]
         tdir = [x[0] for x in ncset]
         offsets = self.t0.copy()
-        files = [os.path.join(self.dirname, x[0], x[1]) for x in ncset]
+        files = [join(self.dirname, x[0], x[1]) for x in ncset]
         datasets = []
         for f, td in zip(files, tdir):
             if 'grid' in f:
@@ -195,10 +213,10 @@ class Run(object):
             else:
                 try:
                     # chunks should be an option
-                    ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[suffix],
+                    ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[key],
                                                     's_rho': 1})
                 except ValueError:
-                    ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[suffix]})
+                    ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[key]})
 
                 t0 = pd.Timestamp(ds.time_counter.time_origin).to_datetime64()
                 _timevars = (t for t in ['time_counter', 'time_center', 'time_instant'] if t in ds)
@@ -223,8 +241,8 @@ class Run(object):
         Currently we only examine croco.in.
         """
         # Read croco.in to extract parameters
-        romsfile=os.path.join(self.dirname, self.segs[0], "croco.in")
-        if os.path.isfile(romsfile):
+        romsfile=join(self.dirname, self.segs[0], "croco.in")
+        if isfile(romsfile):
             f = open(romsfile)
             pline=[] #previous line
             params = {}
@@ -259,7 +277,7 @@ class Run(object):
         n=0
         nbstats=None
         for ii, cfile in enumerate(self.log_files):
-            f = open(os.path.join(self.dirname, cfile[0], cfile[1]))
+            f = open(join(self.dirname, cfile[0], cfile[1]))
             search = False
             firstline = True
             skipfirstline = ii>0
@@ -396,9 +414,9 @@ class Run(object):
             return Cs
 
         # Store grid sizes
-        if 'grid' in self.open_nc:
+        if 'grid' in self.outputs:
             ds = self.ds['grid']
-        elif 'his' in self.open_nc: # backward compatibility
+        elif 'his' in self.outputs: # backward compatibility
             ds = self.ds['his']
         self.L = ds.sizes['x_rho']
         self.M = ds.sizes['y_rho']
@@ -463,9 +481,75 @@ class Run(object):
                           coords=coords, 
                           metrics=metrics)
         
-        if 'grid' not in self.open_nc: # backward compatibility
+        if 'grid' not in self.outputs: # backward compatibility
             self.grid = ds
+    
+    ### store data to zarr archives
+    def _is_zarr_archive(self, key):
+        """ Utils, test existence of a zarr archive
+        """
+        zarr_archive = join(self.zarr_dir, key+'.zarr')
+        return isdir(zarr_archive)
+
+    def store_zarr(self, chunks={}, **kwargs):
+        """ writes data in zarr archives
+        
+        Parameters
+        ----------
+        chunks: dict, optional
+            Dictionary with output keys as keys and dimension chunk sizes 
+            as values
+        **kwargs:
+            Passed to xr.to_zarr method
+        """
+        assert len(self.segs)==len(self._segs_avail), \
+            'Cannot store zarr archives if the full dataset is not loaded.' \
+            +'Reload without limiting tdir_max.'
+        D = {}
+        for key in self.outputs: # filter out grid?
+            ds = self[key]
+            ds = _move_singletons_as_attrs(ds)
+            #
+            if key in chunks:
+                ds = ds.chunk(chunks[key])
+            # check each avariable average chunk sizes and stops if necessary
+            n_threshold = 4000*3000
+            # loop around vars, coords
+            for k in ds: # .data_vars
+                averaged_chunk_size = 1
+                assert averaged_chunk_size > size_threshold, \
+                    '{} chunks are two small, rechunk such that chunk sizes' \
+                    +' exceed 4000x3000 elements on average'
+            for k in ds.coords:
+                averaged_chunk_size = None
+                assert averaged_chunk_size > size_threshold, \
+                    '{} chunks are two small, rechunk such that chunk sizes' \
+                    +' exceed 4000x3000 elements on average'
+            # datasets are first collected in a list
+            D[key] = ds
+        for key, ds in D.items():
+            zarr_archive = join(self.zarr_dir, key+'.zarr')            
+            ds.to_zarr(zarr_archive, **kwargs)
+            print('{} stored in {}'.format(key,zarr_archive))
             
+    def delete_nc(self, outputs=None):
+        """ Delete netcdf files if zarr corresponding zarr archives have
+        been produced
+        
+        Parameters
+        ----------
+        outputs: list of str, optional
+            Output keys to delete, all keys available otherwise
+        """
+        if outputs is None:
+            outputs = self.outputs
+        for key in outputs:
+            files = [join(self.dirname, x[0], x[1]) for x in self.nc_files[key]]
+            for f in files:
+                if _is_zarr_archive(key) and isfile(f):
+                    os.remove(f)
+                    print('{} deleted'.format(f))
+    
     ### store/load diagnostics
     def store_diagnostic(self, name, data, 
                          overwrite=False,
@@ -505,14 +589,14 @@ class Run(object):
         elif isinstance(data, xr.Dataset):
             success=False
             if file_format is None or file_format.lower() in ['zarr', '.zarr']:
-                _file = os.path.join(_dir, name+'.zarr')
+                _file = join(_dir, name+'.zarr')
                 write_kwargs = dict(kwargs)
                 if overwrite:
                     write_kwargs.update({'mode': 'w'})
                 _move_singletons_as_attrs(data).to_zarr(_file, **write_kwargs)
                 success=True
             elif file_format.lower() in ['nc', 'netcdf']:
-                _file = os.path.join(_dir, name+'.nc')
+                _file = join(_dir, name+'.nc')
                 write_kwargs = dict(kwargs)
                 if overwrite:
                     write_kwargs.update({'mode': 'w'})
@@ -538,7 +622,7 @@ class Run(object):
         """
         _dir = _check_diagnostic_directory(directory, self.dirname)
         # find the diagnostic file
-        _file = glob(os.path.join(_dir,name+'.*'))
+        _file = glob(join(_dir,name+'.*'))
         assert len(_file)==1, 'More that one diagnostic file {}'.format(_file)
         _file = _file[0]
         # get extension
@@ -608,7 +692,7 @@ class Run(object):
         **kwargs: passed to to_zarr
         """
         _dir = _check_diagnostic_directory(directory, self.dirname, create=True)
-        file_path = os.path.join(_dir, name+'.zarr')
+        file_path = join(_dir, name+'.zarr')
         return vmodes.store(file_path, projections=projections, **kwargs)
         
     #   load:
@@ -627,7 +711,7 @@ class Run(object):
         """
         from .vmodes import load_vmodes as load_vm
         _dir = _check_diagnostic_directory(directory, self.dirname, create=False)
-        file_path = os.path.join(_dir, name+'.zarr')
+        file_path = join(_dir, name+'.zarr')
         return load_vm(file_path, self.xgrid, persist=persist)
 
 def _compute_metrics(ds):
@@ -669,7 +753,7 @@ def _compute_metrics(ds):
 def _check_file_overwrite(file, overwrite):
     """ Check whether one can overwrite a file, return False otherwise
     """
-    _isfile = os.path.isfile(file)
+    _isfile = isfile(file)
     if not _isfile or (_isfile and overwrite):
         return True
     else:
@@ -682,16 +766,16 @@ def _check_diagnostic_directory(directory, dirname,
     """ Check existence of a directory and create it if necessary
     """
     # create diagnostics dir if not present
-    if os.path.isdir(directory):
+    if isdir(directory):
         # directory is an absolute path
         _dir = directory
-    elif os.path.isdir(os.path.join(dirname, directory)):
+    elif isdir(join(dirname, directory)):
         # directory is relative
-        _dir = os.path.join(dirname, directory)
+        _dir = join(dirname, directory)
     else:
         if create:
             # need to create the directory
-            _dir = os.path.join(dirname, directory)
+            _dir = join(dirname, directory)
             os.mkdir(_dir)
             print('Create new diagnostic directory {}'.format(_dir))
         else:
