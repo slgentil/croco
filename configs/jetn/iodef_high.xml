@@ -118,7 +118,7 @@
           </field_group>
       </file>
 
-      <file id="file_surf" name="surf" output_freq="600s" sync_freq="1d" split_freq="50d"   enabled=".TRUE.">
+      <file id="file_surf" name="surf" output_freq="1800s" sync_freq="1d" split_freq="50d"   enabled=".TRUE.">
           <field_group id="surf_fields" operation="instant" >
             <field field_ref="zeta" name="ssh" grid_ref="rho_2D" />
             <field field_ref="temp" name="T" grid_ref="rho_3Dxy" />
