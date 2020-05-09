@@ -4,7 +4,7 @@ Module postp
 """
 
 import os, fnmatch
-from os.path import join, isfile, isdir
+import os.path as path
 import numpy as np
 from numpy import ma
 import pandas as pd
@@ -38,8 +38,10 @@ class Run(object):
                  tdir_max=0,
                  grid_params={},
                  grid_periodicity=False, 
-                 chunk_time=1,
-                 verbose=False):
+                 chunks={},
+                 open_kwargs={},
+                 persist=False,
+                 verbose=0):
         """ Run object that gathers output and grid information
 
         Parameters
@@ -64,13 +66,19 @@ class Run(object):
             be periodic and any other axes founds will be assumed non-periodic.
         chunk_time: int, optional
             Time chunk size, default is 1.
-        verbose: boolean, optional
-            Prints information if true. False by default
+        open_kwargs: dict, optional
+            Keyword arguments passed to data opener (open_dataset, open_zarr)
+        persist: boolean, optional
+            Persists data into memory, you need to have enought memory to do that obviously
+            Default if False
+        verbose: int, optional
+            Prints different levels of information. 0 (minimal info) by default
+            3 levels (0,1,2) at the moment
         """
         self.dirname = os.path.expanduser(dirname)
         self.verbose = verbose
         self.prefix = prefix
-        self.zarr_dir = join(self.dirname, 'zarr')
+        self.zarr_dir = path.join(self.dirname, 'zarr')
         self.tdir_max = tdir_max # limits the number of t directories
         #
         self._grid_params = grid_params
@@ -80,11 +88,8 @@ class Run(object):
         self._read_input_params()  # Scan croco.in for parameters
         self._read_output_stats()  # Scan output.mpi for parameters and stats
         #
-        if isinstance(chunk_time, dict):
-            self._chunk_time = chunk_time
-        else:
-            self._chunk_time = {nc:chunk_time for nc in self.outputs}
-        self._open_data_files(read_zarr)   # Open the NetCDF files as scDatasets
+        self._sort_out_chunks(chunks)
+        self._open_data_files(persist, read_zarr, **open_kwargs)   # Open the NetCDF files as scDatasets
         self._read_grid()    # Read the horizontal/vertical grid
 
     def __repr__(self):
@@ -97,11 +102,11 @@ class Run(object):
     #            "<p>"+"".join(self.ds[s].__repr__() for s in self.outputs)+"</p>"
     #    )
         
-    def __del__(self):
-        """ Close any files linked to the datasets
-        """
-        for s in self.outputs:
-            self.ds[s].close()
+    #def __del__(self):
+    #    """ Close any files linked to the datasets
+    #    """
+    #    for s in self.outputs:
+    #        self.ds[s].close()
 
     def __getitem__(self, key):
         """ Load data set by providing key
@@ -136,14 +141,14 @@ class Run(object):
             yield item, self.ds[item]
 
     def _explore_tree(self, outputs):
-        if self.verbose:
+        if self.verbose>0:
             print("Analysing directory " + self.dirname)
 
         # Find the list of segments (t1, t2, ...), a.k.a. chains
         _segs = []
         _segs_avail = []
         for item in os.listdir(self.dirname):
-            if isdir(join(self.dirname, item)):
+            if path.isdir(path.join(self.dirname, item)):
                 if item != "t0" and item[0] == "t" and item[1:].isdigit():
                     i = int(item[1:])
                     _segs_avail.append(i)
@@ -153,12 +158,12 @@ class Run(object):
         # Sort and restore the 't'
         self.segs_avail = ['t' + str(x) for x in sorted(_segs_avail)]
         self.segs = ['t' + str(x) for x in sorted(_segs)]
-        if self.verbose:
+        if self.verbose>0:
             print("Found " + str(len(self.segs)) + " segments")
         #
         # find all avaible outputs
         self._find_available_outputs()
-        if isfile(join(self.dirname,'t1/{}grid.nc'.format(self.prefix))):
+        if path.isfile(path.join(self.dirname,'t1/{}grid.nc'.format(self.prefix))):
             _outputs = ['grid']
         else:
             # for backward compatibility
@@ -167,18 +172,19 @@ class Run(object):
             _outputs += self.outputs_avail
         elif isinstance(outputs, list):
             _outputs += outputs
-        self.outputs = list(set(_outputs))
+        # remove duplicated values while preserving order:
+        self.outputs = list(dict.fromkeys(_outputs).keys())
         #
         # Now loop over segments in sequential order
         self.log_files = []
         self.nc_files = {s: [] for s in self.outputs}
         for segname in self.segs:
-            if isfile(join(self.dirname, segname, "output.mpi")):
+            if path.isfile(path.join(self.dirname, segname, "output.mpi")):
                 self.log_files.append((segname, "output.mpi"))
             for key in self.outputs:
                 # We use intermediate lists for each segment so we can sort them
                 filename = []
-                for cfile in os.listdir(join(self.dirname, segname)):
+                for cfile in os.listdir(path.join(self.dirname, segname)):
                     if fnmatch.fnmatchcase(cfile, self.prefix+"*.nc"):
                         if fnmatch.fnmatchcase(cfile, self.prefix+key+"*.nc"):
                             filename.append((segname, cfile))
@@ -186,7 +192,7 @@ class Run(object):
                 # in the correct order for accumulation with scDataset
                 self.nc_files[key].extend(sorted(filename))
         #
-        if self.verbose:
+        if self.verbose>1:
             for key in self.outputs:
                 print("Found " + str(len(self.nc_files[key])) + " " + key + " files")
 
@@ -195,101 +201,136 @@ class Run(object):
         Note that outputs must not have an underscore (e.g. 'my_output...' not allowed)
         """
         outputs = set()
-        for file_path in glob(join(self.dirname, self.segs[0], '*.nc')):
+        for file_path in glob(path.join(self.dirname, self.segs[0], self.prefix+'*.nc')):
             file = file_path.split('/')[-1].split('.')[0]
             if 'rst' not in file and 'vmodes' not in file:
-                outputs.add(file.split('_')[0].replace(self.prefix,''))
+                outputs.add(file
+                            .replace(self.prefix,'')
+                            .split('_')[0]
+                           )
         self.outputs_avail = list(outputs)
                                 
-    def _open_data_files(self, read_zarr):
+    def _open_data_files(self, persist, read_zarr, **kwargs):
         """ 
         Open data files (preferentially zarr archives, otherwise ncfiles)
         """
         # Open datasets found in list self.outputs
-        if self.verbose:
-            print("Opening datasets: ", self.outputs)
+        if self.verbose>0:
+            print('Opening datasets: '+' / '.join(self.outputs))
         self.ds = {}
         for key in self.outputs:
             # check exsistence of zarr archives
-            zarr_archive = join(self.zarr_dir, key+'.zarr')
-            if isdir(zarr_archive) and read_zarr:
-                _ds = xr.open_zarr(zarr_archive)
+            zarr_archive = path.join(self.zarr_dir, key+'.zarr')
+            if path.isdir(zarr_archive) and read_zarr:
+                ds = xr.open_zarr(zarr_archive, **kwargs)
+                # rechunk
+                if self.chunks[key]:
+                    ds = ds.chunk
             else:
-                _ds = self._create_xrDataset(key)
+                ds = self._open_netcdf(key, **kwargs)
             #
-            self.ds[key] = _ds
+            if persist:
+                ds = ds.persist()
+            #
+            self.ds[key] = ds
+            #
+            if self.verbose>1:
+                print("  {} - {:.1f} GB".format(key, ds.nbytes/1e9))
 
-    def _create_xrDataset(self, key):
+    def _open_netcdf(self, key, **kwargs):
         # Helper function to synthesise inputs and call xarray
         assert len(self.nc_files[key]) > 0, \
                 'No output with key {} to be found'.format(key)
         ncset = self.nc_files[key]
         tdir = [x[0] for x in ncset]
-        offsets = self.t0.copy()
-        files = [join(self.dirname, x[0], x[1]) for x in ncset]
-        datasets = []
+        files = [path.join(self.dirname, x[0], x[1]) for x in ncset]
+        data_files = []
         for f, td in zip(files, tdir):
             if 'grid' in f:
-                ds = xr.open_dataset(f, drop_variables=["x_rho","y_rho", \
-                                                         "x_psi","y_psi"])
+                _blacklist = ["x_rho", "y_rho", "x_psi", "y_psi"]
+                ds = xr.open_dataset(f, drop_variables= _blacklist)
                 ds = self._adjust_grid(ds)
                 return ds
             else:
-                try:
-                    # chunks should be an option
-                    ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[key],
-                                                    's_rho': 1})
-                except ValueError:
-                    try:
-                        ds = xr.open_dataset(f, chunks={'time_counter': self._chunk_time[key]})
-                    except ValueError:
-                        ds = xr.open_dataset(f)
-                if 'time_counter' in ds:
-                    t0 = pd.Timestamp(ds.time_counter.time_origin).to_datetime64()
-                    _timevars = (t for t in ['time_counter', 'time_center', 'time_instant'] if t in ds)
-                    for tvar in _timevars:
-                        t = ds[tvar]
-                        t = ((t-t0)/np.timedelta64(1, 's') + offsets[td])*second2day
-                        ds[tvar] = t
-                # drop coordinates for easier concatenation
-                #ds = ds.drop([k for k in ds.coords \
-                #                if k not in ['time_counter','time_centered']])
-                datasets.append(ds)
-        ds = xr.concat(datasets, dim='time_counter',
-                       coords='minimal', compat='override')
+                data_files.append(f)
+        #
+        def _preprocess_nc_file(ds):
+            fname = ds.encoding['source']
+            td = fname.split('/')[-2]
+            if 'time_counter' in ds:
+                t0 = pd.Timestamp(ds.time_counter.time_origin).to_datetime64()
+                _timevars = (t for t in ['time_counter', 'time_center', 'time_instant'] 
+                             if t in ds)
+                for tvar in _timevars:
+                    t = ds[tvar]
+                    t = ((t-t0)/np.timedelta64(1, 's') + self.t0[td])*second2day
+                    ds[tvar] = t
+            return ds
+        # load one file to figure out dimensions
+        ds = xr.open_dataset(data_files[0])
+        _chunks = {d:c for d, c in self.chunks[key].items() if d in ds.dims}
+        #
+        open_kwargs = {'concat_dim': 'time_counter',
+                       'combine': 'nested',
+                       'coords': 'minimal',
+                       'parallel': False,
+                       'compat': 'override'}
+        open_kwargs.update(**kwargs)
+        ds = xr.open_mfdataset(data_files,
+                               preprocess=_preprocess_nc_file,
+                               chunks=_chunks,
+                               **open_kwargs
+                              )
+        #
         ds = ds.rename_dims({'time_counter':'time'})
         ds = ds.set_coords([c for c in ds.data_vars if 'time' in c])
         ds = self._adjust_grid(ds)
         return ds
-
+    
+    def _sort_out_chunks(self, chunks):
+        """ sort out chunks for all outputs
+        """
+        if 'default' in chunks:
+            _default_chunks = chunks['default']
+        else:
+            _default_chunks = {}
+        # initiate all time chunks to default value
+        self.chunks = {nc:_default_chunks for nc in self.outputs}
+        # overwrite with prescribed values
+        for key in chunks:
+            if key in self.outputs and key is not 'default':
+                self.chunks[key] = chunks[key]
+                
     def _read_input_params(self):
         """
         Short function to find parameters from a croco run directory.
         Currently we only examine croco.in.
         """
         # Read croco.in to extract parameters
-        romsfile=join(self.dirname, self.segs[0], "croco.in")
-        if isfile(romsfile):
+        romsfile=path.join(self.dirname, self.segs[0], "croco.in")
+        if self.verbose>0:
+            print('Parameters detected in croco.in :')
+        if path.isfile(romsfile):
             f = open(romsfile)
             pline=[] #previous line
             params = {}
             for line in iter(f):
                 if 'time_stepping:' in pline:
                     params['dt']=tofloat(line.split()[1])
-                    if self.verbose:
-                        print("Detected time step of " + str(params['dt']) + " s")
+                    if self.verbose>0:
+                        print("  time step = " + str(params['dt']) + " s")
                 elif 'S-coord:' in pline:
                     tmp = [tofloat(x) for x in line.split()]
                     params['theta_s'], params['theta_b'] = tmp[0], tmp[1]
                     params['Hc'] = tmp[2]
-                    if self.verbose:
-                        print("Detected theta_s = " + str(params['theta_s']))
-                        print("Detected theta_b = " + str(params['theta_b']))
-                        print("Detected Hc = " + str(params['Hc']) + " m")
+                    if self.verbose>1:
+                        print("  theta_s = " + str(params['theta_s']))
+                        print("  theta_b = " + str(params['theta_b']))
+                        print("  Hc = " + str(params['Hc']) + " m")
                 elif 'rho0:' in pline:
                     params['rho0']=tofloat(line.split()[0])
-                    if self.verbose:
-                        print("Detected rho0 = " + str(params['rho0']) + " kg/m^3")
+                    if self.verbose>1:
+                        print("  rho0 = " + str(params['rho0']) + " kg/m^3")
                 pline=line
             f.close()
             self.params_input = params
@@ -303,8 +344,10 @@ class Run(object):
         self.params_output = dict()
         n=0
         nbstats=None
+        if self.verbose>0:
+            print('Parameters detected in output.mpi :')
         for ii, cfile in enumerate(self.log_files):
-            f = open(join(self.dirname, cfile[0], cfile[1]))
+            f = open(path.join(self.dirname, cfile[0], cfile[1]))
             search = False
             firstline = True
             skipfirstline = ii>0
@@ -312,8 +355,8 @@ class Run(object):
             for line in iter(f):
                 if ii==0 and 'hmax' in pline and 'grdmin' in pline:
                     self.H=tofloat(line.split()[1])
-                    if self.verbose:
-                        print("Detected H = " + str(self.H) + " m")
+                    if self.verbose>1:
+                        print("  H = " + str(self.H) + " m")
                 if 'MAIN' in line and 'started' in line:
                     search = True # Enable conversions
                 if 'MAIN' in line and 'DONE' in line:
@@ -331,9 +374,10 @@ class Run(object):
                     statnames = line.split()
                     nbstats = len(statnames)
                     statdata  = np.empty([5000,nbstats])
-                    if self.verbose:
-                        print("Found " + str(len(statnames)) + " columns in output.mpi:")
-                        print(statnames)
+                    if self.verbose>1:
+                        print("  Found " + str(len(statnames)) + " columns in output.mpi:")
+                        for _s in statnames:
+                            print('    {}'.format(_s))
                 elif search and len(line.split())==nbstats and not 'STEP' in line:
                     if firstline:
                         # record the model starting offset
@@ -487,7 +531,7 @@ class Run(object):
         if 'h' not in list(ds.data_vars):
             ds['h']=(['y_rho','x_rho'],  self.H*np.ones((self.M,self.L)))
 
-        if self.verbose:
+        if self.verbose>0:
             print("Grid size: (L ,M, N) = (" + str(self.L) + ", " + str(self.M) + ", " + str(self.N) + ")")
 
         # Create xgcm grid
@@ -515,10 +559,15 @@ class Run(object):
     def _is_zarr_archive(self, key):
         """ Utils, test existence of a zarr archive
         """
-        zarr_archive = join(self.zarr_dir, key+'.zarr')
-        return isdir(zarr_archive)
+        zarr_archive = path.join(self.zarr_dir, key+'.zarr')
+        return path.isdir(zarr_archive)
 
-    def store_zarr(self, chunks={}, auto_chunks=True, **kwargs):
+    def store_zarr(self, 
+                   chunks={}, 
+                   auto_rechunk=True, 
+                   tdir_max_overwrite=False,
+                   return_ds=False,
+                   **kwargs):
         """ writes data in zarr archives
         
         Parameters
@@ -526,10 +575,19 @@ class Run(object):
         chunks: dict, optional
             Dictionary with output keys as keys and dimension chunk sizes 
             as values
+        auto_rechunk: boolean, optional
+            Activate automatic rechunking which will ensure chunks are larger than
+            _chunk_size_threshold (see postp.py). Default is True.
+        tdir_max_overwrite: boolean, optional
+            Allows creating zarr archives that do not consider the full run.
+        return_ds: boolean, optional
+            Skip writing to disk and return a dictionary of datasets, along with
+            options for file writing
+            (debug feature that should disapear)
         **kwargs:
             Passed to xr.to_zarr method
         """
-        assert len(self.segs)==len(self.segs_avail), \
+        assert tdir_max_overwrite or len(self.segs)==len(self.segs_avail), \
             'Cannot store zarr archives if the full dataset is not loaded.' \
             +'Reload without limiting tdir_max.'
         D = {}
@@ -539,8 +597,8 @@ class Run(object):
             #
             if key in chunks:
                 ds = ds.chunk(chunks[key])
-            elif auto_chunks:
-                ds = auto_rechunk(ds)
+            elif auto_rechunk:
+                ds = _auto_rechunk(ds)
             # loop around vars, coords to check chunk sizes
             for k, da in ds.items(): # data_vars
                 _check_chunks_sizes(da)
@@ -548,16 +606,26 @@ class Run(object):
                 _check_chunks_sizes(da)
             # datasets are first collected in a list
             D[key] = ds
+        D_out={}
         for key, ds in D.items():
-            zarr_archive = join(self.zarr_dir, key+'.zarr')
+            zarr_archive = path.join(self.zarr_dir, key+'.zarr')
             # need to get rid of several variables whose (time) units crashes to_zarr
             _to_delete = ['time_centered', 'time_centered_bounds', 
                           'time_counter_bounds', 'time_instant_bounds']
             for v in _to_delete:
                 if v in ds:
                     del ds[v]
-            ds.to_zarr(zarr_archive, **kwargs)
-            print('{} stored in {}'.format(key, zarr_archive))
+            # fix encoding inplace for nonchunked data
+            _fix_nochunk_encoding(ds)
+            #
+            if return_ds:
+                D_out[zarr_archive] = ds
+            else:
+                ds.to_zarr(zarr_archive, **kwargs)
+                print('- {} stored'.format(key))
+                print_zarr_archive_info(zarr_archive)
+        if return_ds:
+            return D_out, kwargs
             
     def delete_nc(self, outputs=None, test=True):
         """ Delete netcdf files if zarr corresponding zarr archives have
@@ -574,9 +642,9 @@ class Run(object):
             # check there is a corresponding zarr archive
             assert self._is_zarr_archive(key), \
                     '{} output has not been converted to zarr'.format(key)
-            files = [join(self.dirname, x[0], x[1]) for x in self.nc_files[key]]
+            files = [path.join(self.dirname, x[0], x[1]) for x in self.nc_files[key]]
             for f in files:
-                if isfile(f):
+                if path.isfile(f):
                     if not test:
                         os.remove(f)
                     print('{} deleted'.format(f))
@@ -620,14 +688,14 @@ class Run(object):
         elif isinstance(data, xr.Dataset):
             success=False
             if file_format is None or file_format.lower() in ['zarr', '.zarr']:
-                _file = join(_dir, name+'.zarr')
+                _file = path.join(_dir, name+'.zarr')
                 write_kwargs = dict(kwargs)
                 if overwrite:
                     write_kwargs.update({'mode': 'w'})
                 _move_singletons_as_attrs(data).to_zarr(_file, **write_kwargs)
                 success=True
             elif file_format.lower() in ['nc', 'netcdf']:
-                _file = join(_dir, name+'.nc')
+                _file = path.join(_dir, name+'.nc')
                 write_kwargs = dict(kwargs)
                 if overwrite:
                     write_kwargs.update({'mode': 'w'})
@@ -653,7 +721,7 @@ class Run(object):
         """
         _dir = _check_diagnostic_directory(directory, self.dirname)
         # find the diagnostic file
-        _file = glob(join(_dir,name+'.*'))
+        _file = glob(path.join(_dir,name+'.*'))
         assert len(_file)==1, 'More that one diagnostic file {}'.format(_file)
         _file = _file[0]
         # get extension
@@ -723,7 +791,7 @@ class Run(object):
         **kwargs: passed to to_zarr
         """
         _dir = _check_diagnostic_directory(directory, self.dirname, create=True)
-        file_path = join(_dir, name+'.zarr')
+        file_path = path.join(_dir, name+'.zarr')
         return vmodes.store(file_path, projections=projections, **kwargs)
         
     #   load:
@@ -742,7 +810,7 @@ class Run(object):
         """
         from .vmodes import load_vmodes as load_vm
         _dir = _check_diagnostic_directory(directory, self.dirname, create=False)
-        file_path = join(_dir, name+'.zarr')
+        file_path = path.join(_dir, name+'.zarr')
         return load_vm(file_path, self.xgrid, persist=persist)
 
 def _compute_metrics(ds):
@@ -784,7 +852,7 @@ def _compute_metrics(ds):
 def _check_file_overwrite(file, overwrite):
     """ Check whether one can overwrite a file, return False otherwise
     """
-    _isfile = isfile(file)
+    _isfile = path.isfile(file)
     if not _isfile or (_isfile and overwrite):
         return True
     else:
@@ -797,16 +865,16 @@ def _check_diagnostic_directory(directory, dirname,
     """ Check existence of a directory and create it if necessary
     """
     # create diagnostics dir if not present
-    if isdir(directory):
+    if path.isdir(directory):
         # directory is an absolute path
         _dir = directory
-    elif isdir(join(dirname, directory)):
+    elif path.isdir(path.join(dirname, directory)):
         # directory is relative
-        _dir = join(dirname, directory)
+        _dir = path.join(dirname, directory)
     else:
         if create:
             # need to create the directory
-            _dir = join(dirname, directory)
+            _dir = path.join(dirname, directory)
             os.mkdir(_dir)
             print('Create new diagnostic directory {}'.format(_dir))
         else:
@@ -848,7 +916,7 @@ def _get_averaged_chunk_size(da):
         chunk_size = total_size
     return chunk_size, total_size
 
-def auto_rechunk_da(da):
+def _auto_rechunk_da(da):
     dims = ['x_rho', 'x_u', 'y_rho', 'y_v', 's_rho', 's_w', 'time']
     for d in dims:
         # gather da number of elements and chunk sizes
@@ -858,18 +926,68 @@ def auto_rechunk_da(da):
             break
         # rechunk along dimenion d
         if (d in da.dims) and averaged_chunk_size<_chunk_size_threshold:
-            dim_chunk_size = np.median(da.chunks[da.get_axis_num(d)])
+            dim_chunk_size = np.max(da.chunks[da.get_axis_num(d)])
             # simple rule of 3
-            new_chunk_size = int(dim_chunk_size) \
-                        * (np.ceil(_chunk_size_threshold/averaged_chunk_size))
+            factor = max(1, np.ceil(_chunk_size_threshold/averaged_chunk_size))
+            new_chunk_size = int( dim_chunk_size * factor )
             # bounded by dimension size
             new_chunk_size = min(da[d].size, new_chunk_size)
             da = da.chunk({d: new_chunk_size})
     return da
 
-def auto_rechunk(ds):
+def _auto_rechunk(ds):
     for k, da in ds.items(): # data_vars
-        ds = ds.assign(**{k: auto_rechunk_da(da)})
+        ds = ds.assign(**{k: _auto_rechunk_da(da)})
     for k, da in ds.coords.items():
-        ds = ds.assign_coords(**{k: auto_rechunk_da(da)})
+        ds = ds.assign_coords(**{k: _auto_rechunk_da(da)})
     return ds
+
+def _get_dir_size(dir_path):
+    ''' Returns the size of a directory in bytes
+    '''
+    process = os.popen('du -s '+dir_path)
+    size = int(process.read().split()[0]) # du returns kb
+    process.close()
+    return size*1e3
+
+def print_zarr_archive_info(zarr_archive):
+    """ Print basic information about a zarr archive
+    """
+    print('  location: {} '.format(zarr_archive))
+    # get archive size
+    arch_size = _get_dir_size(zarr_archive)
+    print('  size:     {:.1f} GB'.format(arch_size/1e9))
+    #
+    ds = xr.open_zarr(zarr_archive)
+    # get largest item typical chunks
+    n_dim_max = 0
+    for v in ds:
+        if ds[v].chunks and ds[v].ndim>n_dim_max:
+            _size = list(ds[v].sizes.values())
+            _chunks = [np.max(d) for d in ds[v].chunks]
+            n_dim_max = ds[v].ndim
+    if n_dim_max>0:
+        print('  typical chunks: ('
+              +','.join('{}'.format(c) for c in _chunks)
+              +') for size ('
+              +','.join('{}'.format(c) for c in _size)
+              +')'
+             )
+    else:
+        print('  data is not chunked')
+        
+def _fix_nochunk_encoding(da):
+    ''' Fix in place the encoding for nonchunked arrays such that zarr 
+    writing does not automatically chunked arrays.
+    
+    Parameters
+    ----------
+    da: xr.DataArray, xr.Dataset
+        variable or dataset to fix
+    '''
+    if isinstance(da, xr.Dataset):
+        for v in da:
+            _fix_nochunk_encoding(da[v])
+    if isinstance(da, xr.DataArray):
+        if not da.chunks:
+            da.encoding['chunks'] = -1
