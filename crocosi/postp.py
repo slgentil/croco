@@ -36,11 +36,11 @@ class Run(object):
                  outputs=[],
                  read_zarr=True,
                  tdir_max=0,
-                 grid_params={},
-                 grid_periodicity=False, 
                  chunks={},
                  open_kwargs={},
                  persist=False,
+                 grid_params={},
+                 grid_periodicity=False, 
                  verbose=0):
         """ Run object that gathers output and grid information
 
@@ -55,8 +55,18 @@ class Run(object):
             [prefix+nc+'*.nc' for nc in outputs]
             Default is to load no outputs, i.e. outputs is empty
             If 'all', all available outputs will be loaded
+        read_zarr: boolean, optional
+            Turn zarr file reading on/off. Default is True.
         tdir_max: int, optional
             Maximum run iteration loaded, default is 0
+        chunks: dict, optional
+            Chunks that will be either passed to file opener (netcdf) either
+            prescribed in a rechunking operation
+        open_kwargs: dict, optional
+            Keyword arguments passed to data opener (open_dataset, open_zarr)
+        persist: boolean, optional
+            Persists data into memory, you need to have enought memory to do that obviously
+            Default if False
         grid_params: dict, optional
             Relevant grid parameters: y0, beta, yr_beta
         grid_periodicity: boolean, list, optional
@@ -64,13 +74,6 @@ class Run(object):
             Whether the grid is periodic (i.e. "wrap-around"). If a list is
             specified (e.g. ``['xi', 'eta']``), the axis names in the list will be
             be periodic and any other axes founds will be assumed non-periodic.
-        chunk_time: int, optional
-            Time chunk size, default is 1.
-        open_kwargs: dict, optional
-            Keyword arguments passed to data opener (open_dataset, open_zarr)
-        persist: boolean, optional
-            Persists data into memory, you need to have enought memory to do that obviously
-            Default if False
         verbose: int, optional
             Prints different levels of information. 0 (minimal info) by default
             3 levels (0,1,2) at the moment
