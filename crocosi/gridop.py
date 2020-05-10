@@ -114,6 +114,80 @@ def hinterp(ds,var,coords=None):
 
 # --------------------------- depth coordinate ---------------------------------
 
+def get_cs_sigma(vtransform=None,
+                 theta_s=None, 
+                 theta_b=None,
+                 N=None, 
+                 vgrid='r',
+                 xarray=True):
+    """ get croco vertical grid auxilliary variables:
+    vertical stretching and sigma
+    
+    https://www.myroms.org/wiki/Vertical_S-coordinate
+    """
+    if xarray:
+        if vgrid=='r':
+            sigma = xr.DataArray(np.arange(-1.+1./(N+1),0., 1/(N+1)), dims='s_rho')
+        elif vgrid=='w':
+            sigma = xr.DataArray(np.arange(-1.,0., 1/(N+1)), dims='s_w')
+    else:
+        if vgrid=='r':
+            sigma = np.arange(-1.+1./(N+1),0., 1/(N+1))
+        elif vgrid=='w':
+            sigma = np.arange(-1.,0., 1/(N+1))
+    #
+    if vtransform == 1:
+        cs = (1-theta_b)*np.sinh(theta_s*sigma)/np.sinh(theta_s) \
+             + theta_b*0.5 \
+               *(np.tanh((sigma+0.5)*theta_s)/np.tanh(0.5*theta_s)-1.)
+    elif vtransform == 2:
+        #_sc = (sigma-N)/N
+        _sc = sigma
+        if theta_s>0:
+            csf = (1-np.cosh(theta_s*sigma)) / (np.cosh(theta_s)-1.)
+        else:
+            csf = -sigma**2
+        if theta_b>0:
+            cs = (np.exp(theta_s*csf)-1.) / (1-np.exp(-theta_b))
+        else:
+            cs = csf
+    return cs, sigma
+    
+def get_z_core(zeta, h, vtransform, hc,
+               sigma=None, cs=None,
+               **ckwargs):
+    """ Computes z grid
+    
+    Parameters
+    ----------
+    zeta: np.ndarray, xr.DataArray
+        sea level
+    h: np.ndarray, xr.DataArray
+        water depth
+    vtransform: int
+        vertical transform
+    hc: float
+        thickness parameter
+    sc: float, np.ndarray, xr.DataArray
+        sigma array (-1,0)
+    cs: float, np.ndarray, xr.DataArray
+        vertical stretching
+        
+    https://www.myroms.org/wiki/Vertical_S-coordinate
+    """
+    
+    if not cs and not sigma:
+        cs, sigma = get_cs_sigma(vtransform=vtransform, **ckwargs)
+
+    if vtransform == 1:
+        z0 = hc*sigma + (h-hc)*cs
+        z = z0 + (1+z0/h) * zeta
+    elif vtransform == 2:
+        z0 = (hc * sigma + h * cs) / (hc + h)
+        z = z0 * (zeta + h) + zeta
+
+    return z
+
 def get_z(run, zeta=None, h=None, vgrid='r', 
           hgrid=None, vtransform=None):
     ''' Compute vertical coordinates
@@ -175,12 +249,9 @@ def get_z(run, zeta=None, h=None, vgrid='r',
         cs = grid['Cs_'+vgrid]
 
     hc = run['Hc']
-    if vtransform == 1:
-        z0 = hc*sc + (_h-hc)*cs
-        z = z0 + (1+z0/_h) * _zeta
-    else:
-        z0 = (hc * sc + _h * cs) / (hc + _h)
-        z = z0 * (_zeta + _h) + _zeta
+    
+    z = get_z_core(zeta, h, vtransform, hc,
+                   sigma=sc, cs=cs)
     
     # reorder spatial dimensions and place them last
     sdims = list(_get_spatial_dims(z).values())

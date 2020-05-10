@@ -58,6 +58,7 @@ C$    integer omp_get_thread_num
 
 ! aponte stratif (
 # ifdef ITBALT
+      integer flag_ini
       real Nfreq, cff
       real delta_rho, H_tcline, H_mld
       real local_max_depth, max_depth
@@ -597,6 +598,10 @@ C$    integer omp_get_thread_num
 !  salinity [PSU].
 !
 
+      flag_ini=1
+      
+      call params_output('ini_flag', flag_ini)
+
       if ( flag_ini .eq. 0 ) then
       
 ! Vertically uniform stratification
@@ -609,32 +614,36 @@ C$    integer omp_get_thread_num
           enddo
         enddo
       enddo
+      
       call params_output('ini_N', Nfreq)
       
 ! Exponential stratification, tappered at the very surface
-      else if ( flag_ini .eq. 0 ) then
+      else if ( flag_ini .eq. 1 ) then
 
       local_max_depth = max(-z_w(0,:,:))
-      call MPI_allreduce(local_max_depth, max_depth,1,
-     &                   MPI_DOUBLE_PRECISION, MPI_MAX,MPI_COMM_WORLD,ierr)
-
+      call MPI_allreduce(local_max_depth, max_depth, 1,
+     &                   MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierr)
 
       delta_rho = 0.001
-      H_tcline = 0.15 * z_w(i,j,)
-      delta_rho, H_tcline, H_mld
-      cff = rho0/g
+      H_tcline = 0.15
+      H_mld = 100/max_depth
       do k=1,N
         do j=JR_RANGE
-          do i=IR_RANGE            
-            rho(i,j,k) = 
-            -(Nfreq)**2. * (z_r(i,j,k)) * cff
+          do i=IR_RANGE
+            cff = z_r(i,j,k)/max_depth
+            rho(i,j,k) = rho0 * 
+     &                     (1. 
+     &                      + delta_rho * (1- exp(cff/H_tcline ))
+     &                         * tanh(z/H_mld)**2
+     &                     )
           enddo
         enddo
       enddo
-      call params_output('ini_delta_rho', Nfreq)
-      call params_output('ini_H_tcline', Nfreq)
-      call params_output('ini_H_mld', Nfreq)
-      call params_output('ini_H', Nfreq)
+      
+      call params_output('ini_delta_rho', delta_rho)
+      call params_output('ini_H_tcline', H_tcline)
+      call params_output('ini_H_mld', H_mld)
+      call params_output('ini_H', max_depth)
 
       endif
 
