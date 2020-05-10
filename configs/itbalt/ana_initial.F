@@ -59,6 +59,8 @@ C$    integer omp_get_thread_num
 ! aponte stratif (
 # ifdef ITBALT
       real Nfreq, cff
+      real delta_rho, H_tcline, H_mld
+      real local_max_depth, max_depth
 # endif
 ! aponte stratif )
 ! aponte itide (
@@ -594,17 +596,57 @@ C$    integer omp_get_thread_num
 !  Set initial conditions for potential temperature [degC] and
 !  salinity [PSU].
 !
+
+      if ( flag_ini .eq. 0 ) then
+      
+! Vertically uniform stratification
       Nfreq = 2.e-3
-      cff = rho0/g  
+      cff = rho0/g
       do k=1,N
         do j=JR_RANGE
-          do i=IR_RANGE
+          do i=IR_RANGE            
             rho(i,j,k) = -(Nfreq)**2. * (z_r(i,j,k)) * cff
+          enddo
+        enddo
+      enddo
+      call params_output('ini_N', Nfreq)
+      
+! Exponential stratification, tappered at the very surface
+      else if ( flag_ini .eq. 0 ) then
+
+      local_max_depth = max(-z_w(0,:,:))
+      call MPI_allreduce(local_max_depth, max_depth,1,
+     &                   MPI_DOUBLE_PRECISION, MPI_MAX,MPI_COMM_WORLD,ierr)
+
+
+      delta_rho = 0.001
+      H_tcline = 0.15 * z_w(i,j,)
+      delta_rho, H_tcline, H_mld
+      cff = rho0/g
+      do k=1,N
+        do j=JR_RANGE
+          do i=IR_RANGE            
+            rho(i,j,k) = 
+            -(Nfreq)**2. * (z_r(i,j,k)) * cff
+          enddo
+        enddo
+      enddo
+      call params_output('ini_delta_rho', Nfreq)
+      call params_output('ini_H_tcline', Nfreq)
+      call params_output('ini_H_mld', Nfreq)
+      call params_output('ini_H', Nfreq)
+
+      endif
+
+      do k=1,N
+        do j=JR_RANGE
+          do i=IR_RANGE            
             t(i,j,k,1,itemp) = - (rho(i,j,k) - R0) / Tcoef + T0
             t(i,j,k,2,itemp) = t(i,j,k,1,itemp)
           enddo
         enddo
-      enddo  
+      enddo
+
 
 ! aponte density )
 
