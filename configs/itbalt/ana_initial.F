@@ -62,6 +62,14 @@ C$    integer omp_get_thread_num
       real Nfreq, cff
       real delta_rho, H_tcline, H_mld
       real local_max_depth, max_depth
+#ifdef MPI
+      include 'mpif.h'
+# include "mpi_cpl.h"
+      integer ierr
+!      integer size, step, status(MPI_STATUS_SIZE), ierr
+!      integer status(MPI_STATUS_SIZE), ierr
+!      integer rank_root
+#endif
 # endif
 ! aponte stratif )
 ! aponte itide (
@@ -620,7 +628,7 @@ C$    integer omp_get_thread_num
 ! Exponential stratification, tappered at the very surface
       else if ( flag_ini .eq. 1 ) then
 
-      local_max_depth = max(-z_w(0,:,:))
+      local_max_depth = maxval(-z_w(0,:,:))
       call MPI_allreduce(local_max_depth, max_depth, 1,
      &                   MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierr)
 
@@ -634,7 +642,7 @@ C$    integer omp_get_thread_num
             rho(i,j,k) = rho0 * 
      &                     (1. 
      &                      + delta_rho * (1- exp(cff/H_tcline ))
-     &                         * tanh(z/H_mld)**2
+     &                         * tanh(cff/H_mld)**2
      &                     )
           enddo
         enddo
