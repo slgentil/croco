@@ -9,6 +9,152 @@ import numpy as np
 from scipy.interpolate import interp1d
 from netCDF4 import Dataset
 
+
+# ------------------------------ join ------------------------------------------
+
+def join(run, tdir):
+    """ join rst files
+    
+    Parameters
+    ----------
+    run: str
+        Path to simulation
+    tdir: str
+        directory where restart files are, e.g. 't5/'
+    """
+
+    start = time.time()
+    #
+    
+    # input dir
+    inDir = os.path.join(run, tdir)
+    inFname = os.popen('ls '+inDir+'jetn_rst.*.nc').readlines()
+
+    # output file
+    outDir = os.path.join(run,'data_rst')
+    if not os.path.exists(outDir) :
+        os.mkdir(outDir)
+    outFname = os.path.join(outDir,'jetn_rst.nc')
+
+    # Ouverture d'un fichier Netcdf
+    nc = Dataset(inFname[0][:-1], 'r') 
+
+    #---------------------------------------------------
+    # get global variables
+    # get time
+    scrum_time = nc.variables['scrum_time'][:]
+    scrum_time_units = nc.variables['scrum_time'].units
+    # get time steps
+    time_step = nc.variables['time_step'][:]
+    # get partition
+    partition = nc.getncattr('partition')
+    np_xi = partition[2]
+    np_eta = partition[3]
+
+    #---------------------------------------------------
+    # get grid dimensions-lpython2.6 -lpthread -lm -lutil -ldl
+    # local dimensions, valid for an interior grid
+    xi_rho = len(nc.dimensions['xi_rho'])
+    eta_rho = len(nc.dimensions['eta_rho'])
+    s_rho = len(nc.dimensions['s_rho'])
+    # compute output global sizes
+    out_Lm = (xi_rho - 1) * np_xi
+    out_Mm = (eta_rho - 1) * np_eta
+    out_N = s_rho
+
+    nc.close()
+
+    # create output file-lpython2.6 -lpthread -lm -lutil -ldl
+    ncid = Dataset(outFname, 'w', format='NETCDF4')
+
+    # define dimensions
+    ncid.createDimension('xi_rho', out_Lm + 2)
+    ncid.createDimension('xi_u', out_Lm + 1)
+    ncid.createDimension('eta_rho', out_Mm + 2)
+    ncid.createDimension('eta_v', out_Mm + 1)
+    ncid.createDimension('s_rho', out_N)
+    ncid.createDimension('s_w', out_N + 1)
+    out_time = ncid.createDimension('time', None)
+    ncid.createDimension('auxil', 4)
+
+    # define variables
+    out_scrum_time = ncid.createVariable('scrum_time', 'f8', ('time',))
+    out_scrum_time.units = scrum_time_units
+    out_timestep = ncid.createVariable('time_step', 'i4', ('auxil',))
+
+    out_zeta = ncid.createVariable('zeta', 'f8', ('time', 'eta_rho', 'xi_rho',))
+    out_ubar = ncid.createVariable('ubar', 'f8', ('time', 'eta_rho', 'xi_u',))
+    out_vbar = ncid.createVariable('vbar', 'f8', ('time', 'eta_v', 'xi_rho',))
+
+    out_temp = ncid.createVariable('temp', 'f8', ('time', 's_rho', 'eta_rho', 'xi_rho',))
+    out_u = ncid.createVariable('u', 'f8', ('time', 's_rho', 'eta_rho', 'xi_u',))
+    out_v = ncid.createVariable('v', 'f8', ('time', 's_rho', 'eta_v', 'xi_rho',))
+
+    # global variable for ncjoin
+    ncid.partition = partition
+
+    # store time related values
+    out_scrum_time[:] = scrum_time
+    out_timestep[:] = time_step
+
+    # loop around out grid subblocks
+    j0r = 0
+    j0v = 0
+    for jj in range(0, np_eta):
+
+        i0r = 0
+        i0u = 0 
+        for ii in range(0, np_xi):
+
+           mynode = (jj * np_xi) + ii
+
+           # open mynode input file
+           print('Tile ' + str(mynode))
+           nc = Dataset(inFname[mynode][:-1], 'r') 
+
+           # get grid dimensions
+           xi_rho = len(nc.dimensions['xi_rho'])
+           xi_u = len(nc.dimensions['xi_u'])
+           eta_rho = len(nc.dimensions['eta_rho'])
+           eta_v = len(nc.dimensions['eta_v'])
+           s_rho = len(nc.dimensions['s_rho'])
+
+           # load and store in output file
+
+           # zeta
+           zeta = nc.variables['zeta'][:]
+           out_zeta[:, j0r:j0r + eta_rho, i0r:i0r + xi_rho] = zeta
+           # ubar
+           ubar = nc.variables['ubar'][:]
+           out_ubar[:, j0r:j0r + eta_rho, i0u:i0u + xi_u] = ubar
+           # vbar
+           vbar = nc.variables['vbar'][:]
+           out_vbar[:, j0v:j0v + eta_v, i0r:i0r + xi_rho] = vbar
+           # u
+           u = nc.variables['u'][:]
+           out_u[:, :, j0r:j0r + eta_rho, i0u:i0u + xi_u] = u
+           # v
+           v = nc.variables['v'][:]
+           out_v[:, :, j0v:j0v + eta_v, i0r:i0r + xi_rho] = v
+           # temp
+           temp = nc.variables['temp'][:]
+           out_temp[:, :, j0r:j0r + eta_rho, i0r:i0r + xi_rho] = temp
+
+           nc.close()
+
+           # update indices
+           i0r = i0r + xi_rho
+           i0u = i0u + xi_u
+
+        # update indices
+        j0r = j0r + eta_rho
+        j0v = j0v + eta_v
+
+    # close new tile file
+    ncid.close()
+    print(outFname + ' created')
+    print('Elapsed time is ', str(time.time() - start))
+
 # ------------------------------ interp  ---------------------------------------
 
 #
@@ -53,24 +199,20 @@ from netCDF4 import Dataset
 #      u(1) is in between eta(1) and eta(2) !!!! check ????
 #
 
-def interp_mpi(out_np_xi, out_np_eta)
+def interp(run, out_np_xi, out_np_eta):
 
-    out_np_xi = int(sys.argv[1])
-    out_np_eta = int(sys.argv[2])
     print('NP_XI = ',out_np_xi,' NP_ETA = ',out_np_eta)
         
     start = time.time()
-        
-    # number of mpi blocks in each direction
-    #out_np_xi=?
-    #out_np_eta=?
 
-    # input variable
-    # restart file joined with rst_join.py
-    inFname='./data_rst/jetn_rst.nc'
+    # input dir
+    inDir = os.path.join(run,'data_rst')
+    inFname = os.path.join(inDir,'jetn_rst.nc')
 
     # output file
-    outFname='./data_rst/jetn_rst.'
+    outDir = inDir
+    outFname = os.path.join(outDir,'jetn_rst.')
+    #outFname='./data_rst/jetn_rst.'
 
     # interpolation method
     interp_method='linear';
@@ -89,8 +231,8 @@ def interp_mpi(out_np_xi, out_np_eta)
     # compute output global Lm dimensions
     out_LLm=in_LLm*2
     out_MMm=in_MMm*2
-    out_Lm=out_LLm/out_np_xi
-    out_Mm=out_MMm/out_np_eta
+    out_Lm=int(out_LLm/out_np_xi)
+    out_Mm=int(out_MMm/out_np_eta)
     out_N=in_N*2
 
     # compute global grid
@@ -125,7 +267,7 @@ def interp_mpi(out_np_xi, out_np_eta)
         for ii in range(0,out_np_xi):
             
             mynode = (jj * out_np_xi) + ii
-            print('Tile =',mynode)
+            print('Tile = {} / {}'.format(mynode, out_np_eta*out_np_xi))
             
             # calculate offset of out subblock in global domain
             iminmpiu=(ii*out_Lm)
@@ -291,16 +433,6 @@ def interp_mpi(out_np_xi, out_np_eta)
 #      u(1) is in between eta(1) and eta(2) !!!! check ????
 #
 
-import sys
-import os
-
-import numpy as np
-import time
-
-from netCDF4 import Dataset
-
-import myinterp as my
-
 def interp_mpi(out_np_xi, out_np_eta):
     
     from mpi4py import MPI
@@ -375,7 +507,7 @@ def interp_mpi(out_np_xi, out_np_eta):
             mynode = (jj * out_np_xi) + ii
     #        print 'Tile =',mynode
     #        if (np.mod(mynode+1,size)==myrank):
-            print 'Tile =',mynode,myrank
+            print('Tile =',mynode,myrank)
 
             # calculate offset of out subblock in global domain
             iminmpiu=(ii*out_Lm)
@@ -498,145 +630,6 @@ def interp_mpi(out_np_xi, out_np_eta):
     print('Elapsed time is ',str(time.time() - start))
 
 
-# ------------------------------ join ------------------------------------------
-
-def rst_join():
-
-	start = time.time()
-	#
-	# input file
-	pwd = os.getcwd()
-
-	inFname = os.popen('ls jetn_rst.*.nc').readlines()  
-	#   for file in (listfiles): 
-	# 	  shutil.copy(file[:-1],'backup')
-
-	# output file
-	outFname = './data_rst/jetn_rst.nc'
-	if os.path.exists('./data_rst') :
-		print('rm')
-		# os.system('rm -Rf ./data_rst/*')
-	else :
-		os.mkdir('./data_rst')
-
-	# Ouverture d'un fichier Netcdf
-	nc = Dataset(inFname[0][:-1], 'r') 
-
-	#---------------------------------------------------
-	# get global variables
-	# get time
-	scrum_time = nc.variables['scrum_time'][:]
-	scrum_time_units = nc.variables['scrum_time'].units
-	# get time steps
-	time_step = nc.variables['time_step'][:]
-	# get partition
-	partition = nc.getncattr('partition')
-	np_xi = partition[2]
-	np_eta = partition[3]
-
-	#---------------------------------------------------
-	# get grid dimensions-lpython2.6 -lpthread -lm -lutil -ldl
-	# local dimensions, valid for an interior grid
-	xi_rho = len(nc.dimensions['xi_rho'])
-	eta_rho = len(nc.dimensions['eta_rho'])
-	s_rho = len(nc.dimensions['s_rho'])
-	# compute output global sizes
-	out_Lm = (xi_rho - 1) * np_xi
-	out_Mm = (eta_rho - 1) * np_eta
-	out_N = s_rho
-
-	nc.close()
-
-	# create output file-lpython2.6 -lpthread -lm -lutil -ldl
-	ncid = Dataset(outFname, 'w', format='NETCDF4')
-	 
-	# define dimensions
-	ncid.createDimension('xi_rho', out_Lm + 2)
-	ncid.createDimension('xi_u', out_Lm + 1)
-	ncid.createDimension('eta_rho', out_Mm + 2)
-	ncid.createDimension('eta_v', out_Mm + 1)
-	ncid.createDimension('s_rho', out_N)
-	ncid.createDimension('s_w', out_N + 1)
-	out_time = ncid.createDimension('time', None)
-	ncid.createDimension('auxil', 4)
-
-	# define variables
-	out_scrum_time = ncid.createVariable('scrum_time', 'f8', ('time',))
-	out_scrum_time.units = scrum_time_units
-	out_timestep = ncid.createVariable('time_step', 'i4', ('auxil',))
-
-	out_zeta = ncid.createVariable('zeta', 'f8', ('time', 'eta_rho', 'xi_rho',))
-	out_ubar = ncid.createVariable('ubar', 'f8', ('time', 'eta_rho', 'xi_u',))
-	out_vbar = ncid.createVariable('vbar', 'f8', ('time', 'eta_v', 'xi_rho',))
-
-	out_temp = ncid.createVariable('temp', 'f8', ('time', 's_rho', 'eta_rho', 'xi_rho',))
-	out_u = ncid.createVariable('u', 'f8', ('time', 's_rho', 'eta_rho', 'xi_u',))
-	out_v = ncid.createVariable('v', 'f8', ('time', 's_rho', 'eta_v', 'xi_rho',))
-
-	# global variable for ncjoin
-	ncid.partition = partition
-
-	# store time related values
-	out_scrum_time[:] = scrum_time
-	out_timestep[:] = time_step
-
-	# loop around out grid subblocks
-	j0r = 0
-	j0v = 0
-	for jj in range(0, np_eta):
-		
-		i0r = 0
-		i0u = 0 
-		for ii in range(0, np_xi):
-		   mynode = (jj * np_xi) + ii
-		   
-		   # open mynode input file
-		   print 'Tile ' + str(mynode)
-		   nc = Dataset(inFname[mynode][:-1], 'r') 
-		   
-		   # get grid dimensions
-		   xi_rho = len(nc.dimensions['xi_rho'])
-		   xi_u = len(nc.dimensions['xi_u'])
-		   eta_rho = len(nc.dimensions['eta_rho'])
-		   eta_v = len(nc.dimensions['eta_v'])
-		   s_rho = len(nc.dimensions['s_rho'])
-
-		   # load and store in output file
-
-		   # zeta
-		   zeta = nc.variables['zeta'][:]
-		   out_zeta[:, j0r:j0r + eta_rho, i0r:i0r + xi_rho] = zeta
-		   # ubar
-		   ubar = nc.variables['ubar'][:]
-		   out_ubar[:, j0r:j0r + eta_rho, i0u:i0u + xi_u] = ubar		  
-		   # vbar
-		   vbar = nc.variables['vbar'][:]
-		   out_vbar[:, j0v:j0v + eta_v, i0r:i0r + xi_rho] = vbar			 
-		   # u
-		   u = nc.variables['u'][:]
-		   out_u[:, :, j0r:j0r + eta_rho, i0u:i0u + xi_u] = u
-		   # v
-		   v = nc.variables['v'][:]
-		   out_v[:, :, j0v:j0v + eta_v, i0r:i0r + xi_rho] = v			
-		   # temp
-		   temp = nc.variables['temp'][:]	   
-		   out_temp[:, :, j0r:j0r + eta_rho, i0r:i0r + xi_rho] = temp	 
-
-		   nc.close()
-		   
-		   # update indices
-		   i0r = i0r + xi_rho
-		   i0u = i0u + xi_u
-
-
-		# update indices
-		j0r = j0r + eta_rho
-		j0v = j0v + eta_v
-
-	# close new tile file
-	ncid.close()
-	print(outFname + ' created')
-	print('Elapsed time is ', str(time.time() - start))
 
 # ------------------------------ utils -----------------------------------------
 
@@ -707,7 +700,7 @@ def ncdump(nc_fid, verb=True):
     nc_dims = [dim for dim in nc_fid.dimensions]  # list of nc dimensions
     # Dimension shape information.
     if verb:
-        print "NetCDF dimension information:"
+        print("NetCDF dimension information:")
         for dim in nc_dims:
             print("\tName:", dim )
             print("\t\tsize:", len(nc_fid.dimensions[dim]))
