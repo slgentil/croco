@@ -695,7 +695,9 @@ class Run(object):
                 write_kwargs = dict(kwargs)
                 if overwrite:
                     write_kwargs.update({'mode': 'w'})
-                _move_singletons_as_attrs(data).to_zarr(_file, **write_kwargs)
+                data = _move_singletons_as_attrs(data)
+                data = _reset_chunk_encoding(data)
+                data.to_zarr(_file, **write_kwargs)
                 success=True
             elif file_format.lower() in ['nc', 'netcdf']:
                 _file = path.join(_dir, name+'.nc')
@@ -994,3 +996,23 @@ def _fix_nochunk_encoding(da):
     if isinstance(da, xr.DataArray):
         if not da.chunks:
             da.encoding['chunks'] = -1
+            
+def _reset_chunk_encoding(ds):
+    ''' Delete chunks from variables encoding. 
+    This may be required when loading zarr data and rewriting it with different chunks
+    
+    Parameters
+    ----------
+    ds: xr.DataArray, xr.Dataset
+        Input data
+    '''
+    if isinstance(ds, xr.DataArray):
+        return _reset_chunk_encoding(ds.to_dataset()).to_array()
+    #
+    for v in ds.coords:
+        if 'chunks' in ds[v].encoding:
+            del ds[v].encoding['chunks']
+    for v in ds:
+        if 'chunks' in ds[v].encoding:
+            del ds[v].encoding['chunks']
+    return ds

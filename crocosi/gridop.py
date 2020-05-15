@@ -114,12 +114,7 @@ def hinterp(ds,var,coords=None):
 
 # --------------------------- depth coordinate ---------------------------------
 
-def get_cs_sigma(vtransform=None,
-                 theta_s=None, 
-                 theta_b=None,
-                 N=None, 
-                 vgrid='r',
-                 xarray=True):
+def get_cs_sigma(vtransform, theta_s, theta_b, N, vgrid, xarray):
     """ get croco vertical grid auxilliary variables:
     vertical stretching and sigma
     
@@ -153,9 +148,10 @@ def get_cs_sigma(vtransform=None,
             cs = csf
     return cs, sigma
     
-def get_z_core(zeta, h, vtransform, hc,
+def get_z_core(zeta, h, vtransform, hc, 
                sigma=None, cs=None,
-               **ckwargs):
+               theta_s=None, theta_b=None, N=None, vgrid=None,
+               xarray=True):
     """ Computes z grid
     
     Parameters
@@ -175,9 +171,9 @@ def get_z_core(zeta, h, vtransform, hc,
         
     https://www.myroms.org/wiki/Vertical_S-coordinate
     """
-    
-    if not cs and not sigma:
-        cs, sigma = get_cs_sigma(vtransform=vtransform, **ckwargs)
+
+    if cs is None and sigma is None:
+        cs, sigma = get_cs_sigma(vtransform, theta_s, theta_b, N, vgrid, xarray)
 
     if vtransform == 1:
         z0 = hc*sigma + (h-hc)*cs
@@ -230,7 +226,7 @@ def get_z(run, zeta=None, h=None, vgrid='r',
     
     # determine what kind of vertical corrdinate we are using (NEW_S_COORD)
     if vtransform is None:
-        vtransform = grid.Vtransform.values
+        vtransform = int(grid.Vtransform)
     else:
         if isinstance(vtransform, str):
             if vtransform.lower()=="old":
@@ -250,8 +246,7 @@ def get_z(run, zeta=None, h=None, vgrid='r',
 
     hc = run['Hc']
     
-    z = get_z_core(zeta, h, vtransform, hc,
-                   sigma=sc, cs=cs)
+    z = get_z_core(_zeta, _h, vtransform, hc, sigma=sc, cs=cs)
     
     # reorder spatial dimensions and place them last
     sdims = list(_get_spatial_dims(z).values())
