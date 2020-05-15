@@ -1278,7 +1278,7 @@
 !             FCn(i,k,nmode) = Atide_mode(nmode) * (
              FCn(i,k,nmode) = (
      &              phiuv(k,nmode)
-     &             + (phiuv(k-1,nmode)-phiuv(k-1,nmode))
+     &             + (phiuv(k,nmode)-phiuv(k-1,nmode))
      &               /(zr_vmodes(k)-zr_vmodes(k-1))
      &               *(z_r(i,j,k)-zr_vmodes(k)) )
           enddo

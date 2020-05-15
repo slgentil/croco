@@ -1,4 +1,27 @@
 
+
+# 1000d runs
+iodef_low.xml
+tide off in croco.in
+floats off in cppdefs.h, recompile
+python chain_datarmor.py jet_cfg1_wp4_4km_0a1000j 10 03:00:00 4 j4 0
+python chain_datarmor.py jet_cfg1_wp5_4km_0a1000j 10 03:00:00 4 j5 0
+etc
+
+# 500d run, no tide
+iodef_high.xml
+tide off in croco.in
+floats on in cppdefs.h, recompile
+python chain_datarmor.py jet_cfg1_wp6_4km_500a1000j 5 04:00:00 4 j60 1
+
+# with tide
+iodef_high.xml
+tide on in croco.in
+floats on in cppdefs.h, recompile
+python chain_datarmor.py jet_cfg1_wp6_m1_4km_500a1000j 5 04:00:00 4 j61 1
+python chain_datarmor.py jet_cfg1_wp6_m2_4km_500a1000j 5 04:00:00 4 j62 1
+
+
 # 100 d simulations, high res outputs
 
 python chain_datarmor_itidep.py jet_wp5_ptb_m1 1 03:00:00 4 m1p /home1/scratch/aponte/jet_cfg1_wp5_4km_1500a2000j_notide/t5/

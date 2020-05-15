@@ -54,25 +54,29 @@
 */
 ! to tag OSI parameter in output.mpi file
 # define OSI 'OSI: '
-! perturbation of the initial jet
-# define JET_PERTURB
+
 ! resolution (dx in km)
 # define RESOLUTION 4
+
+! perturbation of the initial jet
+# define JET_PERTURB
 ! stratification profiles
 # define JET_CONFIG 1
 ! narrow channel for internal tide test case
 # undef JET_NARROW
-! type of wavemaker
-# define WMAKER_TEST 5
-! turn beta on off
-# define BETAON
+
 ! turn jet_decay on off
 # define JET_DECAY
 # undef JET_EDDY
+
+! turn beta on off
+# define BETAON
+
+! type of wavemaker
+# define WMAKER_TEST 5
 ! perturbed internal tide formulation
 # define ITIDEP
 
-# define XIOS
 # undef FERMI_MEM
 
 # undef  FLOATS
@@ -177,6 +181,7 @@
 #  define UV_VIS4
 #  define TS_DIF4
 # endif
+!
 # define UV_MIX_S
 # define TS_MIX_S
 # undef SMAGORINSKY
@@ -184,8 +189,6 @@
 #   undef  SMAGORINSKY
 # endif
 
-
-!
 ! Itide - Open boundary conditions
 # ifdef ITIDE
 #   define IWMAKER
@@ -197,7 +200,6 @@
 # define ANA_BRY
 #define ANA_BRY_WKB
 
-
 # define FRC_BRY
 # ifdef FRC_BRY
 #  define Z_FRC_BRY
@@ -207,12 +209,12 @@
 # endif
 
 !                    Diagnostics
+# define XIOS
 # define TIDAL_DIAGS
 # undef DIAGNOSTICS_TS
 # undef DIAGNOSTICS_UV
 # undef DIAGS_UV_SPEC /* not implemented */
 # undef DIAGS_TS_SPEC /* not implemented */
-
 
 ! aponte jet )
 
