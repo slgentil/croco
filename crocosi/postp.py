@@ -655,8 +655,9 @@ class Run(object):
     ### store/load diagnostics
     def store_diagnostic(self, name, data, 
                          overwrite=False,
-                         file_format=None, 
+                         file_format=None,
                          directory='diagnostics/',
+                         auto_rechunk=True,
                          **kwargs
                         ):
         """ Write diagnostics to disk
@@ -674,18 +675,24 @@ class Run(object):
         directory: str, optional
             Directory where diagnostics will be stored (absolute or relative to output directory).
             Default is 'diagnostics/'
+        auto_rechunk: boolean, optional
+            Automatically rechunk diagnostics such as o ensure they are not too small.
+            Default is True.
         **kwargs:
             Any keyword arguments that will be passed to the file writer
         """
         # create diagnostics dir if not present
         _dir = _check_diagnostic_directory(directory, self.dirname, 
                                            create=True)
+        if auto_rechunk:
+            data = _auto_rechunk(data)
         #
         if isinstance(data, xr.DataArray):
             self.store_diagnostic(name, data.to_dataset(),
                                   overwrite=overwrite,
                                   file_format=file_format,
                                   directory=directory,
+                                  auto_rechunk=True,                                  
                                   **kwargs
                                  )
         elif isinstance(data, xr.Dataset):
@@ -922,7 +929,12 @@ def _get_averaged_chunk_size(da):
     return chunk_size, total_size
 
 def _auto_rechunk_da(da):
-    dims = ['x_rho', 'x_u', 'y_rho', 'y_v', 's_rho', 's_w', 'time']
+    """ Automatically rechunk a DataArray such as chunks number of elements
+    exceeds _chunk_size_threshold
+    """
+    dims = ['x_rho', 'x_u', 'y_rho', 'y_v', 
+            's_rho', 's_w', 'mode', 
+            'time']
     for d in dims:
         # gather da number of elements and chunk sizes
         averaged_chunk_size, total_size = _get_averaged_chunk_size(da)
@@ -941,6 +953,11 @@ def _auto_rechunk_da(da):
     return da
 
 def _auto_rechunk(ds):
+    """ Wrapper around _auto_rechunk_da for datasets
+    Accepts DataArrays as well however.
+    """
+    if isinstance(ds, xr.DataArray):
+        return _auto_rechunk_da(ds)
     for k, da in ds.items(): # data_vars
         ds = ds.assign(**{k: _auto_rechunk_da(da)})
     for k, da in ds.coords.items():
