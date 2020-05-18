@@ -3,13 +3,18 @@ Defines class Vmodes and routines for computing vertical modes given a stratific
 the corresponding Sturm-Liouville problem is (phi'/N2)' + lam^2 phi = 0, with proper BCs. 
 """
 import os
+from glob import glob
+
 import scipy.sparse as sp
 import scipy.sparse.linalg as la
 import numpy as np
 import xarray as xr
 
+from matplotlib import pyplot as plt
+
 from . import gridop as gop
 from .postp import grav, _move_singletons_as_attrs
+from . import plot as cplt
 
 # default values
 _sig = .1
@@ -145,6 +150,9 @@ class Vmodes(object):
         self.ds['H'] = np.abs(zf.isel({sdim['zf']:0}))
         self.ds['dz'] = xgrid.diff(zf, xgrid_z).rename("dz")
         
+        # in order to use a consistent color code
+        self._colors = cplt.get_cmap_colors(self.nmodes)
+        
         if persist:
             self.ds = self.ds.persist()
      
@@ -163,6 +171,51 @@ class Vmodes(object):
         strout += '  Options / parameters: g={0:.2f}, free_surf={1}, eig_sigma={2:.1e}\n'\
                             .format(self.g, self.free_surf, self.sigma)
         return strout
+    
+    def plot(self, mode_max=3):
+        """ Show modal structure along with celerities
+        
+        Parameters
+        ----------
+        mode_max: int, optional
+            Maximum mode number to show
+        """    
+        ds = self.ds.sel(mode=slice(mode_max))
+        
+        if mode_max<self.nmodes:
+            colors = cplt.get_cmap_colors(mode_max)
+        else:
+            colors = self._colors
+
+        fig, axes = plt.subplots(1,2)
+        #
+        ax = axes[0]
+        (ds['N2']*1e5).plot.line(ax=ax, y=self._znames['zf'], 
+                                 color='0.5', lw=2)
+        for n, col in zip(ds['mode'], colors):
+            c = float(ds.c.sel(mode=n))
+            ds['phi'].sel(mode=n).plot.line(ax=ax, 
+                                            y=self._znames['zc'],
+                                            color=col,
+                                            label='{:.1f} m/s'.format(c)
+                                           )
+        ax.set_title('phi')
+        ax.grid()
+        ax.legend()
+        #
+        ax = axes[1]
+        (ds['N2']*1e3).plot.line(ax=ax, y=self._znames['zf'], 
+                                 color='0.5', lw=2)
+        for n, c in zip(ds['mode'], colors):
+            ds['dphidz'].sel(mode=n).plot.line(ax=ax, 
+                                               y=self._znames['zf'], 
+                                               color=c
+                                              )
+        ax.set_title('dphidz')
+        ax.grid()
+        ax.yaxis.tick_right()
+        ax.yaxis.set_label_position("right")
+        #return fig, axes
 
     def _compute_vmodes(self):
         """ compute vertical modes and store the results into the dataset 
@@ -809,3 +862,42 @@ def compute_vmodes_1D(zc, zf, N2f,
     # this would give w-modes: np.r_[np.zeros((1,nmodes+1)),(dzf[:,None]*phic).cumsum(axis=0)]
     return c, phic, dphif
 
+# --------------------------------- model modes -----------------------------------
+
+def open_vmode_file(f, r):
+    ds = xr.open_dataset(f)
+    for d in ds.dims:
+        if ds[d].size==r.N:
+            ds = ds.rename({d: 's_rho'})
+            ds['s_rho'] = r['grid']['s_rho']
+        elif ds[d].size==r.N+1:
+            ds = ds.rename({d: 's_w'})
+            ds['s_w'] = r['grid']['s_w']
+        else:
+            ds = ds.rename({d: 'mode'})
+            ds['mode'] = np.arange(0,ds['mode'].size)
+    ds = ds.rename(array=f.split('/')[-1].strip('vmodes_').replace('.nc',''))
+    return ds
+
+def load_vmodes_from_files(r, tnum=1):
+    """ Load vertical modes from online diagnostic files and recompute modes
+    
+    Parameters
+    ----------
+    r: postp.run
+    tnum: int, optional
+        t directory that is loaded, default is 1.
+    """
+    # load online outputs
+    _files = glob(os.path.join(r.dirname,'t{}/vmodes*.nc'.format(tnum)))
+    vmodes_croco = (xr.merge([open_vmode_file(f,r)
+                             for f in _files])
+                    .rename({'zr': 'z_rho', 'zw': 'z_w'})
+                   )
+    # recompute vertical modes from output stratification
+    vmodes = Vmodes(r['xgrid'],
+                    vmodes_croco.z_rho, vmodes_croco.z_w, 
+                    vmodes_croco.N2, 
+                    vmodes_croco.mode.size, 
+                    persist=True)
+    return vmodes_croco, vmodes

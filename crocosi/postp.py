@@ -771,6 +771,13 @@ class Run(object):
         # should add mechanism to automatically load h from grid
         return gop.get_z(self, *args, **kwargs)
     
+    # relative vorticity
+    def get_relative_vorticity(self, u, v):
+        xi = (-self.xgrid.derivative(u, 'eta') 
+               + self.xgrid.derivative(v, 'xi')
+              ).rename('vorticity')
+        return xi
+    
     # buoyancy frequency
     def get_N2(self, *args, **kwargs):
         return gop.get_N2(self, *args, **kwargs)

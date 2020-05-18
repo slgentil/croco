@@ -18,7 +18,7 @@ class run(object):
         self.user = os.getenv('USER')
         if workdir is None:
             self.workdir = os.getenv('SCRATCH')
-        elif not os.isdir(workdir):
+        elif not os.path.isdir(workdir):
             self.workdir = os.getenv(workdir)
         else:
             self.workdir = workdir
@@ -52,6 +52,9 @@ class run(object):
         #os.chdir(self.rpath)
     
     def _create_tdirs(self):
+        #
+        os.mkdir(join(self.rpath, 't0'))
+        #
         self.tdirs = [join(self.rpath, 't'+str(t)) 
                         for t in range(1, self.nbchains+1)]
         for t, tdir in zip(range(1,self.nbchains+1), self.tdirs):
@@ -98,20 +101,21 @@ class run(object):
             # move to tdir
             os.chdir(tdir)
             with open('croco.in','r') as f:
-               lines = f.readlines()
-               for index, line in enumerate(lines):
-                   if 'NRREC' in line and t==1:
-                      if not self.restart:
-                         lines[index+1]=wrap(0)
-                      else:
-                         lines[index+1]=wrap(1)
-                   if 'NRREC' in line and t>1:
-                      lines[index+1]=wrap(1)
-                   if 'nrpfflt' in line and t>1:
-                      lines[index+1]=lines[index+1].rstrip()[:-2]+'1\n'
-                   for p, v in params.items():
-                       if p in line:
-                           lines[index+1]=wrap(v)
+                lines = f.readlines()
+                for index, line in enumerate(lines):
+                    key = line.split(':')[0]
+                    if key=='NRREC' in line and t==1:
+                        if not self.restart:
+                            lines[index+1]=wrap(0)
+                        else:
+                            lines[index+1]=wrap(1)
+                        if key=='NRREC' in line and t>1:
+                            lines[index+1]=wrap(1)
+                    if key=='nrpfflt' in line and t>1:
+                        lines[index+1]=lines[index+1].rstrip()[:-2]+'1\n'
+                    for p, v in params.items():
+                        if key==p:
+                            lines[index+1]=wrap(v)
             with open('croco.in','w') as f:
                 f.writelines(lines)
 
@@ -178,9 +182,9 @@ class run(object):
         self.command = 'qrls '+numjob[:-1]
         #print(self.command)
 
-        if self.restart and isinstance(self.restart,str) and os.isdir(self.restart):
+        if self.restart and isinstance(self.restart,str):
             for f in glob(self.restart):
-                sh.copy(f, join(self.rpath,'t0'))        
+                shutil.copy(f, join(self.rpath,'t0'))        
         elif self.restart:
             print('Put the restart files in '+join(self.restart,'t0'))
                 
