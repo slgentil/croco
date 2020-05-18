@@ -6,7 +6,7 @@ Le répertoire croco contient le code CROCO de base
 Le répertoire CONFIGS contient les différentes configurations:  
 - MEDDY : Meddy dans une configuration idéalisée
 - MOZ   : Tourbillon dans la configuration réaliste du canal du Mozambique
-- [JETN](configs/jetn/readme.md) : Jet et marée interne dans une configuration idéalisée  
+- [JETN](configs/jetn/readme.ipynb) : Jet et marée interne dans une configuration idéalisée  
 - [ITBALT](configs/itbalt/readme.ipynb) : Internal Tide and BALanced Turbulence in an idealized context
 
 Le répertoire util contient des utilitaires python  
