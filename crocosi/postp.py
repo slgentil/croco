@@ -312,7 +312,7 @@ class Run(object):
         # Read croco.in to extract parameters
         romsfile=path.join(self.dirname, self.segs[0], "croco.in")
         if self.verbose>0:
-            print('Parameters detected in croco.in :')
+            print('Search for parameters in croco.in :')
         if path.isfile(romsfile):
             f = open(romsfile)
             pline=[] #previous line
@@ -320,26 +320,26 @@ class Run(object):
             for line in iter(f):
                 if 'time_stepping:' in pline:
                     params['dt']=tofloat(line.split()[1])
-                    if self.verbose>0:
-                        print("  time step = " + str(params['dt']) + " s")
                 elif 'S-coord:' in pline:
                     tmp = [tofloat(x) for x in line.split()]
                     params['theta_s'], params['theta_b'] = tmp[0], tmp[1]
                     params['Hc'] = tmp[2]
-                    if self.verbose>1:
-                        print("  theta_s = " + str(params['theta_s']))
-                        print("  theta_b = " + str(params['theta_b']))
-                        print("  Hc = " + str(params['Hc']) + " m")
                 elif 'rho0:' in pline:
                     params['rho0']=tofloat(line.split()[0])
-                    if self.verbose>1:
-                        print("  rho0 = " + str(params['rho0']) + " kg/m^3")
+                elif 'bottom_drag:' in pline:
+                    tmp = [tofloat(x) for x in line.split()]
+                    params['rdrg'] = tmp[0]
+                    params['rdrg2'] = tmp[1]
                 pline=line
             f.close()
             self.params_input = params
         else:
             print("File not found: "+romsfile)
             self.params_input = None
+        #
+        if self.params_input and self.verbose>1:
+            for key, value in self.params_input.items():
+                print('  {} = {}'.format(key, value))
 
     def _read_output_stats(self):
         # Now read each output.mpi and get the energy diagnostics

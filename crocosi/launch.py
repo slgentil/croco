@@ -11,7 +11,7 @@ class run(object):
     
     def __init__(self, rundir, nbchains=1, elaptim=None, config=None,
                  jobname='job', workdir=None, restart=False,
-                 launch=False,
+                 launch=False, qsub=True,
                  **params):
         #
         self.startdir = os.getcwd()
@@ -39,6 +39,7 @@ class run(object):
         self._load_config(config)
         self._create_job_files()
         # create commands to be executed
+        self.qsub = qsub
         self._create_commands()
         # launch runs
         if launch:
@@ -104,14 +105,14 @@ class run(object):
                 lines = f.readlines()
                 for index, line in enumerate(lines):
                     key = line.split(':')[0]
-                    if key=='NRREC' in line and t==1:
+                    if key=='initial' and t==1:
                         if not self.restart:
                             lines[index+1]=wrap(0)
                         else:
                             lines[index+1]=wrap(1)
-                        if key=='NRREC' in line and t>1:
-                            lines[index+1]=wrap(1)
-                    if key=='nrpfflt' in line and t>1:
+                    if key=='initial' and t>1:
+                        lines[index+1]=wrap(1)
+                    if key=='nrpfflt' and t>1:
                         lines[index+1]=lines[index+1].rstrip()[:-2]+'1\n'
                     for p, v in params.items():
                         if key==p:
@@ -172,7 +173,8 @@ class run(object):
                 numjob=f.read()
                 command='qsub -W depend=afterany:'+str(numjob[:-1]) \
                         +' job_datarmor'
-            os.system(command)
+            if self.qsub:
+                os.system(command)
         
         # first run
         os.chdir(join(self.rpath,'t1'))
