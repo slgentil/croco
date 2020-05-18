@@ -388,7 +388,7 @@
 !       parameter (NP_XI=32, NP_ETA=60,  NNODES=NP_XI*NP_ETA)
 ! 3840 procs (120 noeuds de 32 procs sur fermi)
 !      parameter (NP_XI=4, NP_ETA=8,  NNODES=NP_XI*NP_ETA)  ! dunree
-!      parameter (NP_XI=4, NP_ETA=96,  NNODES=NP_XI*NP_ETA)   ! datarmor
+      parameter (NP_XI=4, NP_ETA=96,  NNODES=NP_XI*NP_ETA)   ! datarmor
 !      parameter (NP_XI=8, NP_ETA=120,  NNODES=NP_XI*NP_ETA)  ! curie            
 # endif          
 !

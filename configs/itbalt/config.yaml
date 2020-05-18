@@ -1,7 +1,7 @@
 4:
   nbproc_roms: 48
   nbproc_xios: 2
-  elapse_time: '24:00:00'
+  elapse_time: '03:00:00'
 8:
   nbproc_roms: 8
   nbproc_xios: 1

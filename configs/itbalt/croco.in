@@ -52,8 +52,8 @@ lateral_visc:   VISC2,    VISC4    [m^2/sec for all]
 tracer_diff4: TNU4(1:NT)
               0.0e+8     0.0e+8
 
-fsturb: dt     F     Lmin     Lmax   t_start  t_decay  Nmode xmid xwid   ymid     ywid
-        10.  1.e-3  50.e+3   100.e+3      0.      800.     5    0.    0. 1440.e+3  500.e+3  
+fsturb: dt     F     Lmin     Lmax   t_start  t_decay  Nmode   xmid  xwid   ymid       ywid 
+        10.  1.e-3  50.e+3   100.e+3      0.      500.     5    0.    0.   1440.e+3  500.e+3
 
 fsturb_avmodes: a(1:Nmode)
         0.0   1.0   0.0   0.0   0.0

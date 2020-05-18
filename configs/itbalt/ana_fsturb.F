@@ -43,6 +43,7 @@
 !      real(kind=8), parameter :: fst_ymid  = 1440.e+3, fst_ywid = 500.e+3
       real(kind=8) :: fst_xmid, fst_xwid
       real(kind=8) :: fst_ymid, fst_ywid
+      real(kind=8), parameter :: fst_delx  = 100.e+3, fst_dely = 100.e+3
 !     amplitude of the forcing
 !      real(kind=8), parameter :: fst_F = 1.e-1
       real(kind=8) :: fst_F
@@ -166,7 +167,10 @@
       ! Init the form of the forcing
       do j=1,Mm
         do i=1,Lm
-          fst_W(i,j) = exp(-((yr(i,j)-fst_ymid) / (0.25*fst_ywid))**2)
+          fst_W(i,j) = 
+     &           0.5*(1.+tanh((yr(i,j)-fst_ymid+0.5*fst_ywid)/fst_dely))
+     &          *0.5*(1.-tanh((yr(i,j)-fst_ymid-0.5*fst_ywid)/fst_dely))
+!          fst_W(i,j) = exp(-((yr(i,j)-fst_ymid) / (0.25*fst_ywid))**2)
 !    &              * exp(-((xr(i,j)-fst_xmid) / (0.25*fst_xwid))**2)
         enddo
       enddo
@@ -210,8 +214,10 @@
       call params_output('fst_a',fst_a)
       call params_output('fst_xmid',fst_xmid)
       call params_output('fst_xwid',fst_xwid)
+      call params_output('fst_delx',fst_delx)
       call params_output('fst_ymid',fst_ymid)
       call params_output('fst_ywid',fst_ywid)
+      call params_output('fst_dely',fst_dely)
       call params_output('fst_F',fst_F)
       call params_output('fst_k',fst_kF)
       call params_output('fst_dk',fst_dkF)
