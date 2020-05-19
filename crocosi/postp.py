@@ -229,7 +229,7 @@ class Run(object):
                 ds = xr.open_zarr(zarr_archive, **kwargs)
                 # rechunk
                 if self.chunks[key]:
-                    ds = ds.chunk
+                    ds = ds.chunk(self.chunks[key])
             else:
                 ds = self._open_netcdf(key, **kwargs)
             #
