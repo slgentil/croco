@@ -60,8 +60,9 @@ class Run(object):
         tdir_max: int, optional
             Maximum run iteration loaded, default is 0
         chunks: dict, optional
-            Chunks that will be either passed to file opener (netcdf) either
+            Chunks that will be either passed to file opener (zarr or netcdf) either
             prescribed in a rechunking operation
+            must be a dict of dict with outputs type as parent dict keys and dimensions as child dict keys
         open_kwargs: dict, optional
             Keyword arguments passed to data opener (open_dataset, open_zarr)
         persist: boolean, optional
