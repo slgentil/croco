@@ -251,7 +251,11 @@ class Run(object):
         data_files = []
         for f, td in zip(files, tdir):
             if 'grid' in f:
-                _blacklist = ["x_rho", "y_rho", "x_psi", "y_psi"]
+                _blacklist = ["x_rho", "y_rho", "x_psi","y_psi"]
+                try:
+                    _blacklist.extend(kwargs['drop_variables'])
+                except Exception:
+                    pass
                 ds = xr.open_dataset(f, drop_variables= _blacklist)
                 ds = self._adjust_grid(ds)
                 return ds
