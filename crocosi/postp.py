@@ -905,15 +905,15 @@ def _check_diagnostic_directory(directory, dirname,
             raise OSError('Directory does not exist')
     return _dir
     
-def _move_singletons_as_attrs(ds):
+def _move_singletons_as_attrs(ds, ignore=[]):
     """ change singleton variables and coords to attrs
     This seems to be required for zarr archiving
     """
-    for c in ds.coords:
-        if ds[c].size==1:
+    for c,co in ds.coords.items():
+        if co.size==1 and ( len(co.dims)==1 and co.dims[0] not in ignore or len(co.dims)==0 ):
             ds = ds.drop_vars(c).assign_attrs({c: ds[c].values})
     for v in ds.data_vars:
-        if ds[v].size==1:
+        if ds[v].size==1 and ( len(v.dims)==1 and v.dims[0] not in ignore or len(v.dims)==0 ):
             ds = ds.drop_vars(v).assign_attrs({v: ds[v].values})
     return ds
 
