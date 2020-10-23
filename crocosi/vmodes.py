@@ -47,7 +47,7 @@ class Vmodes(object):
     nmodes: int, optional
         number of baroclinic modes to compute (barotropic mode will be added)
     free_surf: bool, optional
-        whether using a free-surface condition or rigid lid
+        whether using a free-surface condition or rigid lid -- see warning below
     persist: bool, optional
         persist the dask dataset containing the modes or not
     grav: float, optional
@@ -83,6 +83,10 @@ class Vmodes(object):
         reconstruct field from projections coefficient using w-like modes
     reconstruct_b(projections, sel=None, align=True)
         reconstruct field from projections coefficient using w-like modes
+
+    Warnings:
+    _________
+    When using rigid lid, no barotropic mode will be found and the modes will be shifted down by 1 along the "mode" dimension. Last elements will have "nan". I should fix this by adding an estimated barotropic mode with :math:`\phi=H^{-1/2}, c=\sqrt{gH}`.
 
     Notes:
     ______
