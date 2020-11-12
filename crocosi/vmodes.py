@@ -86,7 +86,7 @@ class Vmodes(object):
 
     Warnings:
     _________
-    When using rigid lid, no barotropic mode will be found and the modes will be shifted down by 1 along the "mode" dimension. Last elements will have "nan". I should fix this by adding an estimated barotropic mode with :math:`\phi=H^{-1/2}, c=\sqrt{gH}`.
+    When using rigid lid, no barotropic mode could be found and the modes will be shifted down by 1 along the "mode" dimension. Last elements will have "nan". I should fix this by adding an estimated barotropic mode with :math:`\phi=H^{-1/2}, c=\sqrt{gH}`.
 
     Notes:
     ______
