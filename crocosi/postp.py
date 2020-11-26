@@ -40,7 +40,8 @@ class Run(object):
                  open_kwargs={},
                  persist=False,
                  grid_params={},
-                 grid_periodicity=False, 
+                 grid_periodicity=False,
+                 grid_regular=True,
                  verbose=0):
         """ Run object that gathers output and grid information
 
@@ -87,6 +88,7 @@ class Run(object):
         #
         self._grid_params = grid_params
         self.grid_periodicity = grid_periodicity
+        self.grid_regular = grid_regular
         #
         self._explore_tree(outputs)   # Find files that we know how to handle
         self._read_input_params()  # Scan croco.in for parameters
@@ -277,6 +279,7 @@ class Run(object):
         # load one file to figure out dimensions
         ds = xr.open_dataset(data_files[0])
         _chunks = {d:c for d, c in self.chunks[key].items() if d in ds.dims}
+        print('_open_netcdf:-cgunks=',_chunks)
         #
         open_kwargs = {'concat_dim': 'time_counter',
                        'combine': 'nested',
@@ -425,25 +428,30 @@ class Run(object):
             ds = ds.rename({d: d[0]+'_rho'})
         #
         _coords = [d for d in [d for d in ds.data_vars.keys()] if "nav_" in d]
+        if self.grid_regular:
         # slice nav variables
-        for v in _coords:
-            xy = [d for d in ds[v].dims if d[0]=='y']
-            if 'nav_lat' in v:
-                xy = [d for d in ds[v].dims if d[0]=='x']
-            if len(xy)>0:
-                ds[v] = ds[v].isel({xy[0]: 0}).squeeze()
-        # change nav variables in coordinates        
-        ds = ds.set_coords(_coords)        
-        # rename coordinates
-        eta_suff={}
-        for c in ds.coords:
-            new_c = c.replace('nav_lat','y').replace('nav_lon','x')
-            ds = ds.rename({c:new_c})
-            # reset names and units
-            ds[new_c] = (ds[new_c].assign_attrs(units='m', 
-                                                standard_name=new_c,
-                                                long_name=new_c)
-                        )
+            for v in _coords:
+                xy = [d for d in ds[v].dims if d[0]=='y']
+                if 'nav_lat' in v:
+                    xy = [d for d in ds[v].dims if d[0]=='x']
+                if len(xy)>0:
+                    ds[v] = ds[v].isel({xy[0]: 0}).squeeze()
+            # change nav variables in coordinates        
+            ds = ds.set_coords(_coords)        
+            # rename coordinates
+            eta_suff={}
+            for c in ds.coords:
+                new_c = c.replace('nav_lat','y').replace('nav_lon','x')
+                ds = ds.rename({c:new_c})
+                # reset names and units
+                ds[new_c] = (ds[new_c].assign_attrs(units='m', 
+                                                    standard_name=new_c,
+                                                    long_name=new_c)
+                            )
+        else:
+            # change nav variables in coordinates        
+            ds = ds.set_coords(_coords)        
+            
         # fills in grid parameters, f, f0, beta
         _f0, _beta, _yrbeta = None, None, 0
         if 'f0' in self._grid_params:
@@ -504,22 +512,23 @@ class Run(object):
         self.N  = ds.sizes['s_rho']
         self.Np = self.N + 1
         
-        # rename dimensions to be consistent with future xgrid object
-        if 'x_psi' not in ds: # backward compatibility
-            ds = ds.assign_coords(
-                    x_psi = .5*(ds['x_rho'].shift(x_rho=-1)+ds['x_rho'])[:-1]
-                        .drop('x_rho')
-                        .rename({'x_rho': 'x_psi'}) )
-        if 'y_psi' not in ds: # backward compatibility
-            ds = ds.assign_coords(
-                    y_psi = .5*(ds['y_rho'].shift(y_rho=-1)+ds['y_rho'])[:-1]
-                        .drop('y_rho')
-                        .rename({'y_rho': 'y_psi'}) )
-        #
-        if 'x_u' not in ds:
-            ds = ds.rename({'x_psi': 'x_u'})
-        if 'y_v' not in ds:
-            ds = ds.rename({'y_psi': 'y_v'})
+        if self.grid_regular:
+            # rename dimensions to be consistent with future xgrid object
+            if 'x_psi' not in ds: # backward compatibility
+                ds = ds.assign_coords(
+                        x_psi = .5*(ds['x_rho'].shift(x_rho=-1)+ds['x_rho'])[:-1]
+                            .drop('x_rho')
+                            .rename({'x_rho': 'x_psi'}) )
+            if 'y_psi' not in ds: # backward compatibility
+                ds = ds.assign_coords(
+                        y_psi = .5*(ds['y_rho'].shift(y_rho=-1)+ds['y_rho'])[:-1]
+                            .drop('y_rho')
+                            .rename({'y_rho': 'y_psi'}) )
+            #
+            if 'x_u' not in ds:
+                ds = ds.rename({'x_psi': 'x_u'})
+            if 'y_v' not in ds:
+                ds = ds.rename({'y_psi': 'y_v'})
 
         # add S-coordinate stretching curves at RHO-points in dataset if not in
         if 'sc_r' not in list(ds.data_vars):
@@ -548,20 +557,21 @@ class Run(object):
                 'eta': {'center':'y_rho', 'inner':'y_v'}, 
                 's': {'center':'s_rho', 'outer':'s_w'}}
         # add metrics terms
-        ds = _compute_metrics(ds)
-        metrics = {
-                   ('xi',): ['dx_rho', 'dx_u', 'dx_rho2d', 'dx_u2d'], # X distances
-                   ('eta',): ['dy_rho', 'dy_v', 'dy_rho2d', 'dy_v2d'], # Y distances
-                   ('xi', 'eta'): ['rA', 'rAu', 'rAv'] # Areas
-                  }
+        if self.grid_regular:
+            ds, metrics = _compute_metrics(ds)
+        else:
+            ds, metrics = self._compute_metrics_curvilinear()
         # generate xgcm grid
         self.xgrid = Grid(ds, 
                           periodic=self.grid_periodicity,
                           coords=coords, 
-                          metrics=metrics)
+                          metrics=metrics,
+                          boundary='extend')
         
         if 'grid' not in self.outputs: # backward compatibility
             self.grid = ds
+        else:
+            self.ds['grid'] = ds
     
     ### store data to zarr archives
     def _is_zarr_archive(self, key):
@@ -760,6 +770,11 @@ class Run(object):
         return gop.x2rho(v, self.xgrid)
     def x2v(self, v):
         return gop.x2v(v, self.xgrid)
+    def x2psi(self, v):
+        return gop.x2psi(v, self.xgrid)
+    # Vertical grid moving
+    def x2w(self, v):
+        return gop.x2w(v, self.xgrid)
 
     # xgcm functions
     def diff(self, *args, **kwargs):
@@ -782,6 +797,177 @@ class Run(object):
                + self.xgrid.derivative(v, 'xi')
               ).rename('vorticity')
         return xi
+    
+    def get_ertel_pv(self, ds, z=None, time=None, typ='ijk'):
+        """
+        #
+        #   epv    - The ertel potential vorticity with respect to property 'lambda'
+        #
+        #                                       [ curl(u) + f ]
+        #   -  epv is given by:           EPV = --------------- . del(lambda)
+        #                                            rho
+        #
+        #   -  pvi,pvj,pvk - the x, y, and z components of the potential vorticity.
+        #
+        #   -  Ertel PV is calculated on horizontal rho-points, vertical w-points.
+        #
+        #
+        #   tindex   - The time index at which to calculate the potential vorticity.
+        #   depth    - depth
+        #
+        # Adapted from rob hetland.
+        #
+        """
+
+        # Grid parameters
+        ds = ds.isel(time=time) if time is not None else ds
+        grid = self.xgrid
+
+        f = self['grid'].f
+        rho0 = self.params_input['rho0']
+
+        # 3D variables
+        z=z if z is not None else self.get_z(zeta=ds.ssh)
+        dz = grid.diff(z,'s').persist()
+        u = ds['u'].persist()
+        v = ds['v'].persist()
+        w = ds['w'].persist()
+
+        try:
+            rho = ds['rho'].persist()
+        except Exception:
+            print('rho not in history file')
+            return
+
+        if 'k' in typ:
+
+            # Ertel potential vorticity, term 1: [f + (dv/dx - du/dy)]*drho/dz
+            # Compute d(v)/d(xi) at PSI-points.
+            dvdxi = grid.derivative(v,'xi')
+
+            # Compute d(u)/d(eta) at PSI-points.
+            dudeta = grid.derivative(u,'eta')
+
+            # Compute d(rho)/d(z) at horizontal RHO-points and vertical W-points
+            drhodz = grid.diff(rho,'s') / dz
+
+            #  Compute Ertel potential vorticity <k hat> at horizontal RHO-points and
+            #  vertical W-points. 
+            omega = dvdxi - dudeta
+            omega = f + gop.x2rho(omega,grid)
+            pvk = grid.interp(omega,'s') * drhodz
+            del dvdxi, dudeta, drhodz, omega
+        else:
+            pvk = 0.
+
+        if 'i' in typ:
+
+            #  Ertel potential vorticity, term 2: (dw/dy - dv/dz)*(drho/dx)
+            #  Compute d(w)/d(y) at horizontal V-points and vertical RHO-points
+            dwdy = grid.derivative(w,'eta')
+
+            #  Compute d(v)/d(z) at horizontal V-points and vertical W-points
+            dz_v = grid.interp(dz,'eta')
+            dvdz = grid.diff(v,'s') / dz_v
+
+            #  Compute d(rho)/d(xi) at horizontal U-points and vertical RHO-points
+            drhodx = grid.derivative(rho,'xi')
+
+            #  Add in term 2 contribution to Ertel potential vorticity at horizontal RHO-points and
+            #  vertical W-points.
+            pvi = (gop.x2w(dwdy, grid)-gop.x2w(dvdz, grid)) * gop.x2w(drhodx, grid)
+            del dwdy, dz_v, dvdz, drhodx
+        else:
+            pvi = 0.
+
+        if 'j' in typ:
+
+            #  Ertel potential vorticity, term 3: (du/dz - dw/dx)*(drho/dy)
+            #  Compute d(u)/d(z) at horizontal U-points and vertical W-points
+            dz_u = grid.interp(dz, 'xi')
+            dudz = grid.diff(u,'s') / dz_u
+
+            #  Compute d(w)/d(x) at horizontal U-points and vertical RHO-points
+            dwdx = grid.derivative(w,'xi')
+
+            #  Compute d(rho)/d(eta) at horizontal V-points and vertical RHO-points
+            drhodeta = grid.derivative(rho,'eta')
+
+            #  Add in term 3 contribution to Ertel potential vorticity at horizontal RHO-points and
+            #  vertical W-points..
+            pvj =  (gop.x2w(dudz,grid)-gop.x2w(dwdx,grid)) * gop.x2w(drhodeta,grid)
+            del dz_u, dudz, dwdx, drhodeta
+
+        else:
+            pvj = 0.
+
+        #
+        #
+        # Sum potential vorticity components, and divide by rho0
+        #
+        pvi = pvi / rho0
+        pvj = pvj / rho0
+        pvk = pvk / rho0
+        pv = pvi + pvj + pvk
+
+        z_w = self.get_z(vgrid='w').fillna(0.)
+        pv = pv.assign_coords(coords={"z":z_w})
+
+        return pv.squeeze()
+    
+    def get_dtdz(self, ds, z=None, time=None):
+        """
+        Compute dT/dz at horizontal rho point/vertical w point
+        ds : dataset, containing T field
+        z : xarray.DataArray, z in meters at rho points
+        time : int, time index 
+        """
+        
+        # keep time index if not None
+        ds=ds.isel(time=time) if time is not None else ds
+
+        # Grid parameters
+        grid = self.xgrid
+
+        # compute z coordinates
+        z=z if z is not None else self.get_z(zeta=ds.ssh)
+        z_w = self.get_z(zeta=ds.ssh, vgrid='w').fillna(0.)
+
+        dtdz = (grid.diff(ds['temp'],'s') / grid.diff(z,'s')).squeeze()
+        dtdz = dtdz.assign_coords(coords={"z":z_w})
+        return dtdz
+    
+    def get_richardson(self, ds, z=None, time=None):
+        """
+        Ri is given by:      N²/((du/dz)² - (dv/dz)²)
+             with N = sqrt(-g/rho0 * drho/dz)
+        Ri is calculated at RHO-points and w level
+
+        ds : dataset, which contains 3D u,v and rho fields
+        z : xarray datarray, z depths at rho levels
+        time : int, time index
+        """
+
+        # Grid parameters
+        ds=ds.isel(time=time) if time is not None else ds
+        grid = self.xgrid
+        try:
+            g = self.params_output['g']
+        except :
+            g = 9.81
+        rho0 = self.params_input['rho0']
+
+        # compute Z
+        z=z if z is not None else self.get_z(zeta=ds.ssh)
+        z_w = self.get_z(zeta=ds.ssh, vgrid='w').fillna(0.)
+
+        N2 = self.get_N2(ds.rho, z, g=g)
+        dudz = grid.diff(ds.u,'s')/grid.diff(gop.x2u(z,grid),'s')
+        dvdz = grid.diff(ds.v,'s')/grid.diff(gop.x2v(z,grid),'s')
+
+        Ri = xr.ufuncs.log10(N2 / (grid.interp(dudz,'xi')**2 +  grid.interp(dvdz,'eta')**2))
+        Ri = Ri.assign_coords(coords={"z":z_w})
+        return(Ri)
     
     # buoyancy frequency
     def get_N2(self, *args, **kwargs):
@@ -836,6 +1022,77 @@ class Run(object):
         _dir = _check_diagnostic_directory(directory, self.dirname, create=False)
         file_path = path.join(_dir, name+'.zarr')
         return load_vm(file_path, self.xgrid, persist=persist)
+    
+    def _compute_metrics_curvilinear(self):
+        from xgcm import Grid
+        
+        if 'grid' in self.outputs:
+            ds = self.ds['grid']
+        elif 'his' in self.outputs: # backward compatibility
+            ds = self.ds['his']    
+        # curvilinear grid
+        # Create xgcm grid without metrics
+        coords={'xi': {'center':'x_rho', 'inner':'x_u'}, 
+                'eta': {'center':'y_rho', 'inner':'y_v'}, 
+                's': {'center':'s_rho', 'outer':'s_w'}}
+        grid = Grid(ds, 
+                  periodic=self.grid_periodicity,
+                  coords=coords,
+                  boundary='extend')
+        # add new coordinates lon/lat for u, v and psi point
+        #for dst in [self.ds[s] for s in self.outputs]:
+        #    dst['nav_lon_u'] = grid.interp(ds.nav_lon_rho,'xi')
+        #    dst['nav_lat_u'] = grid.interp(ds.nav_lat_rho,'xi')
+        #    dst['nav_lon_v'] = grid.interp(ds.nav_lon_rho,'eta')
+        #    dst['nav_lat_v'] = grid.interp(ds.nav_lat_rho,'eta')
+        #    dst['nav_lon_psi'] = grid.interp(ds.nav_lon_v,'xi')
+        #    dst['nav_lat_psi'] = grid.interp(ds.nav_lat_u,'eta')
+        #    _coords = ['nav_lon_u','nav_lat_u','nav_lon_v','nav_lat_v','nav_lon_psi','nav_lat_psi']
+        #    dst = dst.set_coords(_coords)
+        for s in self.outputs:
+            self.ds[s]['nav_lon_u'] = grid.interp(self.ds[s].nav_lon_rho,'xi')
+            self.ds[s]['nav_lat_u'] = grid.interp(self.ds[s].nav_lat_rho,'xi')
+            self.ds[s]['nav_lon_v'] = grid.interp(self.ds[s].nav_lon_rho,'eta')
+            self.ds[s]['nav_lat_v'] = grid.interp(self.ds[s].nav_lat_rho,'eta')
+            self.ds[s]['nav_lon_psi'] = grid.interp(self.ds[s].nav_lon_v,'xi')
+            self.ds[s]['nav_lat_psi'] = grid.interp(self.ds[s].nav_lat_u,'eta')
+            _coords = ['nav_lon_u','nav_lat_u','nav_lon_v','nav_lat_v','nav_lon_psi','nav_lat_psi']
+            self.ds[s] = self.ds[s].set_coords(_coords)
+        
+        if 'grid' in self.outputs:
+            ds = self.ds['grid']
+        elif 'his' in self.outputs: # backward compatibility
+            ds = self.ds['his']    
+        # add distance metrics for u, v and psi point
+        if 'pm' in ds and 'pn' in ds:
+            ds['dx_rho'] = 1/ds['pm']
+            ds['dy_rho'] = 1/ds['pn']
+        else: # backward compatibility, hack
+            dlon = grid.interp(grid.diff(ds.nav_lon_rho,'xi'),'xi')
+            dlat =  grid.interp(grid.diff(ds.nav_lat_rho,'eta'),'eta')
+            ds['dx_rho'], ds['dy_rho'] = dll_dist(dlon, dlat, ds.nav_lon_rho, ds.nav_lat_rho)
+        dlon = grid.interp(grid.diff(ds.nav_lon_u,'xi'),'xi')
+        dlat = grid.interp(grid.diff(ds.nav_lat_u,'eta'),'eta')
+        ds['dx_u'], ds['dy_u'] = dll_dist(dlon, dlat, ds.nav_lon_u, ds.nav_lat_u)
+        dlon = grid.interp(grid.diff(ds.nav_lon_v,'xi'),'xi')
+        dlat = grid.interp(grid.diff(ds.nav_lat_v,'eta'),'eta')
+        ds['dx_v'], ds['dy_v'] = dll_dist(dlon, dlat, ds.nav_lon_v, ds.nav_lat_v)
+        dlon = grid.interp(grid.diff(ds.nav_lon_psi,'xi'),'xi')
+        dlat = grid.interp(grid.diff(ds.nav_lat_psi,'eta'),'eta')
+        ds['dx_psi'], ds['dy_psi'] = dll_dist(dlon, dlat, ds.nav_lon_psi, ds.nav_lat_psi)
+
+        # add areas metrics for rho,u,v and psi points
+        ds['rArho'] = ds.dx_psi * ds.dy_psi
+        ds['rAu'] = ds.dx_v * ds.dy_v
+        ds['rAv'] = ds.dx_u * ds.dy_u
+        ds['rApsi'] = ds.dx_rho * ds.dy_rho
+
+        metrics = {
+               ('xi',): ['dx_rho', 'dx_u', 'dx_v', 'dx_psi'], # X distances
+               ('eta',): ['dy_rho', 'dy_u', 'dy_v', 'dy_psi'], # Y distances
+               ('xi', 'eta'): ['rArho', 'rAu', 'rAv', 'rApsi'] # Areas
+              }
+        return ds, metrics
 
 def _compute_metrics(ds):
     """ Compute metrics from data available in grid.nc
@@ -870,9 +1127,36 @@ def _compute_metrics(ds):
     ds['dy_v2d'] = ds['dy_v'] + 0.*ds['x_rho']
     ds['rA'] = ds['dx_rho']*ds['dy_rho']
     ds['rAu'] = ds['dx_u']*ds['dy_u']
-    ds['rAv'] = ds['dx_v']*ds['dy_v']
-    return ds
+    ds['rAv'] = ds['dx_v']*ds['dy_v'] 
+    
+    metrics = {
+               ('xi',): ['dx_rho', 'dx_u', 'dx_rho2d', 'dx_u2d'], # X distances
+               ('eta',): ['dy_rho', 'dy_v', 'dy_rho2d', 'dy_v2d'], # Y distances
+               ('xi', 'eta'): ['rA', 'rAu', 'rAv'] # Areas
+              }
+    return ds, metrics
 
+
+    
+def dll_dist(dlon, dlat, lon, lat):
+    """
+    Converts lat/lon differentials into distances in meters
+    PARAMETERS
+    ----------
+    dlon : xarray.DataArray longitude differentials 
+    dlat : xarray.DataArray latitude differentials 
+    lon : xarray.DataArray longitude values
+    lat : xarray.DataArray latitude values
+    RETURNS
+    -------
+    dx : xarray.DataArray distance inferred from dlon 
+    dy : xarray.DataArray distance inferred from dlat 
+    """
+    distance_1deg_equator = 111000.0
+    dx = dlon * xr.ufuncs.cos(xr.ufuncs.deg2rad(lat)) * distance_1deg_equator 
+    dy = ((lon * 0) + 1) * dlat * distance_1deg_equator
+    return dx, dy
+   
 def _check_file_overwrite(file, overwrite):
     """ Check whether one can overwrite a file, return False otherwise
     """

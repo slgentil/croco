@@ -30,6 +30,8 @@ def x2rho(v, grid):
         vout = grid.interp(vout, 'xi')
     if dims['y'] == 'y_v':
         vout = grid.interp(vout, 'eta')
+    if dims['s'] == 's_w':
+        vout = grid.interp(vout, 's')
     return vout
 
 def x2u(v, grid):
@@ -41,10 +43,12 @@ def x2u(v, grid):
         vout = grid.interp(vout, 'xi')
     if dims['y'] == 'y_v':
         vout = grid.interp(vout, 'eta')
+    if dims['s'] == 's_w':
+        vout = grid.interp(vout, 's')
     return vout
 
 def x2v(v, grid):
-    """ Interpolate from any grid to u grid
+    """ Interpolate from any grid to v grid
     """
     dims = _get_spatial_dims(v)
     vout = v.copy()
@@ -52,6 +56,34 @@ def x2v(v, grid):
         vout = grid.interp(vout, 'xi')
     if dims['y'] == 'y_rho':
         vout = grid.interp(vout, 'eta')
+    if dims['s'] == 's_w':
+        vout = grid.interp(vout, 's')
+    return vout
+
+def x2w(v, grid):
+    """ Interpolate from any grid to w grid
+    """
+    dims = _get_spatial_dims(v)
+    vout = v.copy()
+    if dims['x'] == 'x_u':
+        vout = grid.interp(vout, 'xi')
+    if dims['y'] == 'y_v':
+        vout = grid.interp(vout, 'eta')
+    if dims['s'] == 's_rho':
+        vout = grid.interp(vout, 's')
+    return vout
+
+def x2psi(v, grid):
+    """ Interpolate from any grid to psi grid
+    """
+    dims = _get_spatial_dims(v)
+    vout = v.copy()
+    if dims['x'] == 'x_rho':
+        vout = grid.interp(vout, 'xi')
+    if dims['y'] == 'y_rho':
+        vout = grid.interp(vout, 'eta')
+    if dims['s'] == 's_w':
+        vout = grid.interp(vout, 's')
     return vout
 
 def x2x(v, grid, target):
@@ -61,8 +93,133 @@ def x2x(v, grid, target):
         return x2u(v, grid)
     elif target is 'v':
         return x2v(v, grid)
+    elif target is 'w':
+        return x2w(v, grid)
+    elif target is 'psi':
+        return x2psi(v, grid)
 
-# ----------------------- horizontal grid interpolation ------------------------
+def _get_grid_point(var):
+    dims = var.dims
+    if "x_u" in dims:
+        if "y_rho" in dims:
+            return 'u'
+        else:
+            return 'psi'
+    elif "y_v" in dims:
+        return 'v'
+    else:
+        if 's_rho' in dims:
+            return 'rho'
+        else:
+            return 'w'
+# -----------------------  grid interpolation ------------------------
+
+def find_nearest_above(my_array, target, axis=0):
+    diff = target - my_array
+    diff = diff.where(diff>0,np.inf)
+    return xr.DataArray(diff.argmin(axis=axis))
+
+def get_slice(run, var, z, longitude=None, latitude=None, depth=None):
+        """
+        #
+        #
+        # This function interpolate a 3D variable on a slice at a constant depth or
+        # constant longitude or constant latitude
+        #
+        # On Input:
+        #
+        #    ds      dataset to find the grid
+        #    var     (dataArray) Variable to process (3D matrix).
+        #    z       (dataArray) Depths at the same point than var (3D matrix).
+        #    longitude   (scalar) longitude of the slice (scalar meters, negative).
+        #    latitude    (scalar) latitude of the slice (scalar meters, negative).
+        #    depth       (scalar) depth of the slice (scalar meters, negative).
+        #
+        # On Output:
+        #
+        #    vnew    (dataArray) Horizontal slice
+        #
+        #
+        """
+        if longitude is None and latitude is None and depth is None:
+            "Longitude or latitude or depth must be defined"
+            return None
+        
+        if z.shape != var.shape:
+            print('slice: var and z shapes are different')
+            return
+
+        # Find dimensions of the variable
+        dims = _get_spatial_dims(var)
+        grid_point = _get_grid_point(var)
+        N = len(var[dims['s']])
+
+        # Find horizontal coordinates of the variable
+        x = [var.coords[s] for s in var.coords if "lon_" in s][0]
+        y = [var.coords[s] for s in var.coords if "lat_" in s][0]
+
+        # Find the indices of the grid points just below the longitude/latitude/depth
+        if longitude is not None:
+            axe = x.get_axis_num(dims['x'])
+            indices = find_nearest_above(x, longitude, axis=axe)
+        elif latitude is not None:
+            axe = y.get_axis_num(dims['y'])
+            indices = find_nearest_above(y, latitude, axis=axe)
+            
+        # Initializes the 2 slices around the longitude/latitude/depth
+        if longitude is not None:
+            x1 = x.isel({dims['x']:indices})
+            x2 = x.isel({dims['x']:indices+1})
+            y1 = y.isel({dims['x']:indices})
+            y2 = y.isel({dims['x']:indices+1})
+            z1 = z.isel({dims['x']:indices})
+            z2 = z.isel({dims['x']:indices+1})
+            v1 = var.isel({dims['x']:indices})
+            v2 = var.isel({dims['x']:indices+1})
+        elif latitude is not None:
+            x1 = x.isel({dims['y']:indices})
+            x2 = x.isel({dims['y']:indices+1})
+            y1 = y.isel({dims['y']:indices})
+            y2 = y.isel({dims['y']:indices+1})
+            z1 = z.isel({dims['y']:indices})
+            z2 = z.isel({dims['y']:indices+1})
+            v1 = var.isel({dims['y']:indices})
+            v2 = var.isel({dims['y']:indices+1})
+
+        # Do the linear interpolation
+        if longitude is not None:
+            xdiff = x1 - x2
+            ynew =  (((y1 - y2) * longitude + y2 * x1 - y1 * x2) / xdiff)
+            znew =  (((z1 - z2) * longitude + z2 * x1 - z1 * x2) / xdiff).fillna(0)
+            vnew =  (((v1 - v2) * longitude + v2 * x1 - v1 * x2) / xdiff)
+        elif latitude is not None:
+            ydiff = y1 - y2
+            xnew =  (((x1 - x2) * latitude + x2 * y1 - x1 * y2) / ydiff)
+            znew =  (((z1 - z2) * latitude + z2 * y1 - z1 * y2) / ydiff).fillna(0)
+            vnew =  (((v1 - v2) * latitude + v2 * y1 - v1 * y2) / ydiff)
+        elif depth is not None:
+            zmask = x2x(run['grid'].mask_rho.where(run['grid'].h>abs(depth),np.nan) ,
+                        run.xgrid,grid_point)           
+            swapdim ='s_rho' if dims['s']=='s_w' else 's_w'
+            zt = (var.isel({dims['s']:[0]}).fillna(0.)*0. + depth).rename({dims['s']:swapdim})
+            vnew = zmask*interp2z(zt, z, var)
+
+        # Add the coordinates to dataArray
+        if longitude is not None:
+            ynew = ynew.expand_dims({dims['s']: N})
+            vnew = vnew.assign_coords(coords={"z":znew})
+            vnew = vnew.assign_coords(coords={y.name:ynew})
+
+        elif latitude is not None:
+            xnew = xnew.expand_dims({dims['s']: N})
+            vnew = vnew.assign_coords(coords={"z":znew})
+            vnew = vnew.assign_coords(coords={x.name:xnew})
+
+        elif depth is not None:
+            vnew = vnew.assign_coords(coords={y.name:y})
+            vnew = vnew.assign_coords(coords={x.name:x})
+
+        return vnew
 
 def hinterp(ds,var,coords=None):
     """ This is needs proper documentation:
