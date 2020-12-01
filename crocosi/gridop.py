@@ -551,9 +551,9 @@ def interp2z_np_3d(zt, z, v, b_extrap=2, t_extrap=2):
     Parameters
     ----------
     zt: ndarray
-        Target vertical grid, may be 1D/2D/3D
+        Target vertical grid, may be 1D/2D/3D, ascending order
     z: ndarray
-        Initial vertical grid, may be 1D/2D/3D
+        Initial vertical grid, may be 1D/2D/3D, ascending order
     v: ndarray
         Initial data, may be 1D/2D/3D
     b_extrap: int, optional
@@ -568,6 +568,7 @@ def interp2z_np_3d(zt, z, v, b_extrap=2, t_extrap=2):
     Notes
     -----
     The vertical dimension must be the first one.
+    zt and z must be in ascending order along their vertical dimension.
     zt, z, v must have the same number of dimensions.
     zt may have singleton dimensions along horizontal dimensions.
     z and v must have the same shape.
@@ -613,9 +614,9 @@ def interp2z_np(zt, z, v, zdim=None, zdimt=None, **kwargs):
     Parameters
     ----------
     zt:  ndarray
-        Target vertical grid, may be 1D/2D/3D but NOT 4D
+        Target vertical grid, may be 1D/2D/3D but NOT 4D, ascending order
     z:   ndarray
-        Initial vertical grid, may be 1D/2D/3D/4D
+        Initial vertical grid, may be 1D/2D/3D/4D, ascending order
     v: ndarray
         Initial data, may be 1D/2D/3D/4D
     zdim: tuple
@@ -635,6 +636,7 @@ def interp2z_np(zt, z, v, zdim=None, zdimt=None, **kwargs):
     Notes
     -----
     v and z must have the same shape.
+    zt and z must be in ascending order along their vertical dimension.
     If you bring any modification to this code, make sure it does not break
     tutorials/dev/interp2z.ipynb.
     '''
@@ -678,9 +680,9 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None,
     Parameters
     ----------
     zt:  xarray.DataArray
-        Target vertical grid
+        Target vertical grid, ascending order
     z:   xarray.DataArray
-        Initial vertical grid
+        Initial vertical grid, ascending order
     v:   xarray.DataArray
         Initial data
     zt_dim: str, optional
@@ -703,6 +705,7 @@ def interp2z(zt, z, v, zt_dim=None, z_dim=None,
     -----
     When zt_dim or z_dim are not provided, we search through a database
     of known vertical dimension names.
+    zt and z must be in ascending order along their vertical dimension.
     If you bring any modification to this code, make sure it does not break
     tutorials/dev/interp2z.ipynb.
     '''
