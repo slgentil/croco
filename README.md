@@ -28,11 +28,11 @@ Download Miniconda3 (i.e. for python3) from the [conda website](https://conda.io
 ```
 ./Miniconda3-latest-Linux-x86_64.sh
 conda update conda
-conda create -n croco -c conda-forge python=3.7 dask dask-jobqueue \
+conda create -n croco -c conda-forge dask dask-jobqueue \
             xarray zarr netcdf4 python-graphviz \
             jupyterlab ipywidgets \
             cartopy geopandas scikit-learn seaborn \
-            hvplot geoviews datashader nodejs \
+            hvplot geoviews nodejs \
             intake-xarray gcsfs \
             cmocean gsw \
             xrft \
@@ -40,7 +40,9 @@ conda create -n croco -c conda-forge python=3.7 dask dask-jobqueue \
 conda activate croco
 pip install git+https://github.com/xgcm/xgcm.git
 conda install pywavelets
-# install croco_visu, parcels ...
+# install croco_visu
+conda install wxpython ffmpeg
+# install parcels ...
 cd croco; pip install -e .
 jupyter labextension install @jupyter-widgets/jupyterlab-manager \
                              @pyviz/jupyterlab_pyviz \
