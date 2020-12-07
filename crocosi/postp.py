@@ -279,7 +279,6 @@ class Run(object):
         # load one file to figure out dimensions
         ds = xr.open_dataset(data_files[0])
         _chunks = {d:c for d, c in self.chunks[key].items() if d in ds.dims}
-        print('_open_netcdf:-cgunks=',_chunks)
         #
         open_kwargs = {'concat_dim': 'time_counter',
                        'combine': 'nested',
