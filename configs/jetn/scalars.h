@@ -676,6 +676,7 @@
       real Arc_itide, Ars_itide
       real Auc_itide, Aus_itide, Avc_itide, Avs_itide
       real Awc_itide, Aws_itide
+      integer nkx_itide
 !      real Atide_mode(10)
 !      real phitide_mode(10)
       real Atide_cos_mode(10)
@@ -687,7 +688,7 @@
       common / itide_logical / 
      &             flag_itide
 !    &             flag_itide, ramp_itide
-      common / itide_integer / nmode_itide
+      common / itide_integer / nmode_itide, nkx_itide
       common / itide_scalars / omega_itide
      &            , start_time_itide, y_itide
 !     &            , dely_itide

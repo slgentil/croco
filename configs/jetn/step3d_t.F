@@ -673,13 +673,18 @@
 !
         if ( flag_itide ) then
 #  if WMAKER_TEST == 1
+!
+! Not sure nkx.neq.0 works here -- not tested
+!
          do k=2,N-1
           do j=Jstr,Jend
 !            lworkr(:,j,k) = 0.0D0
             do i=Istr,Iend
               t(i,j,k,nnew,itrc)=t(i,j,k,nnew,itrc)
-     &          -dt*(  Awc_itide * cos(omega_itide*time)
-     &               + Aws_itide * sin(omega_itide*time)  )
+     &          -dt*(  Awc_itide * cos(omega_itide*time_itide - 
+     &                                         2*pi*nkx_itide*xr(i,j)/xl )
+     &               + Aws_itide * sin(omega_itide*time_itide - 
+     &                                         2*pi*nkx_itide*xr(i,j)/xl )  )
      &             *tanh(time/86400.0/delt)**2
      &             *(phiw(k,nmode_itide)+phiw(k+1,nmode_itide))*0.5
      &             *exp(-(real(j)/real(MMm)+yoff)**2/dely**2)
@@ -700,8 +705,10 @@
           do k=1,N-1
             do i=Istr,Iend
               CF(i,k)=
-     &              (  Awc_itide * cos(omega_itide*time)
-     &               + Aws_itide * sin(omega_itide*time)  )
+     &              (  Awc_itide * cos(omega_itide*time_itide - 
+     &                                         2*pi*nkx_itide*xr(i,j)/xl )
+     &               + Aws_itide * sin(omega_itide*time_itide - 
+     &                                         2*pi*nkx_itide*xr(i,j)/xl ) )
      &             *tanh(time/86400.0/delt)**2
      &             *phiw(k,nmode_itide)
      &             *exp(-(real(j)/real(MMm)+yoff)**2/dely**2)

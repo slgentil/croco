@@ -63,11 +63,11 @@ nb_nodes = int((nb_cores)/28)+1
     
 # Création du répertoire workdir dans /work
 
-startdir=os.getcwd()
+startdir = os.getcwd()
 USER = os.getenv('USER')
-#WORK = os.getenv('DATAWORK')
+WORK = os.getenv('DATAWORK')
 #WORK = os.getenv('SCRATCH')
-WORK = '/home/c11-data/Test_aponte/jetn'
+#WORK = '/home/c11-data/Test_aponte/jetn'
 RPATH = WORK+'/'+workdir
 if os.path.exists(RPATH) :    
     os.system('rm -Rf '+RPATH)

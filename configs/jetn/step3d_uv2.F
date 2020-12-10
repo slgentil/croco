@@ -104,6 +104,7 @@
       real y, yoff, dely, delt, time_itide
       real FCn(PRIVATE_1D_SCRATCH_ARRAY,0:N,10)
       integer nmode
+      real prov
 #  endif
 ! aponte iwmaker )
 !
@@ -1315,14 +1316,29 @@
 !
         do k=1,N
           do i=IV_RANGE
+            if ( abs(yr(i,j)-y_itide).lt.2.0*dely_itide ) then
+                prov = ( 1.0 + (f(i,int(prov)) * 2.0*pi*nkx_itide/xl 
+     &                          /omega_itide)**2 / ( (omega_itide**2 
+     &                  - f(i,int(prov))**2)/c_vmodes(nmode)**2 - 
+     &                (2.0*pi*nkx_itide/xl)**2 ) )**.5
+C                if ((i+ii*Lm).eq.10) then
+C                    write(*,*) "i,ii,fact", i, ii, prov
+C                endif
+            else
+                prov = 1.0
+            endif
             v(i,j,k,nnew)=v(i,j,k,nnew)+dt
 ! temporary should use other amplitude variables (ana_initial.F)
 !     &          *omega_itide*1.0D-01*26
 ! time and space forcing distributions
 !     &          *(  Avc_itide_(n) * cos(omega_itide*time_itide
 !     &          *(  cos(omega_itide*time_itide
-     &          *( Atide_cos_mode(nmode) * cos(omega_itide*time_itide)
-     &            +Atide_sin_mode(nmode) * sin(omega_itide*time_itide)
+     &          *( Atide_cos_mode(nmode) * cos(omega_itide*time_itide -
+! x wavenumber
+     &                                     2.0*pi*nkx_itide*xr(i,j)/xl )
+     &            +Atide_sin_mode(nmode) * sin(omega_itide*time_itide - 
+! x wavenumber
+     &                                     2.0*pi*nkx_itide*xr(i,j)/xl )
 !
 ! perturbs permanently the phase, 10deg=20min
 !     &                  +(1.0+tanh((time-time_start-10.0*86400)
@@ -1337,6 +1353,8 @@
 !     &                             )
 !     &            + Avs_itide * sin(omega_itide*time_itide) 
      &                      )
+! amplitude correction for slanted forcing
+     &          / prov
 ! with progressive shape
 !     &          *(  Avc_itide * cos(omega_itide*time
 !     &                  - omega_itide*el/c_vmodes(nmode_itide)
@@ -1353,7 +1371,12 @@
         enddo
        enddo
       enddo
-!      write(*,*) 'time = ', time
+C      write(*,*) 'time = ', time
+C      write(*,*) 'i, j, f, omega = ', i, j, f(i,j), omega_itide
+C      write(*,*) 'kx, xl', 2*pi*nkx_itide/xl, xl
+C      write(*,*) 'c_vmodes(2)', c_vmodes(1), c_vmodes(2), c_vmodes(3)
+C      write(*,*) 'fact, y_itide', prov, y_itide 
+C      write(*,*) 'j and f', int(y_itide/el*MMm), f(1,int(y_itide/el*MMm))
 !      write(*,*) 'time_start = ', time_start
 #   endif
 # endif
