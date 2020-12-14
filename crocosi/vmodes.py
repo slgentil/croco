@@ -661,7 +661,7 @@ def get_vmodes(zc, zf, N2, nmodes=_nmodes, **kwargs):
                          dask='parallelized', 
                          output_dtypes=[np.float64],
                          output_core_dims=[["s_stack","mode"]],
-                         output_sizes={"mode":nmodes+1,"s_stack":2*(N+1)}
+                         dask_gufunc_kwargs={"output_sizes":{"mode":nmodes+1,"s_stack":2*(N+1)}}
                         )
     res['mode'] = np.arange(nmodes+1)
     # unstack variables
