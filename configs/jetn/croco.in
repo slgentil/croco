@@ -76,7 +76,7 @@ itidep: flag_ptb   dcos_ptb   dsin_ptb   nmode_ptb    scale_ptb
             0       -1.0e-6     0.0e-6       2           1.0e0
 
 jet: flag_jet   flag_jet_perturb  jet_ywidth  jet_weight jet_decay_start
-       T              F            800.0e+3      0.0          500
+       T              F            800.0e+3      0.6          500
 
 tidal_diag: omega_tdiag
             1.45444104333e-4 
