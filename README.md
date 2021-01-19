@@ -28,7 +28,7 @@ Download Miniconda3 (i.e. for python3) from the [conda website](https://conda.io
 ```
 ./Miniconda3-latest-Linux-x86_64.sh
 conda update conda
-conda create -n croco -c conda-forge dask dask-jobqueue \
+conda create -n croco -c conda-forge python=3.8 dask dask-jobqueue \
             xarray zarr netcdf4 python-graphviz \
             jupyterlab ipywidgets \
             cartopy geopandas scikit-learn seaborn \
@@ -39,11 +39,18 @@ conda create -n croco -c conda-forge dask dask-jobqueue \
             pytide pyinterp
 conda activate croco
 pip install git+https://github.com/xgcm/xgcm.git
-conda install pywavelets
-# install croco_visu
-conda install wxpython ffmpeg
-# install parcels ...
+conda install -c conda-forge pywavelets
 cd croco; pip install -e .
+
+# install croco_visu
+conda install -c conda-forge wxpython ffmpeg
+
+# install parcels
+conda install -c conda-forge parcels
+
+# pyamg for solving poisson equation
+conda install -c conda-forge pyamg
+
 jupyter labextension install @jupyter-widgets/jupyterlab-manager \
                              @pyviz/jupyterlab_pyviz \
                              jupyter-leaflet

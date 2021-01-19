@@ -9,6 +9,7 @@ import numpy as np
 from numpy import ma
 import pandas as pd
 import xarray as xr
+from pyamg import ruge_stuben_solver, solve       
 from glob import glob
 
 second2day = 1./86400.
@@ -308,7 +309,7 @@ class Run(object):
         self.chunks = {nc:_default_chunks for nc in self.outputs}
         # overwrite with prescribed values
         for key in chunks:
-            if key in self.outputs and key is not 'default':
+            if key in self.outputs and key != 'default':
                 self.chunks[key] = chunks[key]
                 
     def _read_input_params(self):
@@ -968,6 +969,51 @@ class Run(object):
         Ri = Ri.assign_coords(coords={"z":z_w})
         return(Ri)
     
+    def get_streamfunction(self,pm,pn,pv,verbo=False):
+        """
+        Compute the stream function from the relative vorticity
+        Invert the laplacian to solve the poisson equation Ax=b
+        A is the horizontal laplacian, b is the vorticity
+        Input:
+            - pm : (DataArray) 1/dx metric
+            - pn : (DataArray) 1/dy metric
+            - pv : (DataArray) relative vorticity
+            - verbo : (Boolean) verbose mode
+        Output:
+            (DataArray) the computed streamfunction 
+        """
+        
+        if np.any(np.isnan(pv)): 
+            print("Can't inverse the laplacian, non compact domain, pv contains nan values")
+            return None
+
+        #######################################################
+        #Create matrix A
+        #######################################################
+        if verbo: print('creating matrix A')
+        A = gop.poisson_matrix(pm.values,pn.values)
+
+        #######################################################
+        #Solve matrix A
+        A = A.tocsr()
+        #######################################################
+
+        if verbo: print('creating matrix b')
+        b = -1. * pv.values.flatten() # right hand side
+        ml = ruge_stuben_solver(A)                # construct the multigrid hierarchy
+        if verbo: print(ml)                             # print hierarchy information
+        x = ml.solve(b, tol=1e-8)                       # solve Ax=b to a tolerance of 1e-8     
+        #x = solve(A,b,verb=False,tol=1e-8)
+
+        if verbo: print("residual: ", np.linalg.norm(b-A*x))          # compute norm of residual vector
+
+        chi = xr.DataArray(
+            data=x.reshape(pm.shape),
+            dims=["y_rho", "x_rho"],
+            coords={'nav_lon_rho':pv.nav_lon_rho, 'nav_lat_rho':pv.nav_lat_rho}
+            )
+        return chi
+    
     # buoyancy frequency
     def get_N2(self, *args, **kwargs):
         return gop.get_N2(self, *args, **kwargs)
@@ -1021,76 +1067,100 @@ class Run(object):
         _dir = _check_diagnostic_directory(directory, self.dirname, create=False)
         file_path = path.join(_dir, name+'.zarr')
         return load_vm(file_path, self.xgrid, persist=persist)
-    
+  
+
     def _compute_metrics_curvilinear(self):
         from xgcm import Grid
-        
+
         if 'grid' in self.outputs:
             ds = self.ds['grid']
         elif 'his' in self.outputs: # backward compatibility
-            ds = self.ds['his']    
+            ds = self.ds['his'] 
+            
         # curvilinear grid
         # Create xgcm grid without metrics
         coords={'xi': {'center':'x_rho', 'inner':'x_u'}, 
                 'eta': {'center':'y_rho', 'inner':'y_v'}, 
                 's': {'center':'s_rho', 'outer':'s_w'}}
-        grid = Grid(ds, 
+        self.xgrid = Grid(ds, 
                   periodic=self.grid_periodicity,
                   coords=coords,
                   boundary='extend')
-        # add new coordinates lon/lat for u, v and psi point
-        #for dst in [self.ds[s] for s in self.outputs]:
-        #    dst['nav_lon_u'] = grid.interp(ds.nav_lon_rho,'xi')
-        #    dst['nav_lat_u'] = grid.interp(ds.nav_lat_rho,'xi')
-        #    dst['nav_lon_v'] = grid.interp(ds.nav_lon_rho,'eta')
-        #    dst['nav_lat_v'] = grid.interp(ds.nav_lat_rho,'eta')
-        #    dst['nav_lon_psi'] = grid.interp(ds.nav_lon_v,'xi')
-        #    dst['nav_lat_psi'] = grid.interp(ds.nav_lat_u,'eta')
-        #    _coords = ['nav_lon_u','nav_lat_u','nav_lon_v','nav_lat_v','nav_lon_psi','nav_lat_psi']
-        #    dst = dst.set_coords(_coords)
-        for s in self.outputs:
-            self.ds[s]['nav_lon_u'] = grid.interp(self.ds[s].nav_lon_rho,'xi')
-            self.ds[s]['nav_lat_u'] = grid.interp(self.ds[s].nav_lat_rho,'xi')
-            self.ds[s]['nav_lon_v'] = grid.interp(self.ds[s].nav_lon_rho,'eta')
-            self.ds[s]['nav_lat_v'] = grid.interp(self.ds[s].nav_lat_rho,'eta')
-            self.ds[s]['nav_lon_psi'] = grid.interp(self.ds[s].nav_lon_v,'xi')
-            self.ds[s]['nav_lat_psi'] = grid.interp(self.ds[s].nav_lat_u,'eta')
-            _coords = ['nav_lon_u','nav_lat_u','nav_lon_v','nav_lat_v','nav_lon_psi','nav_lat_psi']
-            self.ds[s] = self.ds[s].set_coords(_coords)
         
+        # drop f from coordinates
+        for s in self.outputs:
+            self.ds[s] = self.ds[s].reset_coords(['f'])
+            
+        z_r = self.get_z(zeta=self.ds['his'].ssh).persist().fillna(0.)
+        z_w = self.get_z(zeta=self.ds['his'].ssh, vgrid='w').persist().fillna(0.)
+        for s in self.outputs:
+            # compute horizontal coordinates
+            self.ds[s]['nav_lon_u'] = self.xgrid.interp(self.ds[s].nav_lon_rho,'xi')
+            self.ds[s]['nav_lat_u'] = self.xgrid.interp(self.ds[s].nav_lat_rho,'xi')
+            self.ds[s]['nav_lon_v'] = self.xgrid.interp(self.ds[s].nav_lon_rho,'eta')
+            self.ds[s]['nav_lat_v'] = self.xgrid.interp(self.ds[s].nav_lat_rho,'eta')
+            self.ds[s]['nav_lon_psi'] = self.xgrid.interp(self.ds[s].nav_lon_v,'xi')
+            self.ds[s]['nav_lat_psi'] = self.xgrid.interp(self.ds[s].nav_lat_u,'eta')
+
+            # compute z coordinate at rho/w points
+            self.ds[s]['z_r'] = z_r
+            self.ds[s]['z_w'] = z_w
+            self.ds[s]['z_u'] = self.xgrid.interp(z_r,'xi')
+            self.ds[s]['z_v'] = self.xgrid.interp(z_r,'eta')
+            self.ds[s]['z_psi'] = self.xgrid.interp(self.ds[s].z_u,'eta')
+            
+            # set as coordinates in the dataset
+            _coords = ['nav_lon_u','nav_lat_u','nav_lon_v','nav_lat_v','nav_lon_psi','nav_lat_psi',
+                      'z_r','z_w','z_u','z_v','z_psi']
+            self.ds[s] = self.ds[s].set_coords(_coords)
+
         if 'grid' in self.outputs:
             ds = self.ds['grid']
         elif 'his' in self.outputs: # backward compatibility
             ds = self.ds['his']    
-        # add distance metrics for u, v and psi point
+
+        # add horizontal metrics for u, v and psi point
         if 'pm' in ds and 'pn' in ds:
-            ds['dx_rho'] = 1/ds['pm']
-            ds['dy_rho'] = 1/ds['pn']
+            ds['dx_r'] = 1/ds['pm']
+            ds['dy_r'] = 1/ds['pn']
         else: # backward compatibility, hack
-            dlon = grid.interp(grid.diff(ds.nav_lon_rho,'xi'),'xi')
-            dlat =  grid.interp(grid.diff(ds.nav_lat_rho,'eta'),'eta')
-            ds['dx_rho'], ds['dy_rho'] = dll_dist(dlon, dlat, ds.nav_lon_rho, ds.nav_lat_rho)
-        dlon = grid.interp(grid.diff(ds.nav_lon_u,'xi'),'xi')
-        dlat = grid.interp(grid.diff(ds.nav_lat_u,'eta'),'eta')
+            dlon = self.xgrid.interp(self.xgrid.diff(ds.nav_lon_rho,'xi'),'xi')
+            dlat =  self.xgrid.interp(self.xgrid.diff(ds.nav_lat_rho,'eta'),'eta')
+            ds['dx_r'], ds['dy_r'] = dll_dist(dlon, dlat, ds.nav_lon_rho, ds.nav_lat_rho)
+        dlon = self.xgrid.interp(self.xgrid.diff(ds.nav_lon_u,'xi'),'xi')
+        dlat = self.xgrid.interp(self.xgrid.diff(ds.nav_lat_u,'eta'),'eta')
         ds['dx_u'], ds['dy_u'] = dll_dist(dlon, dlat, ds.nav_lon_u, ds.nav_lat_u)
-        dlon = grid.interp(grid.diff(ds.nav_lon_v,'xi'),'xi')
-        dlat = grid.interp(grid.diff(ds.nav_lat_v,'eta'),'eta')
+        dlon = self.xgrid.interp(self.xgrid.diff(ds.nav_lon_v,'xi'),'xi')
+        dlat = self.xgrid.interp(self.xgrid.diff(ds.nav_lat_v,'eta'),'eta')
         ds['dx_v'], ds['dy_v'] = dll_dist(dlon, dlat, ds.nav_lon_v, ds.nav_lat_v)
-        dlon = grid.interp(grid.diff(ds.nav_lon_psi,'xi'),'xi')
-        dlat = grid.interp(grid.diff(ds.nav_lat_psi,'eta'),'eta')
+        dlon = self.xgrid.interp(self.xgrid.diff(ds.nav_lon_psi,'xi'),'xi')
+        dlat = self.xgrid.interp(self.xgrid.diff(ds.nav_lat_psi,'eta'),'eta')
         ds['dx_psi'], ds['dy_psi'] = dll_dist(dlon, dlat, ds.nav_lon_psi, ds.nav_lat_psi)
 
+        # add vertical metrics for u, v, rho and psi points
+        ds['dz_r'] = self.xgrid.diff(self['grid'].z_r,'s')
+        ds['dz_w'] = self.xgrid.diff(self['grid'].z_w,'s')
+        ds['dz_u'] = self.xgrid.diff(self['grid'].z_u,'s')
+        ds['dz_v'] = self.xgrid.diff(self['grid'].z_v,'s')
+        ds['dz_psi'] = self.xgrid.diff(self['grid'].z_psi,'s')
+
         # add areas metrics for rho,u,v and psi points
-        ds['rArho'] = ds.dx_psi * ds.dy_psi
+        ds['rAr'] = ds.dx_psi * ds.dy_psi
         ds['rAu'] = ds.dx_v * ds.dy_v
         ds['rAv'] = ds.dx_u * ds.dy_u
-        ds['rApsi'] = ds.dx_rho * ds.dy_rho
+        ds['rAf'] = ds.dx_r * ds.dy_r
 
+        # create new xgcmgrid with vertical metrics
+        coords={'xi': {'center':'x_rho', 'inner':'x_u'}, 
+                'eta': {'center':'y_rho', 'inner':'y_v'}, 
+                's': {'center':'s_rho', 'outer':'s_w'}}
         metrics = {
-               ('xi',): ['dx_rho', 'dx_u', 'dx_v', 'dx_psi'], # X distances
-               ('eta',): ['dy_rho', 'dy_u', 'dy_v', 'dy_psi'], # Y distances
-               ('xi', 'eta'): ['rArho', 'rAu', 'rAv', 'rApsi'] # Areas
+               ('xi',): ['dx_r', 'dx_u', 'dx_v', 'dx_psi'], # X distances
+               ('eta',): ['dy_r', 'dy_u', 'dy_v', 'dy_psi'], # Y distances
+               ('s',): ['dz_r', 'dz_u', 'dz_v', 'dz_psi', 'dz_w'], # Z distances
+               ('xi', 'eta'): ['rAr', 'rAu', 'rAv', 'rAf'] # Areas
               }
+        
         return ds, metrics
 
 def _compute_metrics(ds):
@@ -1134,8 +1204,6 @@ def _compute_metrics(ds):
                ('xi', 'eta'): ['rA', 'rAu', 'rAv'] # Areas
               }
     return ds, metrics
-
-
     
 def dll_dist(dlon, dlat, lon, lat):
     """

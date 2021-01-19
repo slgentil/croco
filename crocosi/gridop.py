@@ -2,6 +2,7 @@
 import xarray as xr
 import numpy as np
 from collections import OrderedDict
+from scipy.sparse import lil_matrix
 
 from .postp import grav
 
@@ -21,82 +22,172 @@ def _get_spatial_dims(v):
                         for d in ['s','y','x'] )
     return dims
 
-def x2rho(v, grid):
+def _get_spatial_coords(v):
+    """ Return an ordered dict of spatial dimensions in the s/z, y, x order
+    """
+    coords = OrderedDict( (d, next((x for x in v.coords if d in x), None))
+                        for d in ['z','lat','y','lon','x'] )
+    #coords = {k: coords[k] for k in coords.keys() if coords[k]}
+    return coords
+        
+def x2rho(v, grid, run=None):
     """ Interpolate from any grid to rho grid
     """
     dims = _get_spatial_dims(v)
+    coords = _get_spatial_coords(v)
     vout = v.copy()
+    if coords['z']: zout = v[coords['z']].copy()
     if dims['x'] == 'x_u':
         vout = grid.interp(vout, 'xi')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 'xi')
     if dims['y'] == 'y_v':
         vout = grid.interp(vout, 'eta')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 'eta')
     if dims['s'] == 's_w':
         vout = grid.interp(vout, 's')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 's')
+    # assign coordinates
+    if run:
+        if not run.grid_regular:
+            vout = vout.assign_coords(coords={'nav_lon_rho':run['grid'].nav_lon_rho})
+            vout = vout.assign_coords(coords={'nav_lat_rho':run['grid'].nav_lat_rho})
+            vout = vout.assign_coords(coords={'z_r':zout})
+                            
     return vout
 
-def x2u(v, grid):
+def x2u(v, grid, run=None):
     """ Interpolate from any grid to u grid
     """
     dims = _get_spatial_dims(v)
+    coords = _get_spatial_coords(v)
     vout = v.copy()
+    if coords['z']: zout = v[coords['z']].copy()
     if dims['x'] == 'x_rho':
         vout = grid.interp(vout, 'xi')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 'xi')
     if dims['y'] == 'y_v':
         vout = grid.interp(vout, 'eta')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 'eta')
     if dims['s'] == 's_w':
         vout = grid.interp(vout, 's')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 's')
+    if run:
+        if not run.grid_regular:
+            vout = vout.assign_coords(coords={'nav_lon_u':run['grid'].nav_lon_u})
+            vout = vout.assign_coords(coords={'nav_lat_u':run['grid'].nav_lat_u})
+            vout = vout.assign_coords(coords={'z_u':zout})
     return vout
 
-def x2v(v, grid):
+def x2v(v, grid, run=None):
     """ Interpolate from any grid to v grid
     """
     dims = _get_spatial_dims(v)
+    coords = _get_spatial_coords(v)
     vout = v.copy()
+    if coords['z']: zout = v[coords['z']].copy()
     if dims['x'] == 'x_u':
         vout = grid.interp(vout, 'xi')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 'xi')
     if dims['y'] == 'y_rho':
         vout = grid.interp(vout, 'eta')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 'eta')
     if dims['s'] == 's_w':
         vout = grid.interp(vout, 's')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 's')
+    if run:
+        if not run.grid_regular:
+            vout = vout.assign_coords(coords={'nav_lon_v':run['grid'].nav_lon_v})
+            vout = vout.assign_coords(coords={'nav_lat_v':run['grid'].nav_lat_v})
+            vout = vout.assign_coords(coords={'z_v':zout})
     return vout
 
-def x2w(v, grid):
+def x2w(v, grid, run=None):
     """ Interpolate from any grid to w grid
     """
     dims = _get_spatial_dims(v)
+    coords = _get_spatial_coords(v)
     vout = v.copy()
+    if coords['z']: zout = v[coords['z']].copy()
     if dims['x'] == 'x_u':
         vout = grid.interp(vout, 'xi')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 'xi')
     if dims['y'] == 'y_v':
         vout = grid.interp(vout, 'eta')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 'eta')
     if dims['s'] == 's_rho':
         vout = grid.interp(vout, 's')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 's')
+    if run:
+        if not run.grid_regular:
+            vout = vout.assign_coords(coords={'nav_lon_rho':run['grid'].nav_lon_rho})
+            vout = vout.assign_coords(coords={'nav_lat_rho':run['grid'].nav_lat_rho})
+            vout = vout.assign_coords(coords={'z_w':zout})
     return vout
 
-def x2psi(v, grid):
+def x2psi(v, grid, run=None):
     """ Interpolate from any grid to psi grid
     """
     dims = _get_spatial_dims(v)
+    coords = _get_spatial_coords(v)
     vout = v.copy()
+    if coords['z']: zout = v[coords['z']].copy()
     if dims['x'] == 'x_rho':
         vout = grid.interp(vout, 'xi')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 'xi')
     if dims['y'] == 'y_rho':
         vout = grid.interp(vout, 'eta')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 'eta')
     if dims['s'] == 's_w':
         vout = grid.interp(vout, 's')
+        if run:
+            if not run.grid_regular:
+                zout = grid.interp(zout, 's')
+    if run:
+        if not run.grid_regular:
+            vout = vout.assign_coords(coords={'nav_lon_f':run['grid'].nav_lon_f})
+            vout = vout.assign_coords(coords={'nav_lat_f':run['grid'].nav_lat_f})
+            vout = vout.assign_coords(coords={'z_f':zout})
     return vout
 
-def x2x(v, grid, target):
-    if target is 'rho':
-        return x2rho(v, grid)
-    elif target is 'u':
-        return x2u(v, grid)
-    elif target is 'v':
-        return x2v(v, grid)
-    elif target is 'w':
-        return x2w(v, grid)
-    elif target is 'psi':
-        return x2psi(v, grid)
+def x2x(v, grid, target, run=None):
+    if target == 'rho':
+        return x2rho(v, grid, run=run)
+    elif target == 'u':
+        return x2u(v, grid, run=run)
+    elif target == 'v':
+        return x2v(v, grid, run=run)
+    elif target == 'w':
+        return x2w(v, grid, run=run)
+    elif target == 'psi':
+        return x2psi(v, grid, run=run)
 
 def _get_grid_point(var):
     dims = var.dims
@@ -112,6 +203,49 @@ def _get_grid_point(var):
             return 'rho'
         else:
             return 'w'
+        
+        
+def poisson_matrix(pm,pn):    
+    """
+    Initialize the elliptic equation matrix (d_xx + d_yy)
+    Input :
+        - pm : (ndarray) 1/dx coefficents
+        - pn : (ndarray) 1/dy coefficents
+    Output:
+        return a sparse matrix of the laplacian operator
+    """
+    # elliptic equation matrix:  d_xx + d_yy
+    [nx,ny] = pm.shape
+    
+    ndim = ny*nx;
+    i_s  = ny;
+    js  = 1;
+    A=lil_matrix((ndim,ndim))
+    ############################
+    
+    for i in range(nx): 
+        for j in range(ny): 
+                idx = i*ny + j;
+                diag = 0.;
+                if j>0:
+                    dy2i = 0.5*(pn[i,j]+pn[i,j-1])*pn[i,j]
+                    A[idx,idx-js] = dy2i;
+                    diag -= dy2i;
+                if i>0:
+                    dx2i = 0.5*(pm[i,j]+pm[i-1,j])*pm[i,j]
+                    A[idx,idx-i_s] = dx2i;
+                    diag -= dx2i;
+                if i<nx-1:
+                    dx2i = 0.5*(pm[i,j]+pm[i+1,j])*pm[i,j]
+                    A[idx,idx+i_s] = dx2i;
+                    diag -= dx2i;
+                if j<ny-1:
+                    dy2i = 0.5*(pn[i,j]+pn[i,j+1])*pn[i,j]
+                    A[idx,idx+js] = dy2i;
+                    diag -= dy2i;
+                A[idx,idx] = diag
+    
+    return A
 # -----------------------  grid interpolation ------------------------
 
 def find_nearest_above(my_array, target, axis=0):
@@ -124,7 +258,8 @@ def get_slice(run, var, z, longitude=None, latitude=None, depth=None):
         #
         #
         # This function interpolate a 3D variable on a slice at a constant depth or
-        # constant longitude or constant latitude
+        # constant longitude or constant latitude. 
+        # This function uses interp2z over z axe and calculate linear interpolation over x and y axes
         #
         # On Input:
         #
@@ -219,8 +354,98 @@ def get_slice(run, var, z, longitude=None, latitude=None, depth=None):
             vnew = vnew.assign_coords(coords={y.name:y})
             vnew = vnew.assign_coords(coords={x.name:x})
 
-        return vnew
+        return vnew.squeeze()
 
+def get_slices(run, var, z, longitude=None, latitude=None, depth=None):
+    """
+    #
+    #
+    # This function interpolate a 3D variable on slices at constant depths/longitude/latitude
+    # This function use xcgm transform method and needs xgcm.Grid to be defined over the 3 axes. 
+    # !!! For now, it works only with curvilinear coordinates !!!
+    #
+    # On Input:
+    #
+    #    run      dataset to find the grid
+    #    var     (dataArray) Variable to process (3D matrix).
+    #    z       (dataArray) Depths at the same point than var (3D matrix).
+    #    longitude   (scalar,list or ndarray) longitude of the slice (scalar meters, negative).
+    #    latitude    (scalar,list or ndarray) latitude of the slice (scalar meters, negative).
+    #    depth       (scalar,list or ndarray) depth of the slice (scalar meters, negative).
+    #
+    # On Output:
+    #
+    #    vnew    (dataArray) Horizontal slice
+    #
+    #
+    """
+    from matplotlib.cbook import flatten
+
+    if longitude is None and latitude is None and depth is None:
+        "Longitude or latitude or depth must be defined"
+        return None
+
+    # check typ of longitude/latitude/depth
+    longitude = longitude.tolist() if isinstance(longitude,np.ndarray) else longitude
+    longitude = [longitude] if (isinstance(longitude,int) or isinstance(longitude,float)) else longitude
+
+    latitude = latitude.tolist() if isinstance(latitude,np.ndarray) else latitude
+    latitude = [latitude] if (isinstance(latitude,int) or isinstance(latitude,float)) else latitude
+
+    depth = depth.tolist() if isinstance(depth,np.ndarray) else depth
+    depth = [depth] if (isinstance(depth,int) or isinstance(depth,float)) else depth
+
+     # Find dimensions and coordinates of the variable
+    dims = _get_spatial_dims(var)
+    coords = _get_spatial_coords(var)
+
+    if longitude is not None:
+        axe = 'xi'
+        coord_ref = coords['x'] if coords['x'] else coords['lon']
+        coord_x = coords['y'] if coords['y'] else coords['lat']
+        coord_y = coords['z']
+        slices_values = longitude
+    elif latitude is not None:
+        axe = 'eta'
+        coord_ref = coords['y'] if coords['y'] else coords['lat']
+        coord_x = coords['x'] if coords['x'] else coords['lon']
+        coord_y = coords['z']
+        slices_values = latitude
+    else:
+        axe = 's'
+        coord_ref = coords['z']
+        coord_x = coords['x'] if coords['x'] else coords['lon']
+        coord_y = coords['y'] if coords['y'] else coords['lat']
+        slices_values = depth
+
+    # Recursively loop over time if needed
+    if len(var.dims) == 4:
+        vnew = [get_slices(run, var.isel(time=t), z.isel(time=t), 
+                      longitude=longitude, latitude=latitude, depth=depth) 
+                      for t in range(len(var.time))]
+        vnew = xr.concat(vnew, dim='time')
+    else:
+        vnew = run.xgrid.transform(var, axe, slices_values, 
+                               target_data=var[coord_ref])
+
+    # Do the linear interpolation
+    if not depth:
+        x = run.xgrid.transform(var[coord_x], axe, slices_values, 
+                                   target_data=var[coord_ref])\
+                     .expand_dims({dims['s']: len(var[dims['s']])})
+        y = run.xgrid.transform(var[coord_y], axe, slices_values, 
+                                   target_data=var[coord_ref])
+
+        # Add the coordinates to dataArray
+        vnew = vnew.assign_coords(coords={coord_x:x})
+        vnew = vnew.assign_coords(coords={coord_y:y})
+    else:
+        # Add the coordinates to dataArray
+        vnew = vnew.assign_coords(coords={coord_x:var[coord_x]})
+        vnew = vnew.assign_coords(coords={coord_y:var[coord_y]})
+
+    return vnew.squeeze().unify_chunks()
+    
 def hinterp(ds,var,coords=None):
     """ This is needs proper documentation:
     https://numpydoc.readthedocs.io/en/latest/format.html
@@ -849,3 +1074,59 @@ def get_pv(u, v, rho, rho_a, f, f0, zr, zw, ds):
     q = (xi + S + f - f0 ).rename('q') # order of variable conditions dimension order
 
     return q
+
+# ----------------------------- grid rechunk -----------------------------
+
+def ds_hor_chunk(ds, keep_complete_axe=None, wanted_chunk=100):
+    """
+    Rechunk Dataset or DataArray such as each partition size is about 100Mb
+    Input:
+        - ds : (Dataset or DataArray) object to rechunk
+        - keep_complete_axe : (character) Horizontal axe to keep with no chunk (x or y)
+        - wanted_chunk : (integer) size of each partition in Mb
+    Output:
+        - object rechunked
+    """
+    
+    #check input parameters
+    if not isinstance(ds, (xr.Dataset,xr.DataArray)):
+        print('argument must be a xarray.DataArray or xarray.Dataset')
+        return
+    if keep_complete_axe and keep_complete_axe!= 'x' and keep_complete_axe!='y':
+        print('keep_complete_axe must equal x or y')
+        return
+    
+    # get horizontal dimensions of the Dataset/DataArray
+    chunks = {}
+    hor_dim_names = {}
+    if isinstance(ds,xr.Dataset):
+        s_dim = max([ds.dims[s] for s in ds.dims.keys() if 's_' in s])
+        for key,value in ds.dims.items():
+            if 'x' in key or 'y' in key:
+                hor_dim_names[key] = value
+    else:
+        s_dim = max([len(ds[s]) for s in ds.dims if 's_' in s])
+        for key in ds.dims:
+            if 'x' in key or 'y' in key:
+                hor_dim_names[key] = len(ds[key])
+                           
+    if keep_complete_axe:
+        # get the maximum length of the dimensions along the argument axe
+        # set the chunks of those dimensions to -1 (no chunk)
+        h_dim=[]
+        for s in hor_dim_names.keys():
+            if keep_complete_axe in s:
+                h_dim.append(hor_dim_names[s])
+                hor_dim_names[s] = -1
+        h_dim = max(h_dim) 
+        # compute the chunk on the dimensions along the other horizontal axe
+        size_chunk = int(np.ceil(wanted_chunk*1.e6 / 4. / s_dim / h_dim))
+    else : 
+        # compute the chunk on all horizontal dimensions
+        size_chunk = int(np.ceil(np.sqrt(wanted_chunk*1.e6 / 4. / s_dim )))
+    
+    # Initialize the dctionnary of chunks
+    for s in hor_dim_names.keys():
+        chunks[s]=min([size_chunk,hor_dim_names[s]])
+        
+    return ds.chunk(chunks)
