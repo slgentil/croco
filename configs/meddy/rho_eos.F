@@ -366,6 +366,72 @@
 #  endif 
 # endif /* NONLIN_EOS */
 
+# ifdef CROCO_QH
+!======================================================================
+!  Quasi-hydrostatique correction for non-traditional Coriolis force
+!======================================================================
+!         dR = -rho0/g* e (U cos(a) - V sin(a) )
+!         with e = 2 Omega cos(Phi)
+!              a = angle between North and meridional grid axis
+!  --> QH pressure gradient is DPdz=-(rho+dR)*g/rho0
+!-----------------------------------------------------------------------
+!
+      enddo ! end j loop
+
+      cff=0.5*rho0/g
+      do j=Jstr,Jend
+        do k=1,N
+          do i=Istr,Iend
+            rho1(i,j,k)=rho1(i,j,k)
+     &                         - cff*e(i,j)* (
+     &          cosa(i,j)*(u(i,j,k,nrhs)+u(i+1,j,k,nrhs))
+     &        - sina(i,j)*(v(i,j,k,nrhs)+v(i,j+1,k,nrhs)) )
+#  ifdef MASKING
+            rho1(i,j,k)=rho1(i,j,k)*rmask(i,j)
+#  endif
+          enddo
+        enddo
+      enddo
+#  if defined EW_PERIODIC || defined NS_PERIODIC || defined MPI
+#   ifdef THREE_GHOST_POINTS_TS
+      call exchange_r3d_3pts_tile (Istr,Iend,Jstr,Jend,
+     &                             rho1(START_2D_ARRAY,1))
+#   else
+      call exchange_r3d_tile (Istr,Iend,Jstr,Jend,
+     &                        rho1(START_2D_ARRAY,1))
+#   endif
+#  endif
+
+      do j=JstrR,JendR ! resume j loop
+
+        do k=1,N
+          do i=IstrR,IendR
+#  ifdef NONLIN_EOS
+#   ifdef SPLIT_EOS
+            dpth=z_w(i,j,N)-z_r(i,j,k)
+            rho(i,j,k)=rho1(i,j,k) +qp1(i,j,k)*dpth*(1.-qp2*dpth)
+#   else
+            K1=B00+Tt*(B01+Tt*(B02+Tt*B03)) +Ts*( B10+Tt*( B11
+     &                                    +Tt*B12 )+sqrtTs*BS1 )
+            K2=E00+Tt*(E01+Tt*E02) +Ts*(E10+Tt*(E11+Tt*E12))
+
+            dpth=z_w(i,j,N)-z_r(i,j,k)
+            cff=K00-0.1*dpth
+            cff1=K0+dpth*(K1+K2*dpth)
+            rho(i,j,k)=( rho1(i,j,k)*cff*(K00+cff1)
+     &                           -0.1*dpth*rho0*cff1
+     &                            )/(cff*(cff+cff1))
+#   endif /* SPLIT_EOS */
+#  else
+            rho(i,j,k)=rho1(i,j,k)+1000-rho0
+#  endif
+#  ifdef MASKING
+            rho(i,j,k)=rho(i,j,k)*rmask(i,j)
+#  endif
+          enddo
+        enddo
+# endif /* CROCO_QH */
+
 # ifdef VAR_RHO_2D
 !
 !======================================================================
@@ -468,7 +534,7 @@
       real*QUAD mrho,vol
 #  ifdef MPI
       include 'mpif.h'
-#  include "mpi_roms.h"
+#  include "mpi_cpl.h"
       integer ierr
       real*QUAD allrho(1,NNODES),allvol(1,NNODES)
 #  endif
@@ -571,9 +637,6 @@ C$OMP CRITICAL (rho_cr_rgn)
      &                                 'mean density, kg/m3.'
 
       endif  ! <-- tile_count.eq.nsubs
-
-      rho0 = nint(rho0*1.d6,kind=8)/1.d6 ! round rho0 to 6 digits
-
 !
 C$OMP END CRITICAL (rho_cr_rgn)
       return

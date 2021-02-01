@@ -54,16 +54,16 @@
 !       stretch = 0.167d0
 !       stretch = 0.3d0
 !       stretch = 0.4d0
-!       stretch = 0.98d0
+        stretch = 0.98d0
 !       stretch = 1.d0
 !       stretch = 1.33d0
-        stretch = 2.5d0
+!       stretch = 2.5d0
 !       stretch = 3.d0
 !       stretch = 6.d0
 
-        Burger  = 0.3d0
+!       Burger  = 0.3d0
 !       Burger  = 0.2d0
-!       Burger  = 0.15d0
+        Burger  = 0.15d0
         thick_y = 2.8e4
         power   = 1
         z1      = -1100

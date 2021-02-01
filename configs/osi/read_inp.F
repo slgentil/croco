@@ -14,6 +14,7 @@
       subroutine read_inp (ierr)        ! parameters  from  startup 
                                         ! script file using keywords
                                         ! to recognize variables.
+      use params
 # if defined DIAG_SPEC
       use diagspec
 # endif /* DIAG_SPEC */
@@ -904,16 +905,17 @@ c        close(testunit)
       elseif (keyword(1:kwlen).eq.'spectral_diags') then
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) navgspec, nwrtspec
-        read(input,*,err=95) lon_min, lon_max, lat_min, lat_max
+!       modif for diag_spec_isorho
+!       read(input,*,err=95) lon_min, lon_max, lat_min, lat_max
         MPI_master_only write(stdout,
      &    '(5x,A/,8x,A,I5,/,8x,A,I5)')
      &    'Spectral diagnostics:','navgspec:', navgspec,  'nwrtspec:', nwrtspec
-        MPI_master_only write(stdout,
-     &    '(8x,A,F6.1,/,8x,A,F6.1)')
-     &    'lon_min:', lon_min,  'lon_max:', lon_max
-        MPI_master_only write(stdout,
-     &    '(8x,A,F6.1,/,8x,A,F6.1)')
-     &    'lat_min:', lat_min,  'lat_max:', lat_max
+!       MPI_master_only write(stdout,
+!    &    '(8x,A,F6.1,/,8x,A,F6.1)')
+!    &    'lon_min:', lon_min,  'lon_max:', lon_max
+!       MPI_master_only write(stdout,
+!    &    '(8x,A,F6.1,/,8x,A,F6.1)')
+!    &    'lat_min:', lat_min,  'lat_max:', lat_max
 # endif /* DIAG_SPEC */
 
 
@@ -1583,14 +1585,19 @@ c        close(testunit)
 #endif
           read(input,*,err=95) wrtflt(indxfltGrd), 
      &       wrtflt(indxfltTemp), wrtflt(indxfltSalt), 
-     &       wrtflt(indxfltRho), wrtflt(indxfltVel)
-           MPI_master_only write(stdout,'(/1x,A,5(/6x,l1,2x,A))')
+     &       wrtflt(indxfltRho), wrtflt(indxfltVel),
+     &       wrtflt(indxfltUV), wrtflt(indxfltAccel),
+     &       wrtflt(indxfltPres)
+           MPI_master_only write(stdout,'(/1x,A,8(/6x,l1,2x,A))')
      &      'Fields to be saved in floats output file: (T/F)'
      &     , wrtflt(indxfltGrd),   'write Grid location variables'
      &     , wrtflt(indxfltTemp),  'write temperature.'
      &     , wrtflt(indxfltSalt),  'write salinity.'
      &     , wrtflt(indxfltRho),   'write density.'
      &     , wrtflt(indxfltVel),   'write mean float velocity' 
+     &     , wrtflt(indxfltUV),    'write instant float velocity' 
+     &     , wrtflt(indxfltAccel), 'write instant float acceleration' 
+     &     , wrtflt(indxfltPres),  'write pressure' 
 #ifdef AGRIF
         endif
 #endif

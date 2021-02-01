@@ -52,8 +52,11 @@ C$    integer omp_get_thread_num
 # ifdef AGRIF
       use Agrif_Util
 # endif
+
+      use params
+
       implicit none
-      integer Istr,Iend,Jstr,Jend, i,j,imax,jchn
+      integer Istr,Iend,Jstr,Jend, i,j
 # include "param.h"
 # include "grid.h"
 # include "scalars.h"
@@ -69,6 +72,10 @@ C$    integer omp_get_thread_num
 # endif
 # ifdef FLUME
       real p1,p2,p3,p4
+# endif
+# ifdef RIVER
+      integer is,i0,j0
+#  include "sources.h"
 # endif
 #ifdef MPI
 # define LOCALLM Lmmpi
@@ -199,6 +206,12 @@ C$    integer omp_get_thread_num
                      f0=???
                      beta=???
 # endif
+
+!  Output (h,f,beta)
+
+      call params_output('depth',depth)
+      call params_output('f0',f0)
+      call params_output('beta',beta)
 !
 !----------------------------------------------------------------------
 ! Grid dimensions (Length_XI, Length_ETA)
@@ -392,7 +405,22 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
           f(i,j)=f0+beta*(yr(i,j)-(0.5*el))
 #  endif
         enddo
-      enddo   
+      enddo
+
+# if defined UV_COR_NT || defined CROCO_QH
+!
+!  Horizontal (non-traditional) Coriolis parameter
+!
+      do j=JstrR,JendR
+        do i=IstrR,IendR
+          if (beta.eq.0) then     ! f-plan
+            e(i,j)=2.*Erotation*cos(asin(f0/(2.*Erotation)))
+          else
+            e(i,j)=beta*Eradius   ! beta plan
+          endif
+        enddo
+      enddo
+# endif
 !
 !----------------------------------------------------------------------
 !  Set bathymetry [meters; positive] at RHO-points.
@@ -694,80 +722,41 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
 # ifdef MASKING
 #  ifdef RIVER
       do j=JstrR,JendR             ! Set mask to all-water status,
-        do i=IstrR,IendR           ! then mask out 5-point wide strip
+        do i=IstrR,IendR           ! then mask out 8-point wide strip
           rmask(i,j)=1.            ! of land on the west, and finally
-        enddo                      ! carve a 1-point wide channel
+        enddo                      ! carve two 1-point wide channels
       enddo                        ! through that strip.
-      imax=8
-      jchn=60
-      do j=JstrR,JendR
-        do i=IstrR,imax
-          rmask(i,j)=0.            ! <-- strip of land
-        enddo
-      enddo
-      j=jchn
-        if (j.ge.JstrR .and. j.le.JendR) then
-          do i=IstrR+3,imax
-            rmask(i,jchn-20)=1.
-            rmask(i,jchn)=1.                   ! <-- channel
-          enddo
-        endif
-      do j=jchn-6,jchn
-        if (j.ge.JstrR .and. j.le.JendR) then
-            rmask(3,j)=1.                      ! <-- channel
-        endif
-      enddo
-#  elif defined TANK || defined GRAV_ADJ || defined ACOUSTIC\
-                     || defined INTERNAL || defined IGW\
-                     || defined S2DV     || defined KH_INST
-      gamma2=1.
-      do j=JstrR,JendR
-        do i=IstrR,IendR
-          rmask(i,j)=1.
-        enddo
-      enddo
-      if (SOUTHERN_EDGE) then
-        do i=IstrR,IendR
-          rmask(i,0)=0.
-        enddo
-      endif
-      if (NORTHERN_EDGE) then
-        do i=IstrR,IendR
-          rmask(i,LOCALMM+1)=0.
-        enddo
-      endif
       if (WESTERN_EDGE) then
         do j=JstrR,JendR
-          rmask(0,j)=0.
+          do i=IstrR,8
+            rmask(i,j)=0.            ! <-- strip of land
+          enddo
         enddo
-      endif
-      if (EASTERN_EDGE) then
-        do j=JstrR,JendR
-          rmask(LOCALLM+1,j)=0.
+        do is=1,Nsrc
+#  ifdef MPI
+          i0=Isrc_mpi(is,mynode)
+          j0=Jsrc_mpi(is,mynode)
+#  else
+          i0=Isrc(is)
+          j0=Jsrc(is)
+#  endif
+          if (IstrR.le.i0 .and. i0.le.IendR .and.
+     &        JstrR.le.j0 .and. j0.le.JendR) then
+            if (is.eq.1) then
+              do j=j0,j0+6
+                rmask(3,j)=1.      ! <-- upper channel with corner
+              enddo
+              do i=IstrR+3,8
+                rmask(i,j0+6)=1.
+              enddo
+            else
+              do i=IstrR+3,8
+                rmask(i,j0)=1.     ! <-- lower channel along xi
+              enddo
+            endif
+          endif
         enddo
-      endif
-#  elif defined SWASH
-      gamma2=1.
-      do j=JstrR,JendR
-        do i=IstrR,IendR
-          rmask(i,j)=1.
-        enddo
-      enddo
-      if (SOUTHERN_EDGE) then
-        do i=IstrR,IendR
-          rmask(i,0)=0.
-        enddo
-      endif
-      if (NORTHERN_EDGE) then
-        do i=IstrR,IendR
-          rmask(i,LOCALMM+1)=0.
-        enddo
-      endif
-      if (EASTERN_EDGE) then
-        do j=JstrR,JendR
-          rmask(LOCALLM+1,j)=0.
-        enddo
-      endif
+      endif ! WESTERN_EDGE
 #  endif
 # endif
 !

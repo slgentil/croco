@@ -6,10 +6,10 @@
       implicit none
 
       integer :: Ninterp, method
-      integer :: rhomax_surf_index
+      !integer :: rhomax_surf_index
       real, parameter :: Ninterp_fact = 1.
       
-      real(kind=8) :: rhomax_surf, rhomin_bottom
+      !real(kind=8) :: rhomax_surf, rhomin_bottom
       real(kind=8),dimension(:),allocatable :: rho_axis, rho_axis_interp
       real(kind=8),dimension(:,:,:),allocatable :: zpar_interp
       
@@ -344,43 +344,44 @@
        
       end subroutine interp3d_isorho   
       
-!*************************************************************************
       
+!======================================== 
+
       subroutine find_rho_index_down(value,index_down)
-      
+
 # include "param.h"
 
 
       integer::k, index_down
-      real(kind=8), intent(in) ::  value 
-      
+      real(kind=8), intent(in) ::  value
+
 ! Loop on input grid
 
       index_down=1
       do k = 2, Ninterp
          if (value>rho_axis_interp(k)) exit
          index_down = k
-      enddo   
+      enddo
       end subroutine find_rho_index_down
 
-    
-!*************************************************************************
-      
+
+!======================================== 
+
       subroutine find_rho_index_up(value,index_up)
-      
+
 # include "param.h"
 
 
       integer::k, index_up
-      real(kind=8), intent(in) ::  value 
-      
+      real(kind=8), intent(in) ::  value
+
 ! Loop on input grid
 
       index_up = Ninterp
       do k = Ninterp-1, 1, -1
          if (value<rho_axis_interp(k)) exit
-         index_up = k         
-      enddo   
-      end subroutine find_rho_index_up     
-      
+         index_up = k
+      enddo
+      end subroutine find_rho_index_up
+
       end module

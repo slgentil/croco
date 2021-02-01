@@ -37,6 +37,7 @@ C$    integer omp_get_thread_num
 !  analytical expressions.
 !----------------------------------------------------------------------
 !
+      use params
 #ifdef AGRIF
       use Agrif_Util
 #endif
@@ -173,27 +174,22 @@ C$    integer omp_get_thread_num
 
       if (mynode == 0) then
          write(STDOUT,*) '--------------------------------------------------'
-         write(STDOUT,*) ' running case  ', icase
          write(STDOUT,*) ' initialisation vortex lens '
          write(STDOUT,*) '--------------------------------------------------'
-      endif
-
-
-      if (mynode == 0) then
-         write(STDOUT,*) '--------------------'
          write(STDOUT,'(A,F7.1)')' largest time step (s) horizontal',
      &                  (1./pm(1,1))/(abs(2*z1*Nfreq/pi)+0.5)/4
          write(STDOUT,'(A,F7.1)')' largest time step (s) vertical', 
      &                  Hz(1,1,1)/(0.1)/4
-         write(STDOUT,*)' Nfreq**2', Nfreq2
          write(STDOUT,*)' max coriolis, min', f(1,1),  f(1,Mm)
-         write(STDOUT,*)' horizontal scale ', thick_y
-         write(STDOUT,*)' vertical scale ', thick_z
-         write(STDOUT,*)' Burger  ', Burger, ' Rossby =', Rossby, 
-     &                  'stretch =', stretch
-         write(STDOUT,*) '--------------------'
-         
+         write(STDOUT,*) '--------------------------------------------------'
       endif
+      call params_output('icase', icase)
+      call params_output('Nfreq2',Nfreq2)
+      call params_output('thick_y',thick_y)
+      call params_output('thick_z',thick_z)
+      call params_output('Burger',Burger)
+      call params_output('Rossby',Rossby)
+      call params_output('stretch',stretch)
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% debut du background en z
 

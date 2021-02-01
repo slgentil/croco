@@ -290,8 +290,9 @@ def get_slice(run, var, z, longitude=None, latitude=None, depth=None):
         N = len(var[dims['s']])
 
         # Find horizontal coordinates of the variable
-        x = [var.coords[s] for s in var.coords if "lon_" in s][0]
-        y = [var.coords[s] for s in var.coords if "lat_" in s][0]
+        x = [var.coords[s] for s in var.coords if "lon_" in s or "x_" in s][0]
+        y = [var.coords[s] for s in var.coords if "lat_" in s or "y_" in s][0] 
+
 
         # Find the indices of the grid points just below the longitude/latitude/depth
         if longitude is not None:
@@ -305,15 +306,17 @@ def get_slice(run, var, z, longitude=None, latitude=None, depth=None):
         if longitude is not None:
             x1 = x.isel({dims['x']:indices})
             x2 = x.isel({dims['x']:indices+1})
-            y1 = y.isel({dims['x']:indices})
-            y2 = y.isel({dims['x']:indices+1})
+            if not run.grid_regular:
+                y1 = y.isel({dims['x']:indices})
+                y2 = y.isel({dims['x']:indices+1})
             z1 = z.isel({dims['x']:indices})
             z2 = z.isel({dims['x']:indices+1})
             v1 = var.isel({dims['x']:indices})
             v2 = var.isel({dims['x']:indices+1})
         elif latitude is not None:
-            x1 = x.isel({dims['y']:indices})
-            x2 = x.isel({dims['y']:indices+1})
+            if not run.grid_regular:
+                x1 = x.isel({dims['y']:indices})
+                x2 = x.isel({dims['y']:indices+1})
             y1 = y.isel({dims['y']:indices})
             y2 = y.isel({dims['y']:indices+1})
             z1 = z.isel({dims['y']:indices})
@@ -324,29 +327,40 @@ def get_slice(run, var, z, longitude=None, latitude=None, depth=None):
         # Do the linear interpolation
         if longitude is not None:
             xdiff = x1 - x2
-            ynew =  (((y1 - y2) * longitude + y2 * x1 - y1 * x2) / xdiff)
+            if not run.grid_regular:
+                ynew =  (((y1 - y2) * longitude + y2 * x1 - y1 * x2) / xdiff)
             znew =  (((z1 - z2) * longitude + z2 * x1 - z1 * x2) / xdiff).fillna(0)
             vnew =  (((v1 - v2) * longitude + v2 * x1 - v1 * x2) / xdiff)
         elif latitude is not None:
             ydiff = y1 - y2
-            xnew =  (((x1 - x2) * latitude + x2 * y1 - x1 * y2) / ydiff)
+            if not run.grid_regular:
+                xnew =  (((x1 - x2) * latitude + x2 * y1 - x1 * y2) / ydiff)
             znew =  (((z1 - z2) * latitude + z2 * y1 - z1 * y2) / ydiff).fillna(0)
             vnew =  (((v1 - v2) * latitude + v2 * y1 - v1 * y2) / ydiff)
         elif depth is not None:
-            zmask = x2x(run['grid'].mask_rho.where(run['grid'].h>abs(depth),np.nan) ,
-                        run.xgrid,grid_point)           
+            try:
+                zmask = x2x(run['grid'].mask_rho.where(run['grid'].h>abs(depth),np.nan) ,
+                        run.xgrid,grid_point)    
+            except:
+                zmask = var.isel({dims['s']:0}) * 0. +1
             swapdim ='s_rho' if dims['s']=='s_w' else 's_w'
             zt = (var.isel({dims['s']:[0]}).fillna(0.)*0. + depth).rename({dims['s']:swapdim})
             vnew = zmask*interp2z(zt, z, var)
 
         # Add the coordinates to dataArray
         if longitude is not None:
-            ynew = ynew.expand_dims({dims['s']: N})
+            if not run.grid_regular:
+                ynew = ynew.expand_dims({dims['s']: N})
+            else:
+                ynew = y
             vnew = vnew.assign_coords(coords={"z":znew})
             vnew = vnew.assign_coords(coords={y.name:ynew})
 
         elif latitude is not None:
-            xnew = xnew.expand_dims({dims['s']: N})
+            if not run.grid_regular:
+                xnew = xnew.expand_dims({dims['s']: N})
+            else:
+                xnew = x
             vnew = vnew.assign_coords(coords={"z":znew})
             vnew = vnew.assign_coords(coords={x.name:xnew})
 

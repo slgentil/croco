@@ -28,26 +28,168 @@
 #if defined AGRIF
       integer LLmm2, MMmm2
 #endif
-/*
-!
-!==========================================================
-!              GO_MEDDY grid size
-!==========================================================
-!
-*/
-#if defined GO_MEDDY
+#if defined BASIN
+      parameter (LLm0=60,   MMm0=50,   N=10)
+#elif defined CANYON_A
+      parameter (LLm0=65,   MMm0=48,   N=16)
+#elif defined CANYON_B
+      parameter (LLm0=66,   MMm0=48,   N=16)
+#elif defined EQUATOR
+      parameter (LLm0=40,   MMm0=32,   N=32)   ! 100 km resolution
+#elif defined KH_INST 
+# ifndef KH_INSTY
+#  ifdef KH_INST3D
+      parameter (LLm0=256,  MMm0=32,  N=256)
+#  else
+      parameter (LLm0=256,  MMm0=1,   N=256)
+#  endif
+# else
+      parameter (LLm0=1,    MMm0=256, N=256)
+# endif
+#elif defined ACOUSTIC 
+      parameter (LLm0=64,   MMm0=1,    N=64)  
+#elif defined GRAV_ADJ
+# ifdef NBQ
+#  ifdef GRAV_ADJ_SOLITON
+      parameter (LLm0=60,   MMm0=1,    N=74)   !  10 cm resolution
+#  else
+!     parameter (LLm0=600,  MMm0=1,    N=60)   !   5 mm resolution
+      parameter (LLm0=300,  MMm0=1,    N=30)   !  10 mm resolution
+#  endif
+# else
+!     parameter (LLm0=32,   MMm0=4,    N=10)   !   2 km resolution
+      parameter (LLm0=128,  MMm0=4,    N=40)   ! 500  m resolution
+!     parameter (LLm0=512,  MMm0=4,   N=160)   ! 125  m resolution
+# endif
+#elif defined INNERSHELF
+      parameter (LLm0=200,  MMm0=3,    N=60)
+#elif defined INTERNAL
+!     parameter (LLm0=120,  MMm0=10,   N=40)   !  10 km resolution
+!     parameter (LLm0=800,  MMm0=4,    N=40)   ! 1.5 km resolution
+      parameter (LLm0=1600, MMm0=4,    N=40)   ! .75 km resolution
+#elif defined S2DV 
+       parameter (LLm0=562, MMm0=3,    N=40)   ! true 2DV
+#elif defined MILES 
+       parameter (LLm0=408, MMm0=523,  N=20)
+#elif defined IGW
+# ifndef NBQ
+!      parameter (LLm0=878, MMm0=3,    N=80)   !   1 km resolution  
+       parameter (LLm0=878, MMm0=3,    N=40)
+!      parameter (LLm0=878, MMm0=3,    N=20)
+# else
+       parameter (LLm0=256, MMm0=3,    N=40)
+# endif
+#elif defined OVERFLOW
+      parameter (LLm0=4,    MMm0=128,  N=10)
+#elif defined PLUME
+      parameter (LLm0=200,   MMm0=200,   N=100)        
+!      parameter (LLm0=80,   MMm0=80,   N=100) 
+#elif defined RIVER
+      parameter (LLm0=40,   MMm0=80,   N=20)
+#elif defined SEAMOUNT
+      parameter (LLm0=64,   MMm0=64,   N=20)
+#elif defined SHELFRONT
+      parameter (LLm0=4,    MMm0=40,   N=10)
+#elif defined SOLITON
+      parameter (LLm0=96,   MMm0=32,   N=10)
+#elif defined UPWELLING
+      parameter (LLm0=16,   MMm0=64,   N=16)
+#elif defined VORTEX
+!     parameter (LLm0=360,  MMm0=360,  N=10)   !  5 km resolution
+!     parameter (LLm0=180,  MMm0=180,  N=10)   ! 10 km resolution
+!     parameter (LLm0=90,   MMm0=90,   N=10)   ! 20 km resolution
+      parameter (LLm0=60,   MMm0=60,   N=10)   ! 30 km resolution
+#elif defined JET
+# ifdef ANA_JET
+!     parameter (LLm0=250,  MMm0=1000, N=100)  !  2 km resolution
+!     parameter (LLm0=100,  MMm0=400,  N=80)   !  5 km resolution
+!     parameter (LLm0= 50,  MMm0=200,  N=60)   ! 10 km resolution
+      parameter (LLm0= 25,  MMm0=100,  N=40)   ! 20 km resolution
+# else
+!     parameter (LLm0=300,  MMm0=500,  N=30)   !  2 km resolution
+!     parameter (LLm0=120,  MMm0=200,  N=30)   !  5 km resolution
+!     parameter (LLm0=60,   MMm0=100,  N=30)   ! 10 km resolution
+      parameter (LLm0=30,   MMm0=50,   N=30)   ! 20 km resolution
+# endif
+#elif defined SHOREFACE
+      parameter (LLm0=59,   MMm0=1,    N=20)   ! 20 m Planar Beach
+#elif defined FLUME
+      parameter (LLm0=59,   MMm0=1,    N=20)   ! .5 m Flume
+#elif defined SWASH
+!     parameter (LLm0=100,  MMm0=1,    N=10)   !  1 m  Swash
+      parameter (LLm0=800,  MMm0=1,    N=10)   ! 12 cm Swash (GLOBEX)
+#elif defined RIP
+# ifdef BISCA
+      parameter (LLm0= 86,  MMm0=92,   N=20)   ! 10 m Bisca Rip
+# else
+!     parameter (LLm0=256,  MMm0=256,  N=20)   !  3 m resolution 
+!     parameter (LLm0= 96,  MMm0= 96,  N=20)   !  8 m resolution
+      parameter (LLm0= 48,  MMm0= 48,  N=20)   ! 16 m resolution
+# endif
+#elif defined THACKER
+# ifdef THACKER_2DV
+      parameter (LLm0=199,  MMm0=1,    N=5 )   !  1 km resolution
+# else
+      parameter (LLm0=199,  MMm0=199,  N=5 )   !  1 km resolution
+# endif
+#elif defined TANK
+# ifndef MOVING_BATHY
+#  ifndef TANKY
+      parameter (LLm0=50,   MMm0=1,    N=50)   ! 20 cm resolution
+#  else
+      parameter (LLm0=1,    MMm0=50,   N=50)   ! 20 cm resolution
+#  endif
+# else
+      parameter (LLm0=4000, MMm0=1,    N=30)   !  1 mm resolution
+# endif
+#elif defined CALDEIRA
+      parameter (LLm0=100,   MMm0=100,   N=50)
+#elif defined REGIONAL
+#  if   defined USWC0
+      parameter (LLm0=62,   MMm0=126,  N=40)   ! US_West grid15 L0
+#  elif defined USWC1
+      parameter (LLm0=60,   MMm0=96,   N=40)   ! US_West grid15 L1
+#  elif defined USWC2
+      parameter (LLm0=60,   MMm0=120,  N=40)   ! US_West grid15 L2
+#  elif defined USWC155
+      parameter (LLm0=83,   MMm0=168,  N=20)   ! US_West USWC155 L1
+#  elif defined CANARY
+!     parameter (LLm0=97,   MMm0=159,  N=32)   ! Canary
+#  elif defined FINISTERE
+      parameter (LLm0=78,   MMm0=100,  N=16)   ! Finistere
+#  elif defined RIA
+      parameter (LLm0=77,   MMm0=96,   N=28)   ! RIA
+#  elif defined PERU
+      parameter (LLm0=39,   MMm0=32,   N=20)   ! Peru test
+#  elif defined SAFE
+      parameter (LLm0=111,  MMm0=96,   N=32)   ! SAFE
+#  elif defined PACIFIC
+      parameter (LLm0=170,  MMm0=60,   N=30)   ! Pacific
+#  elif defined  CORAL
+      parameter (LLm0=81,   MMm0=77,   N=32)   ! CORAL sea
+#  elif defined  BENGUELA_LR
+      parameter (LLm0=41,   MMm0=42,   N=32)   ! BENGUELA_LR
+#  elif defined  BENGUELA_HR
+      parameter (LLm0=83,   MMm0=85,   N=32)   ! BENGUELA_HR
+#  elif defined  BENGUELA_VHR
+      parameter (LLm0=167,  MMm0=170,  N=32)   ! BENGUELA_VHR
+#  else
+      parameter (LLm0=94,   MMm0=81,   N=40)
+#  endif
 
+
+#elif defined GO_MEDDY
 #  if RESOLUTION == 64
       parameter (LLm0=64,   MMm0=64,   N=30)
-!     parameter (LLm0=64,   MMm0=64,   N=60)     
+!     parameter (LLm0=64,   MMm0=64,   N=60)
 #  elif RESOLUTION == 128 
-      parameter (LLm0=128,  MMm0=128,  N=60)  
-!     parameter (LLm0=128,  MMm0=128,  N=120)       
+      parameter (LLm0=128,  MMm0=128,  N=60)
+!     parameter (LLm0=128,  MMm0=128,  N=120)
 #  elif RESOLUTION == 200 
-      parameter (LLm0=200,  MMm0=200,  N=60)  
+      parameter (LLm0=200,  MMm0=200,  N=60)
 #  elif RESOLUTION == 256
       parameter (LLm0=256,  MMm0=256,  N=120)
-!     parameter (LLm0=256,  MMm0=256,  N=240)                  
+!     parameter (LLm0=256,  MMm0=256,  N=240)
 #  elif RESOLUTION == 400
       parameter (LLm0=400,  MMm0=400,  N=120)
 #  elif RESOLUTION == 512
@@ -56,27 +198,22 @@
 !     parameter (LLm0=512,  MMm0=512,  N=480)
 #  elif RESOLUTION == 1024
       parameter (LLm0=1024,  MMm0=1024,  N=480)
-!     parameter (LLm0=1024,  MMm0=1024,  N=960) 
+!     parameter (LLm0=1024,  MMm0=1024,  N=960)
 #  elif RESOLUTION == 2048
-      parameter (LLm0=2048,  MMm0=2048,  N=240) 
+      parameter (LLm0=2048,  MMm0=2048,  N=240)
 #  endif /* RESOLUTION */
 
-#else  /* GO_MEDDY */
-      parameter (LLm0=xx, MMm0=xx, N=xx)
-#endif  /* GO_MEDDY */
 
+#else
+      parameter (LLm0=xx, MMm0=xx, N=xx)
+#endif
+      
 #ifdef AGRIF
       common /scrum_physical_grid/ LLm,Lm,LLmm2,MMm,Mm,MMmm2
 #else
       parameter (LLm=LLm0,  MMm=MMm0)
 #endif
-/*
-!
-!==========================================================
-!              END grid size
-!==========================================================
-!
-*/
+
 !
 !----------------------------------------------------------------------
 ! MPI related variables
@@ -97,47 +234,39 @@
 !
       integer NSUB_X, NSUB_E, NPP
 #ifdef MPI
-      integer NP_XI, NP_ETA, NNODES
+      integer NP_XI, NP_ETA, NNODES    
+ 
+!----------------------------------------------------------------------
+! 
 
-/*
-!
-!==========================================================
-!              GO_MEDDY Nb procs
-!==========================================================
-!
-*/
-# if defined GO_MEDDY
-
+#if defined GO_MEDDY
 #   if RESOLUTION == 64
       parameter (NP_XI=2, NP_ETA=4,  NNODES=NP_XI*NP_ETA)     ! linux
 #   elif RESOLUTION == 128
-!     parameter (NP_XI=2, NP_ETA=4,  NNODES=NP_XI*NP_ETA)     ! linux 
-      parameter (NP_XI=2, NP_ETA=8,  NNODES=NP_XI*NP_ETA)     ! Datarmor 
+!     parameter (NP_XI=2, NP_ETA=4,  NNODES=NP_XI*NP_ETA)     ! linux
+      parameter (NP_XI=2, NP_ETA=8,  NNODES=NP_XI*NP_ETA)     ! Datarmor
 #   elif RESOLUTION == 200
-      parameter (NP_XI=2, NP_ETA=25,  NNODES=NP_XI*NP_ETA)    ! Datarmor  
+      parameter (NP_XI=2, NP_ETA=25,  NNODES=NP_XI*NP_ETA)    ! Datarmor
 #   elif RESOLUTION == 256
-      parameter (NP_XI=2, NP_ETA=16,  NNODES=NP_XI*NP_ETA)    ! Datarmor  
+      parameter (NP_XI=2, NP_ETA=16,  NNODES=NP_XI*NP_ETA)    ! Datarmor
 #   elif RESOLUTION == 400    
-      parameter (NP_XI=8, NP_ETA=50,  NNODES=NP_XI*NP_ETA)    ! Datarmor 
+      parameter (NP_XI=8, NP_ETA=50,  NNODES=NP_XI*NP_ETA)    ! Datarmor
 #   elif RESOLUTION == 512    
-      parameter (NP_XI=16, NP_ETA=32,  NNODES=NP_XI*NP_ETA)   ! Datarmor 
+      parameter (NP_XI=4, NP_ETA=32,  NNODES=NP_XI*NP_ETA)   ! Datarmor
+      !parameter (NP_XI=8, NP_ETA=32,  NNODES=NP_XI*NP_ETA)   ! Datarmor
+      !parameter (NP_XI=16, NP_ETA=32,  NNODES=NP_XI*NP_ETA)   ! Datarmor
 #   elif RESOLUTION == 1024            
-!     parameter (NP_XI=32, NP_ETA=64,  NNODES=NP_XI*NP_ETA)   ! curie 
-      parameter (NP_XI=16, NP_ETA=32,  NNODES=NP_XI*NP_ETA)   ! Datarmor 
+!     parameter (NP_XI=32, NP_ETA=64,  NNODES=NP_XI*NP_ETA)   ! curie
+      parameter (NP_XI=16, NP_ETA=32,  NNODES=NP_XI*NP_ETA)   ! Datarmor
 #   elif RESOLUTION == 2048            
-      parameter (NP_XI=64, NP_ETA=64,  NNODES=NP_XI*NP_ETA)   ! curie 
-#   endif /* RESOLUTION */     
-      
-# else 
-      parameter (NP_XI=1, NP_ETA=1,  NNODES=NP_XI*NP_ETA)
+      parameter (NP_XI=64, NP_ETA=64,  NNODES=NP_XI*NP_ETA)   ! curie
+#   endif /* RESOLUTION */
+
+
+
+#else
+      parameter (NP_XI=1, NP_ETA=1, NNODES=NP_XI*NP_ETA)
 #endif
-/*
-!
-!==========================================================
-!              END Nb procs
-!==========================================================
-!
-*/
       parameter (NPP=1)
       parameter (NSUB_X=1, NSUB_E=1)
 #elif defined OPENMP
@@ -185,7 +314,7 @@
 # if defined THACKER || defined FLUME
       parameter (D_wetdry=0.01)
 # elif defined SWASH
-      parameter (D_wetdry=0.05)
+      parameter (D_wetdry=0.001)
 # else
       parameter (D_wetdry=0.10)
 # endif
@@ -195,10 +324,10 @@
       integer Msrc               ! Number of point sources
       parameter (Msrc=10)        ! ====== == ===== =======
 #endif
-#ifdef FLOATS
-       integer Mfloats           ! Maximum number of floats
-       parameter (Mfloats=32000) ! ======= ====== == ======
-#endif
+!#ifdef FLOATS
+!       integer Mfloats           ! Maximum number of floats
+!       parameter (Mfloats=32000) ! ======= ====== == ======
+!#endif
 #ifdef STATIONS
        integer NS                ! Number of output stations
        parameter (NS=5)          ! ====== == ====== ========
@@ -330,10 +459,10 @@
 # else
       parameter (ntrc_sed=0)
 # endif /* SEDIMENT */
-
+!
 ! Total number of tracers
 !
-      parameter (NT=itemp+ntrc_salt+ntrc_pas+ntrc_bio+ntrc_sed) 
+      parameter (NT=itemp+ntrc_salt+ntrc_pas+ntrc_bio+ntrc_sed)
 
 # if defined BBL && defined AGRIF
       integer Agrif_lev_sedim
@@ -358,6 +487,9 @@
 !
 #if defined SOLVE3D && !defined F90CODE
       integer   ntrc_diats, ntrc_diauv, ntrc_diabio
+      integer   ntrc_diavrt, ntrc_diaek, ntrc_diapv
+      integer   ntrc_diaeddy, ntrc_surf
+
 # ifdef BIOLOGY
      &          , itrc_bio
 # endif
@@ -724,9 +856,38 @@
       parameter (ntrc_diats=0)
 # endif
 # ifdef DIAGNOSTICS_UV
-      parameter (ntrc_diauv=16)
+      parameter (ntrc_diauv=22)
 # else
       parameter (ntrc_diauv=0)
+# endif
+# ifdef DIAGNOSTICS_VRT
+      parameter (ntrc_diavrt=14)
+# else
+      parameter (ntrc_diavrt=0)
+# endif
+# ifdef DIAGNOSTICS_EK
+# ifdef DIAGNOSTICS_EK_MLD
+      parameter (ntrc_diaek=26)
+# else
+      parameter (ntrc_diaek=14)
+# endif
+# else
+      parameter (ntrc_diaek=0)
+# endif
+# ifdef DIAGNOSTICS_PV
+      parameter (ntrc_diapv=12)
+# else
+      parameter (ntrc_diapv=0)
+# endif
+# ifdef DIAGNOSTICS_EDDY
+      parameter (ntrc_diaeddy=10)
+# else
+      parameter (ntrc_diaeddy=0)
+# endif
+# ifdef OUTPUTS_SURFACE
+      parameter (ntrc_surf=5)
+# else
+      parameter (ntrc_surf=0)
 # endif
 
 #ifdef GO_MEDDY
@@ -743,7 +904,6 @@
       real(8),dimension(GLOBAL_2D_ARRAY,N) :: rhopr_rand
       real(8) :: FRACTS
       common /go/  Nfreq2
-
 #endif
 
 #endif /*SOLVE3D */

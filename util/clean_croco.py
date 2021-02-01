@@ -1,24 +1,18 @@
 #!/usr/bin/python
 # -*- coding:Utf-8 -*-
 
-"""
-  script python pour supprimer les xios_client* et xios_server* (sauf 0)
-  dans le répertoire courant dans dans les deux niveaux inférieurs
-
-  example for 2048 procs for croco and 64 procs for xios
-  rm -f xios_client_{0001..2047}.out
-  rm -f xios_server_{0001..0063}.out
-  rm -f xios_*.err
-
- 
-  [syntaxe] : clean_croco.py
-
-"""
+# """
+#   script python pour supprimer les xios_client* et xios_server* (sauf le
+#   premier de chaque)
+#   dans le répertoire courant dans dans les deux niveaux inférieurs
+# 
+#   [syntaxe] : clean_croco.py
+#
+# """
 
 import sys
 import os
 import shutil
-import numpy as np
 import glob
 
 def clean_files():
@@ -26,30 +20,43 @@ def clean_files():
   fonction pour définir et supprimer les fichiers
   """
 
-  # find number of procs for croco (number of files xios_client_*.out) 
-  # and xios (number of files xios_server_*.out)
-  nbcroco = len(glob.glob("xios_client_*.out"))
-  nbxios = len(glob.glob("xios_server_*.out"))
-  nbcroco=max(int(nbcroco)-1,1)
-  nbxios=max(int(nbxios)-1,1)
+  # find all croco clients (xios_client_*.out) 
+  # and xios servers (xios_server_*.out)
+  croco = glob.glob("xios_client_*.out")
+  xios = glob.glob("xios_server_*.out")
+  # sort lists
+  croco.sort()
+  xios.sort()
+  # remove first element of list
+  del croco[0]
+  del xios[0]
+  # get number of files in list
+  nbcroco = len(croco)
+  nbxios = len(xios)
+  # convert list to string
+  croco = ' '.join(croco)
+  xios = ' '.join(xios)
 
-  # get exponent for cmd format (xios_client_01.out or xios_client_001.out)
-  logcroco = int(np.floor(np.log10(nbcroco)))+1
-  logxios = int(np.floor(np.log10(nbxios)))+1
+  # # get exponent for cmd format (xios_client_01.out or xios_client_001.out)
+  # logcroco = int(np.floor(np.log10(nbcroco)))+1
+  # logxios = int(np.floor(np.log10(nbxios)))+1
+  # cmd1 = "rm -f xios_client_{" + str(1).zfill(logcroco) + ".." + str(nbcroco).zfill(logcroco) + "}.out"
+  # cmd2 = "rm -f xios_server_{" + str(nbcroco+2).zfill(logcroco) + ".." + str(nbcroco+nbxios+1).zfill(logcroco) + "}.out"
+  # cmd3 = "rm -f xios_*.err"
 
-  cmd1 = "rm -f xios_client_{"+str(1).zfill(logcroco)+".."+str(nbcroco).zfill(logcroco)+"}.out"
-  cmd2 = "rm -f xios_server_{"+str(1).zfill(logcroco)+".."+str(nbxios).zfill(logcroco)+"}.out"
+  if nbcroco >=1:
+    cmd1 = "rm " + croco
+    # print(cmd1)
+    os.system(cmd1)
+  if nbxios >=1:
+    cmd2 = "rm " + xios 
+    # print(cmd2) 
+    os.system(cmd2)
   cmd3 = "rm -f xios_*.err"
-
-  if nbcroco>1 :
-    print os.getcwd()
-    print cmd1
-    print cmd2
-    print cmd3
-
-  os.system(cmd1)
-  os.system(cmd2)
+  # print(cmd3)
   os.system(cmd3)
+
+  return
 
 # Main
 

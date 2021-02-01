@@ -423,10 +423,15 @@ class Run(object):
         ds = ds.reset_coords([c for c in ds.coords if 'nav' in c])
         ds = ds.squeeze()
         # rename redundant dimensions
-        _dims = (d for d in ['x_v', 'y_u', 'x_w', 'y_w'] if d in ds.dims)
+        _dims = (d for d in ['x', 'y', 'x_v', 'y_u', 'x_w', 'y_w'] if d in ds.dims)
         for d in _dims:
             ds = ds.rename({d: d[0]+'_rho'})
         #
+        # rename variables nav_lon and nav_lat without any suffix
+        _coords = (d for d in ['nav_lon', 'nav_lat'] if d in ds.data_vars.keys())
+        for d in _coords:
+            ds = ds.rename({d: d+'_rho'})
+            
         _coords = [d for d in [d for d in ds.data_vars.keys()] if "nav_" in d]
         if self.grid_regular:
         # slice nav variables

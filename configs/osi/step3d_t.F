@@ -650,6 +650,13 @@
 #  ifdef MASKING
      &                   *rmask(i,j)
 #  endif
+#  ifdef DIAG_SPEC
+#    ifdef NONLIN_EOS
+              RHOrate(i,j,k) = (Hz(i,j,k)*rho_bak(i,j,k,2)
+     &                          -Hz_bak(i,j,k)*rho_bak(i,j,k,1))
+     &                         /(dt*pm(i,j)*pn(i,j))
+#    endif
+#  endif
 #  if defined DIAG_SPEC || defined DIAG_SPEC_KT
               TTmoy(i,j,k,itrc)=0.5*( Hz(i,j,k)*t(i,j,k,nnew,itrc)
      &                               +Hz_bak(i,j,k)*t(i,j,k,nstp,itrc) )
@@ -678,6 +685,9 @@
               THmix(i,j,k,itrc)=0.
 #  ifdef DIAG_SPEC
               TT(i,j,k,itrc)=TT(i,j,k,itrc)*cff
+# ifdef NONLIN_EOS             
+              RHOrate(i,j,k)=RHOrate(i,j,k)*cff
+# endif             
               TXadvC(i,j,k,itrc)=TXadvC(i,j,k,itrc)*cff
               TYadvC(i,j,k,itrc)=TYadvC(i,j,k,itrc)*cff                         
 #  endif

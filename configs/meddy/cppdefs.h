@@ -59,6 +59,12 @@
 !==========================================================
 !
 */
+! to tag OSI parameter in output.mpi file
+# define OSI 'OSI: '
+
+!       Resolution = 64,128,200,256,400,512 or 1024
+# define RESOLUTION 512
+
 # undef OPENMP
 # define MPI
 # define UV_ADV
@@ -88,23 +94,25 @@
 
 # undef  UV_HADV_C4        /* 4th-order centered lateral advection */
 # undef  UV_HADV_C2        /* 2nd-order centered lateral advection */
-# define  UV_HADV_UP5	   /* 5th-order upstream lateral advection */
+# undef  UV_HADV_UP5	   /* 5th-order upstream lateral advection */
 # undef  UV_HADV_C6	   /* 6th-order centered lateral advection */
-# undef  UV_HADV_WENO5	   /* 5th-order WENOZ    lateral advection */
+# define  UV_HADV_WENO5	   /* 5th-order WENOZ    lateral advection */
 
 !	Tracer lateral advection scheme (default 3rd-order upstream UP3)
 
 # undef TS_HADV_RSUP3		/* Rotated-Split UP3   */
-# define TS_HADV_UP5		/* 5th-order upstream  */
-# undef TS_HADV_WENO5		/* 5th-order WENO      */
+# undef TS_HADV_RSUP5		/* Pseudo R-Split UP5 lateral advection */
+# undef TS_HADV_UP5		/* 5th-order upstream  */
+# define TS_HADV_WENO5		/* 5th-order WENO      */
 
 !	Momentum vertical advection scheme (default 4th-order Splines)
+# define UV_VADV_WENO5   /* 5th-order  WENOZ   vertical advection  */
 # undef UV_VADV_COMPACT	/* 4th-order compact scheme (a.k.a. Parabolic splines) */
 
 !	Tracer vertical advection scheme (default 4th-order  AKIMA)
 
-# define  TS_VADV_SPLINES   	/* Splines vertical advection            */
-# undef  TS_VADV_WENO5     	/* 5th-order WENOZ vertical advection    */
+# undef  TS_VADV_SPLINES   	/* Splines vertical advection            */
+# define  TS_VADV_WENO5     	/* 5th-order WENOZ vertical advection    */
 # undef TS_VADV_COMPACT    /* Splines vertical advection            */
 
 # undef  VADV_ADAPT_IMP	/* Semi-implicit vertical advection TS and UV */
@@ -119,8 +127,6 @@
 # undef TS_DIF2       		/*    Laplacian Diffusion             */
 # undef TS_DIF4       		/*    Biharmonic Diffusion            */
 
-!       Resolution = 64,128,200,256,400,512 or 1024
-# define RESOLUTION 128
 
 
 		/* analytical forcing */
@@ -129,6 +135,7 @@
 # define ANA_SSFLUX
 # define ANA_BTFLUX
 # define ANA_BSFLUX
+# define NO_FRCFILE
 
 		/* Boundary Conditions */
 # define PERIODIC
@@ -139,10 +146,12 @@
 
 # define PARALLEL_FILES
 # define XIOS
+# define USE_CALENDAR
 
  		/* Diagnostics */ 
 # define  DIAG_SPEC             /* save spectral diagnostics */
 # undef  DIAG_SPEC_KT             /* save spectral diagnostics */
+# undef DIAG_SPEC_ISORHO
 # if defined DIAG_SPEC || defined DIAG_SPEC_KT
 #   define  DIAGNOSTICS_UV
 #   define  DIAGNOSTICS_TS

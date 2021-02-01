@@ -483,6 +483,12 @@ C$OMP PARALLEL DO PRIVATE(tile)
 !#endif
 !
 !----------------------------------------------------------------------
+!  Initialize a reference rho for diagnostics and spectral diags
+!----------------------------------------------------------------------
+# if defined OSI || defined DIAG_SPEC
+      call init_rho_ref()
+# endif
+!----------------------------------------------------------------------
 !  Initialize FFT for spectral diags
 !----------------------------------------------------------------------
 !

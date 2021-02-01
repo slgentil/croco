@@ -13,6 +13,12 @@
 ! for output purposes:
 !
 !
+# if defined OSI || defined DIAG_SPEC
+      real(kind=8),dimension(N):: rho_r,drhordz
+      common /rho_r/ rho_r
+      common /drhordz/ drhordz
+# endif
+
 #ifdef DIAGNOSTICS_TS
       real TXadv(GLOBAL_2D_ARRAY,N,NT)
       real TYadv(GLOBAL_2D_ARRAY,N,NT)
