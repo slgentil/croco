@@ -51,6 +51,7 @@
 !
 ! Logical switch for spherical grid configuration:
 !
+#     ifdef 0
       ierr=nf_inq_varid (ncid, 'spherical', varid)
       if (ierr .eq. nf_noerr) then
         ierr=nf_get_var1_text (ncid, varid, 1, char1)
@@ -74,6 +75,8 @@
         goto 99                                            !--> ERROR
 # endif
       endif
+#     endif
+
 !
 ! Physical dimensions of the basin in XI- and ETA-directions:
 !

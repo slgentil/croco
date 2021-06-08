@@ -55,10 +55,11 @@
 # define OSI 'OSI: '
                       /* Configuration Name */
 # define MOZ
-# define RESOLUTION 1024
+# define RESOLUTION 512
                       /* Parallelization */
 # undef  OPENMP
 # define  MPI
+# define DIAG_CFL
                       /* Nesting */
 # undef  AGRIF
 # undef  AGRIF_2WAY
@@ -92,9 +93,9 @@
 !-------------------------------------------------
 */
                       /* Parallelization */
-# ifdef MPI
-#  undef  PARALLEL_FILES
-# endif
+!# ifdef MPI
+!#  define  PARALLEL_FILES
+!# endif
 # undef  AUTOTILING
 # undef  ETALON_CHECK
                       /* Grid configuration */
@@ -149,9 +150,9 @@
 # define  GLS_MIX2017  /* <--- Warning: option still under testing */
 
 # ifdef LMD_MIXING
-#  undef LMD_SKPP
+#  define LMD_SKPP
 #  undef LMD_SKPP2005
-#  undef LMD_BKPP
+#  define LMD_BKPP
 #  undef LMD_BKPP2005
 #  define LMD_RIMIX
 #  define LMD_CONVEC

@@ -1,0 +1,30 @@
+<grid_definition>
+	<grid id="rho_2D_low">
+		<domain domain_ref="rho_low"/>
+	</grid>
+	<grid id="rho_3D_low">
+		<domain domain_ref="rho_low"/>
+		<axis axis_ref="s_rho"/>
+	</grid>
+	<grid id="u_2D_low">
+		<domain domain_ref="u_low"/>
+	</grid>
+	<grid id="u_3D_low">
+		<domain domain_ref="u_low"/>
+		<axis axis_ref="s_rho"/>
+	</grid>
+	<grid id="v_2D_low">
+		<domain domain_ref="v_low"/>
+	</grid>
+	<grid id="v_3D_low">
+		<domain domain_ref="v_low"/>
+		<axis axis_ref="s_rho"/>
+	</grid>
+	<grid id="psi_2D">
+		<domain domain_ref="psi_low"/>
+	</grid>
+	<grid id="psi_3D">
+		<domain domain_ref="psi_low"/>
+		<axis axis_ref="s_w"/>
+	</grid>
+</grid_definition>

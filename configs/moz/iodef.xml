@@ -16,7 +16,7 @@
 
     <file_definition type="one_file" output_freq="1d" sync_freq="1d" > 
 
-      <file id="file_grd" name="grid" output_freq="1d"  enabled=".TRUE.">
+      <file id="file_grd" name="grid" output_freq="1ts"  enabled="false">
           <field_group id="grid_fields" operation="once">
             <field field_ref="hc" />
             <field field_ref="theta_s" />
@@ -33,10 +33,16 @@
             <field field_ref="sc_r" />
             <field field_ref="Cs_w" />
             <field field_ref="sc_w" />
+            <field field_ref="lon_rho" />
+            <field field_ref="lat_rho" />
+            <field field_ref="lon_u" />
+            <field field_ref="lat_u" />
+            <field field_ref="lon_v" />
+            <field field_ref="lat_v" />
           </field_group>
       </file>
 
-      <file id="file_his" name="his" output_freq="1d" sync_freq="1d" enabled=".TRUE.">
+      <file id="file_his" name="his" output_freq="80ts" sync_freq="80ts" enabled="true">
         <field_group id="his_fields" operation="instant">
           <field field_ref="time" name="time" />
           <field field_ref="zeta" name="ssh" />
@@ -48,6 +54,29 @@
           <field field_ref="rho" name="rho" />
        </field_group>
       </file>
+
+      <file id="file_surf" name="surf" output_freq="0.5h" sync_freq="0.5h" enabled="false">
+        <field_group id="surf_fields" operation="instant">
+          <field field_ref="zeta" name="ssh" />
+          <field field_ref="ssu" name="ssu" />
+          <field field_ref="ssv" name="ssv" />
+          <field field_ref="sst" name="sst" />
+          <field field_ref="sss" name="sss" />
+       </field_group>
+      </file>
+
+      <file id="file_zoom" name="zoom" output_freq="1h" sync_freq="1h" enabled="false">
+        <field_group id="zoom_fields" operation="instant">
+          <field field_ref="sshzoom" name="sshzoom" />
+          <field field_ref="uzoom" name="uzoom" />
+          <field field_ref="vzoom" name="vzoom" />
+          <field field_ref="wzoom" name="wzoom" />
+          <field field_ref="tzoom" name="tzoom" />
+          <field field_ref="szoom" name="szoom" />
+          <field field_ref="rzoom" name="rzoom" />
+       </field_group>
+      </file>
+
 
 
    </file_definition>
@@ -67,6 +96,51 @@
   
   </context>
 
+  <context id="roms_low">
+     <!-- <calendar_type="Gregorian" start_date="1979-01-01 00:00:00" time_origin="2000-01-01 00:00:00" /> -->
+
+
+    <!-- ========================================================================== -->
+    <!-- ========================================================================== -->
+
+    <field_definition src="./field_def_low.xml"/>
+
+    <!-- ========================================================================== -->
+    <!-- ========================================================================== -->
+
+
+    <file_definition type="one_file" output_freq="1d" sync_freq="1d" > 
+
+      <file id="file_low" name="low" output_freq="80ts" sync_freq="80ts" enabled="true">
+        <field_group id="low_fields" operation="instant">
+          <field field_ref="zeta_low" name="ssh_low" />
+          <field field_ref="u_low" />
+          <field field_ref="v_low" />
+          <field field_ref="w_low" />
+          <field field_ref="temp_low" />
+          <field field_ref="salt_low" />
+          <field field_ref="rho_low" />
+       </field_group>
+      </file>
+
+   </file_definition>
+
+    <!-- ========================================================================== -->
+    <!-- ========================================================================== -->
+
+    <scalar_definition>
+      <scalar id="scalar"/>
+    </scalar_definition>
+
+    <domain_definition src="./domain_def_low.xml"/>
+
+    <axis_definition src="./axis_def.xml"/>
+
+    <grid_definition src="./grid_def_low.xml"/>
+  
+  </context>
+
+
   <!-- ========================================================================== -->
   <!-- ========================================================================== -->
 
@@ -75,7 +149,7 @@
     <variable_definition>
       <variable_group id="buffer">
         <variable id="optimal_buffer_size" type="string">performance</variable>
-        <variable id="buffer_size_factor" type="double">10.0</variable>
+        <variable id="buffer_size_factor" type="double">2.0</variable>
       </variable_group>
 
       <variable_group id="parameters" >

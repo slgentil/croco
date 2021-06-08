@@ -1,0 +1,26 @@
+
+   <field_definition level="1" prec="4" enabled=".TRUE." default_value="1.e20">   
+
+      <field id="time" long_name="time (in s) since beginning"  unit="second" grid_ref="scalar_grid"/>
+
+     <!-- T grid -->
+     <field_group id="rho_low" grid_ref="rho_3D_low">
+         <field id="zeta_low" long_name="free-surface" unit="meter" grid_ref="rho_2D_low" />
+         <field id="temp_low" long_name="potential temperature" unit="Celsius" />
+         <field id="salt_low" long_name="salinity" unit="PSU" />
+         <field id="w_low" long_name="vertical velocity" unit="meter second-1" />
+         <field id="rho_low" long_name="density anomaly" unit="kilogram meter-3" />
+     </field_group>
+        
+        
+     <!-- U grid -->
+     <field_group id="u_low" grid_ref="u_3D_low">
+         <field id="u_low" long_name="u-momentum component" unit="meter second-1" />
+     </field_group>
+
+     <!-- V grid -->
+     <field_group id="v_low" grid_ref="v_3D_low">
+         <field id="v_low" long_name="v-momentum component" unit="meter second-1" />
+     </field_group>
+    
+   </field_definition>

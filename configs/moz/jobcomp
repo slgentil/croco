@@ -200,7 +200,8 @@ if [[ $OS == Linux || $OS == Darwin ]] ; then           # ===== LINUX =====
  		#          -no-prec-div -no-prec-sqrt -ip -w -traceback $CPPFLAGS1"
 		# FFLAGS1="-xCORE-AVX2 -O3 -i4 -r8 -align all -assume byterecl -extend-source -fno-alias \
 		#          -no-prec-div -no-prec-sqrt -init=zero -ip -w $CPPFLAGS1"
-		FFLAGS1="-O3 -i4 -r8 -extend-source $CPPFLAGS1"
+		FFLAGS1="-O2 -g -check bounds -traceback -i4 -r8 -extend-source -mcmodel=large $CPPFLAGS1"
+		#FFLAGS1="-O3 -i4 -r8 -extend-source -mcmodel=large $CPPFLAGS1"
 		LDFLAGS1="$LDFLAGS1"
 	elif [[ $LINUX_FC == gfortran ]] ; then
 		CPP1="cpp -traditional -DLinux"

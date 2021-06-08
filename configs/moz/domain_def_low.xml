@@ -1,0 +1,6 @@
+    <domain_definition>
+        <domain id="rho_low" long_name="grid Rho low resolution"/>
+        <domain id="u_low" long_name="grid U low resolution"/>
+        <domain id="v_low" long_name="grid V low resolution"/>
+        <domain id="psi_low" long_name="grid W low resolution"/>
+   </domain_definition>

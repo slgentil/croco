@@ -32,10 +32,6 @@
 
          <field id="lon_rho" long_name="longitude of RHO-points" unit="degree_east" />
          <field id="lat_rho" long_name="latitude of RHO-points" unit="degree_north" />
-         <field id="lon_u" long_name="longitude of U-points" unit="degree_east" />
-         <field id="lat_u" long_name="latitude of U-points" unit="degree_north" />
-         <field id="lon_v" long_name="longitude of V-points" unit="degree_east" />
-         <field id="lat_v" long_name="latitude of V-points" unit="degree_north" />
 
          <field id="angle" long_name="angle between XI-axis and EAST" unit="radians" />
 
@@ -72,6 +68,17 @@
          <field id="shflx_lat" long_name="Latent surface heat flux" unit="Watts meter-2" />
          <field id="shflx_sen" long_name="Sensible surface heat flux" unit="Watts meter-2" />
          <!-- END  -->  
+
+         <!-- MOZ -->
+         <field id="sst" field_ref="temp" long_name="Sea Surface Temperature" unit=" " grid_ref="rhogrid_surf"/>
+         <field id="sss" field_ref="salt" long_name="Sea Surface Salinity" unit=" " grid_ref="rhogrid_surf"/>
+         <field id="sshzoom" field_ref="zeta" long_name="Zoom Free_surface" unit=" " grid_ref="sshgrid_zoom"/>
+         <field id="tzoom" field_ref="temp" long_name="Zoom Temperature" unit=" " grid_ref="rhogrid_zoom"/>
+         <field id="szoom" field_ref="salt" long_name="Zoom Salinity" unit=" " grid_ref="rhogrid_zoom"/>
+         <field id="wzoom" field_ref="w" long_name="Zoom Vertical velocity" unit=" " grid_ref="rhogrid_zoom"/>
+         <field id="rzoom" field_ref="rho" long_name="Zoom density anomaly" unit=" " grid_ref="rhogrid_zoom"/>
+         <!-- END  -->  
+
      </field_group>
         
         
@@ -85,6 +92,14 @@
          <field id="uwnd" long_name="surface u-momentum wind" unit="-" />
 
          <field id="mask_u" long_name="land/sea mask along u points" unit="--" />
+         <field id="lon_u" long_name="longitude of U-points" unit="degree_east" />
+         <field id="lat_u" long_name="latitude of U-points" unit="degree_north" />
+
+         <!-- MOZ -->
+         <field id="ssu" field_ref="u" long_name="Sea Surface u-momentum component" unit=" " grid_ref="ugrid_surf"/>
+         <field id="uzoom" field_ref="u" long_name="Zoom u-momentum component" unit=" " grid_ref="ugrid_zoom"/>
+         <!-- END  -->  
+
      </field_group>
 
      <!-- V grid -->
@@ -97,6 +112,14 @@
          <field id="vwnd" long_name="surface v-momentum wind" unit="-" />
 
          <field id="mask_v" long_name="land/sea mask along v points" unit="--" />
+         <field id="lon_v" long_name="longitude of V-points" unit="degree_east" />
+         <field id="lat_v" long_name="latitude of V-points" unit="degree_north" />
+
+         <!-- MOZ -->
+         <field id="ssv" field_ref="v" long_name="Sea Surface v-momentum component" unit=" " grid_ref="vgrid_surf"/>
+         <field id="vzoom" field_ref="v" long_name="Zoom v-momentum component" unit=" " grid_ref="vgrid_zoom"/>
+         <!-- END  -->  
+
      </field_group>
     
      <!-- W grid -->

@@ -27,7 +27,7 @@ if  len(sys.argv) < 7 :
     print 'workdir : répertoire qui sera créé sous $WORK'
     print 'nbchain : nombre de chainages'
     print 'elaptim : temps elapsed pour chaque chainage HH:MM:SS  '
-    print 'resolution : resolution 256, 512, 1024, 1800 '
+    print 'resolution : resolution 256, 512, 1024, 1620 ou 3060 '
     print 'jobname : nom générique des batchs'   
     print 'restart : 0 (initial) or 1 (restart)'
     quit()
@@ -47,14 +47,16 @@ elif resolution==256:
     nbproc_roms=2*8
     nbproc_xios=1
 elif resolution==512:
-    nbproc_roms=16*32
+    nbproc_roms=4*32
     nbproc_xios=2
 elif resolution==1024:
     nbproc_roms=16*32
     nbproc_xios=64
-elif resolution==1800:
-    nbproc_roms=9*26
-    # nbproc_roms=9*104
+elif resolution==1620:
+    nbproc_roms=10*47
+    nbproc_xios=1
+elif resolution==3000:
+    nbproc_roms=17*30
     nbproc_xios=1
 else:
     print 'resolution not implemented yet'

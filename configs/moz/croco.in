@@ -1,9 +1,9 @@
 title:
         MOZ
 time_stepping: NTIMES   dt[sec]  NDTFAST  NINFO
-               11520      75     60      10
+                100      20     60      10
 S-coord: THETA_S,   THETA_B,    Hc (m)
-           5.0d0      0.0d0      10.0d0
+           6.0d0      0.0d0      10.0d0
 grid:  filename
                           moz_grd.nc
 forcing: filename
@@ -18,10 +18,10 @@ initial: NRREC  filename
          1
                           moz_ini.nc
 restart:          NRST, NRPFRST / filename
-                   11520    -1
+                   16848    -1
                           moz_ini.nc
 history: LDEFHIS, NWRT, NRPFHIS / filename 
-            T      34560     0
+            T      1000     0
                           moz_his.nc
 averages: NTSAVG, NAVG, NRPFAVG / filename
             1      144     0

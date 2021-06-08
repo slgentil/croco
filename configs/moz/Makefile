@@ -126,9 +126,8 @@ include Makedefs
 	cpl_prism_define.F	cpl_prism_put.F 	cpl_prism_init.F\
 	cpl_prism_get.F 	cpl_prism_getvar.F      cpl_prism_grid.F\
 \
-	init_spectral.F\
-\
-	allreduce.F	 	qsort.F			fillnan.F 	var2cdf.F
+	allreduce.F	 	qsort.F			fillnan.F 	var2cdf.F\
+	init_rho_ref.F
 
  SRCS90 = \
 	par_pisces.F90	ocean2pisces.F90	trc.F90		sms_pisces.F90\

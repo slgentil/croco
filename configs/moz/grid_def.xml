@@ -49,4 +49,41 @@
 		<axis axis_ref="s_w"/>
 	</grid>
 
+        <!-- Start MOZ -->
+	<grid id="sshgrid_zoom">
+		<domain domain_ref="rho_zoom"/>
+	</grid>
+	<grid id="rhogrid_zoom">
+		<domain domain_ref="rho_zoom"/>
+		<axis axis_ref="s_rho"/>
+	</grid>
+	<grid id="ugrid_zoom">
+		<domain domain_ref="u_zoom"/>
+		<axis axis_ref="s_rho"/>
+	</grid>
+	<grid id="vgrid_zoom">
+		<domain domain_ref="v_zoom"/>
+		<axis axis_ref="s_rho"/>
+	</grid>
+	<grid id="wgrid_zoom">
+		<domain domain_ref="w_zoom"/>
+		<axis axis_ref="s_w"/>
+	</grid>
+
+	<grid id="rhogrid_surf">
+		<domain domain_ref="rho"/>
+		<axis axis_ref="s_rho_surf"/>
+	</grid>
+	<grid id="ugrid_surf">
+		<domain domain_ref="u"/>
+		<axis axis_ref="s_rho_surf"/>
+	</grid>
+	<grid id="vgrid_surf">
+		<domain domain_ref="v"/>
+		<axis axis_ref="s_rho_surf"/>
+	</grid>
+	<grid id="wgrid_surf">
+		<domain domain_ref="w"/>
+		<axis axis_ref="s_w_surf"/>
+	</grid>
 </grid_definition>

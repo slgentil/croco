@@ -4,4 +4,14 @@
     <axis id="s_w"/>
     <!-- For Sediment -->
     <axis id="s_b"/>
+
+    <!-- Start MOZ -->
+    <axis id="s_rho_surf" axis_ref="s_rho">
+       <zoom_axis id="s_rho_surf" begin="0000" n="0000"/>
+    </axis>
+    <axis id="s_w_surf" axis_ref="s_w">
+       <zoom_axis id="s_w_surf" begin="0000" n="0000"/>
+    </axis>
+    <!-- End MOZ -->
+
 </axis_definition>

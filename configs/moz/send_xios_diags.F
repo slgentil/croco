@@ -17,7 +17,15 @@
       USE xios
       IMPLICIT NONE
 
+# ifdef MOZ
+      INTEGER, PARAMETER :: stp_low=4
+# endif
+
       PUBLIC set_grid
+# ifdef MOZ
+      PUBLIC set_grid_low
+      PUBLIC write_field_low
+# endif
       PUBLIC iom_set_domain_attr
       PUBLIC iom_set_axis_attr
       PUBLIC iom_set_field_attr
@@ -26,6 +34,10 @@
       PUBLIC iom_set_file_global_attr_float
       PUBLIC iom_get_file_attr
       PUBLIC set_scalar
+
+      interface write_field_low
+          module procedure write_field_low_2d, write_field_low_3d
+      end interface write_field_low
       
 
 
@@ -39,6 +51,7 @@
 # include "param.h"
 # include "ncscrum.h"
 # include "scalars.h"
+# include "grid.h"
       !!----------------------------------------------------------------------
       !!                     ***  ROUTINE set_grid  ***
       !!
@@ -54,6 +67,7 @@
       CHARACTER(LEN=*)            , INTENT(in) ::   cdgrd
       REAL plon(GLOBAL_2D_ARRAY)
       REAL plat(GLOBAL_2D_ARRAY)
+      REAL(kind=8) :: nr_sumofall
       !
       INTEGER vtype, horiz_type, vert_type
       INTEGER imin, imax, jmin, jmax, ni, nj
@@ -61,6 +75,10 @@
       INTEGER istart, jstart
       INTEGER data_ni,data_nj 
       INTEGER :: ji
+
+# ifdef MOZ
+      REAL :: xstart, xsize, ystart, ysize
+# endif
       !!----------------------------------------------------------------------
       !
       ! See ncscrum.h for r2dvar ...
@@ -163,7 +181,409 @@
      &     lonvalue=RESHAPE(plon(imin:imax,jmin:jmax), (/ni*nj/)),
      &     latvalue=RESHAPE(plat(imin:imax,jmin:jmax), (/ni*nj/)))
       !      
+
+# ifdef MOZ
+#   ifdef XIOS2
+           xsize = 500e+3
+           ysize = 500e+3
+           xstart = 200e+3
+           ystart = 200e+3
+           xl = nr_sumofall(sum(1./pm(1:Lm,1))) / NP_ETA
+           el = nr_sumofall(sum(1./pn(1,1:Mm))) / NP_XI
+           xstart = xstart/(xl / float(LLm0))
+           xsize = xsize/(xl / float(LLm0))
+           ystart = ystart/(el / float(MMm0))
+           ysize = ysize/(el / float(MMm0))
+           CALL iom_set_zoom_domain_attr (TRIM(cdgrd)//"_zoom",
+     &             ibegin=max(1,int(xstart)), jbegin=max(1,int(ystart)),
+     &             ni=min(nx_glo,int(xsize)), nj=min(nx_glo,int(ysize)))
+           
+#   endif
+# endif
+
       END SUBROUTINE set_grid
+
+# ifdef MOZ
+      SUBROUTINE set_grid_low( cdgrd, plon, plat)
+# include "param.h"
+# include "ncscrum.h"
+# include "scalars.h"
+# include "grid.h"
+      !!----------------------------------------------------------------------
+      !!                     ***  ROUTINE set_grid  ***
+      !!
+      !! ** Purpose :   set domain definition to XIOS library
+      !!
+      !! ** Method  :   
+      !!
+      !! ** History :   S. Theetten , adaptation for XIOS-2.5 (May, 2019)
+      !!                A. Ponte    , adaptation for CROCO
+      !!                S. Masson   , original version (NEMO)  
+      !!
+      !!----------------------------------------------------------------------
+      CHARACTER(LEN=*)            , INTENT(in) ::   cdgrd
+      REAL plon(GLOBAL_2D_ARRAY)
+      REAL plat(GLOBAL_2D_ARRAY)
+      !
+      INTEGER vtype, horiz_type, vert_type
+      INTEGER imin, imax, jmin, jmax, ni, nj
+      INTEGER nx_glo, ny_glo 
+      INTEGER istart, jstart
+      INTEGER istart_mod, ibegin_low, jstart_mod, jbegin_low
+      INTEGER ni_low, nj_low
+      INTEGER nx_glo_low, ny_glo_low 
+      INTEGER istart_low, jstart_low
+      INTEGER :: i,j,ji
+
+      LOGICAL zmask(GLOBAL_2D_ARRAY)
+
+      !!----------------------------------------------------------------------
+      !
+      ! See ncscrum.h for r2dvar ...
+      SELECT CASE (TRIM(cdgrd))
+      CASE ("rho_low")
+         vtype=r2dvar
+         nx_glo=LLm+2
+         ny_glo=MMm+2
+         where(rmask(:,:) > 0) zmask(:,:) = .true.
+      CASE ("u_low")
+         vtype=u2dvar
+         nx_glo=LLm+1
+         ny_glo=MMm+2
+         where(umask(:,:) > 0) zmask(:,:) = .true.
+      CASE ("v_low")
+         vtype=v2dvar
+         nx_glo=LLm+2
+         ny_glo=MMm+1
+         where(vmask(:,:) > 0) zmask(:,:) = .true.
+      CASE ("psi_low")
+         vtype=p2dvar
+         nx_glo=LLm+1
+         ny_glo=MMm+1
+         where(pmask(:,:) > 0) zmask(:,:) = .true.
+      END SELECT
+
+      if (mod(nx_glo,stp_low)==0) then
+          nx_glo_low =nx_glo/stp_low
+      else
+          nx_glo_low = (nx_glo/stp_low) + 1
+      endif
+      if (mod(ny_glo,stp_low)==0) then
+          ny_glo_low =ny_glo/stp_low
+      else
+          ny_glo_low = (ny_glo/stp_low) + 1
+      endif
+
+
+      ! From nf_fread.F
+      vert_type=vtype/4         ! vertical and horizontal
+      horiz_type=vtype-4*vert_type ! grid types, then calculate
+      jmin=horiz_type/2         ! starting indices indices
+      imin=horiz_type-2*jmin    ! in horizontal directions.
+      !     
+      istart=0
+      jstart=0
+
+      IF (ii.gt.0) then
+         istart=0-imin+iminmpi
+         imin=1
+      ENDIF
+      IF (ii.eq.NP_XI-1) then
+         imax=Lmmpi+1
+      ELSE
+         imax=Lmmpi
+      ENDIF
+      IF (jj.gt.0) then
+         jstart=0-jmin+jminmpi
+         jmin=1
+      ENDIF
+      IF (jj.eq.NP_ETA-1) then
+         jmax=Mmmpi+1
+      ELSE
+         jmax=Mmmpi
+      ENDIF
+      ! there is probably already a variable for ni and nj 
+      ni=imax-imin+1
+      nj=jmax-jmin+1
+
+!     print*,"istart=...", mynode,cdgrd,
+!    &               istart,jstart,imin,imax,jmin,jmax,ni,nj
+
+
+      ! find  the first point of the sub_domain modulo stp_low
+      do i=istart,istart+ni-1
+         if (mod(i,stp_low)==0) exit
+      enddo
+      istart_mod=i
+      do j=jstart,jstart+nj-1
+         if (mod(j,stp_low)==0) exit
+      enddo
+      jstart_mod=j
+!     print*,"istart_mod=...",mynode,cdgrd,
+!    &               istart_mod,jstart_mod
+      ! find the first indice of the subdomain in the low resolution
+      ibegin_low = istart_mod/stp_low
+      jbegin_low = jstart_mod/stp_low
+!     print*,"ibegin_low=...",mynode,cdgrd,
+!    &               ibegin_low,jbegin_low
+      ! find the number of points of the subdomain in the low resolution
+      if (mod(istart+ni-1-istart_mod+1,stp_low)==0) then
+          ni_low = (istart+ni-1-istart_mod+1) / stp_low
+      else
+          ni_low = ((istart+ni-1-istart_mod+1) / stp_low) + 1
+      endif
+      if (mod(jstart+nj-1-jstart_mod+1,stp_low)==0) then
+          nj_low = (jstart+nj-1-jstart_mod+1) / stp_low
+      else
+          nj_low = ((jstart+nj-1-jstart_mod+1) / stp_low) + 1
+      endif
+!     print*,"ni_low=...",mynode,cdgrd,
+!    &               ni_low,nj_low
+
+
+      ! notes iminmpi, jminmpi are computed in MPI_Setup.F
+!     print*,'nx_glo_low...=',mynode,cdgrd,nx_glo_low,ny_glo_low,
+!    &                           ibegin_low,jbegin_low,
+!    &                           ni_low,nj_low
+      CALL iom_set_domain_attr(TRIM(cdgrd),
+     &     ni_glo=nx_glo_low, nj_glo=ny_glo_low,
+     &     ibegin=ibegin_low, ni=ni_low,
+     &     jbegin=jbegin_low, nj=nj_low)
+!     print*,'shape=',mynode,cdgrd,
+!    &                shape(plon(istart_mod-istart+imin:imax:stp_low,
+!    &                           jstart_mod-jstart+jmin:jmax:stp_low))
+      CALL iom_set_domain_attr(TRIM(cdgrd),
+     &     lonvalue=RESHAPE(plon(istart_mod-istart+imin:imax:stp_low,
+     &                           jstart_mod-jstart+jmin:jmax:stp_low), 
+     &                           (/ni_low*nj_low/)),
+     &     latvalue=RESHAPE(plat(istart_mod-istart+imin:imax:stp_low,
+     &                           jstart_mod-jstart+jmin:jmax:stp_low), 
+     &                           (/ni_low*nj_low/)))
+      !      
+# ifdef MASKING
+      CALL iom_set_domain_attr(TRIM(cdgrd),
+     &     mask=RESHAPE(zmask(istart_mod-istart+imin:imax:stp_low,
+     &                        jstart_mod-jstart+jmin:jmax:stp_low), 
+     &                       (/ni_low*nj_low/)))
+# endif
+
+      END SUBROUTINE set_grid_low
+# endif /* MOZ */
+
+# ifdef MOZ
+      SUBROUTINE write_field_low_2d( cdgrd, field)
+# include "param.h"
+# include "ncscrum.h"
+# include "scalars.h"
+# include "grid.h"
+      !!----------------------------------------------------------------------
+      !!                     ***  ROUTINE set_grid  ***
+      !!
+      !! ** Purpose :   set domain definition to XIOS library
+      !!
+      !! ** Method  :   
+      !!
+      !! ** History :   S. Theetten , adaptation for XIOS-2.5 (May, 2019)
+      !!                A. Ponte    , adaptation for CROCO
+      !!                S. Masson   , original version (NEMO)  
+      !!
+      !!----------------------------------------------------------------------
+      CHARACTER(LEN=*)            , INTENT(in) ::   cdgrd
+      REAL(kind=8) :: field(GLOBAL_2D_ARRAY)
+      REAL(kind=8),allocatable :: field_low(:,:)
+      !
+      INTEGER vtype, horiz_type, vert_type
+      INTEGER imin, imax, jmin, jmax, ni, nj
+      INTEGER istart, jstart
+      INTEGER istart_mod, ibegin_low, jstart_mod, jbegin_low
+      INTEGER ni_low, nj_low
+      INTEGER istart_low, jstart_low
+      INTEGER :: i,j,ji
+
+      !!----------------------------------------------------------------------
+      !
+      ! See ncscrum.h for r2dvar ...
+      SELECT CASE (TRIM(cdgrd))
+      CASE ("rho_low","zeta_low","temp_low","salt_low","w_low")
+         vtype=r2dvar
+      CASE ("u_low")
+         vtype=u2dvar
+      CASE ("v_low")
+         vtype=v2dvar
+      CASE ("psi_low")
+         vtype=p2dvar
+      END SELECT
+
+      ! From nf_fread.F
+      vert_type=vtype/4         ! vertical and horizontal
+      horiz_type=vtype-4*vert_type ! grid types, then calculate
+      jmin=horiz_type/2         ! starting indices indices
+      imin=horiz_type-2*jmin    ! in horizontal directions.
+      !     
+      istart=0
+      jstart=0
+
+      IF (ii.gt.0) then
+         istart=0-imin+iminmpi
+         imin=1
+      ENDIF
+      IF (ii.eq.NP_XI-1) then
+         imax=Lmmpi+1
+      ELSE
+         imax=Lmmpi
+      ENDIF
+      IF (jj.gt.0) then
+         jstart=0-jmin+jminmpi
+         jmin=1
+      ENDIF
+      IF (jj.eq.NP_ETA-1) then
+         jmax=Mmmpi+1
+      ELSE
+         jmax=Mmmpi
+      ENDIF
+      ! there is probably already a variable for ni and nj 
+      ni=imax-imin+1
+      nj=jmax-jmin+1
+
+      ! find  the first point of the sub_domain modulo stp_low
+      do i=istart,istart+ni-1
+         if (mod(i,stp_low)==0) exit
+      enddo
+      istart_mod=i
+      do j=jstart,jstart+nj-1
+         if (mod(j,stp_low)==0) exit
+      enddo
+      jstart_mod=j
+      ! find the first indice of the subdomain in the low resolution
+      ibegin_low = istart_mod/stp_low
+      jbegin_low = jstart_mod/stp_low
+      ! find the number of points of the subdomain in the low resolution
+      if (mod(istart+ni-1-istart_mod+1,stp_low)==0) then
+          ni_low = (istart+ni-1-istart_mod+1) / stp_low
+      else
+          ni_low = ((istart+ni-1-istart_mod+1) / stp_low) + 1
+      endif
+      if (mod(jstart+nj-1-jstart_mod+1,stp_low)==0) then
+          nj_low = (jstart+nj-1-jstart_mod+1) / stp_low
+      else
+          nj_low = ((jstart+nj-1-jstart_mod+1) / stp_low) + 1
+      endif
+
+      allocate(field_low(ni_low,nj_low))
+      field_low = field(istart_mod-istart+imin:imax:stp_low,
+     &                  jstart_mod-jstart+jmin:jmax:stp_low)
+
+      call xios_send_field(TRIM(cdgrd),field_low)
+
+      END SUBROUTINE write_field_low_2d
+
+      SUBROUTINE write_field_low_3d( cdgrd, field)
+# include "param.h"
+# include "ncscrum.h"
+# include "scalars.h"
+# include "grid.h"
+      !!----------------------------------------------------------------------
+      !!                     ***  ROUTINE set_grid  ***
+      !!
+      !! ** Purpose :   set domain definition to XIOS library
+      !!
+      !! ** Method  :   
+      !!
+      !! ** History :   S. Theetten , adaptation for XIOS-2.5 (May, 2019)
+      !!                A. Ponte    , adaptation for CROCO
+      !!                S. Masson   , original version (NEMO)  
+      !!
+      !!----------------------------------------------------------------------
+      CHARACTER(LEN=*)            , INTENT(in) ::   cdgrd
+      REAL(kind=8) :: field(GLOBAL_2D_ARRAY,N)
+      REAL(kind=8),allocatable :: field_low(:,:,:)
+      !
+      INTEGER vtype, horiz_type, vert_type
+      INTEGER imin, imax, jmin, jmax, ni, nj
+      INTEGER istart, jstart
+      INTEGER istart_mod, ibegin_low, jstart_mod, jbegin_low
+      INTEGER ni_low, nj_low
+      INTEGER istart_low, jstart_low
+      INTEGER :: i,j,ji
+
+      !!----------------------------------------------------------------------
+      !
+      ! See ncscrum.h for r2dvar ...
+      SELECT CASE (TRIM(cdgrd))
+      CASE ("rho_low","zeta_low","temp_low","salt_low","w_low")
+         vtype=r2dvar
+      CASE ("u_low")
+         vtype=u2dvar
+      CASE ("v_low")
+         vtype=v2dvar
+      CASE ("psi_low")
+         vtype=p2dvar
+      END SELECT
+
+      ! From nf_fread.F
+      vert_type=vtype/4         ! vertical and horizontal
+      horiz_type=vtype-4*vert_type ! grid types, then calculate
+      jmin=horiz_type/2         ! starting indices indices
+      imin=horiz_type-2*jmin    ! in horizontal directions.
+      !     
+      istart=0
+      jstart=0
+
+      IF (ii.gt.0) then
+         istart=0-imin+iminmpi
+         imin=1
+      ENDIF
+      IF (ii.eq.NP_XI-1) then
+         imax=Lmmpi+1
+      ELSE
+         imax=Lmmpi
+      ENDIF
+      IF (jj.gt.0) then
+         jstart=0-jmin+jminmpi
+         jmin=1
+      ENDIF
+      IF (jj.eq.NP_ETA-1) then
+         jmax=Mmmpi+1
+      ELSE
+         jmax=Mmmpi
+      ENDIF
+      ! there is probably already a variable for ni and nj 
+      ni=imax-imin+1
+      nj=jmax-jmin+1
+
+      ! find  the first point of the sub_domain modulo stp_low
+      do i=istart,istart+ni-1
+         if (mod(i,stp_low)==0) exit
+      enddo
+      istart_mod=i
+      do j=jstart,jstart+nj-1
+         if (mod(j,stp_low)==0) exit
+      enddo
+      jstart_mod=j
+      ! find the first indice of the subdomain in the low resolution
+      ibegin_low = istart_mod/stp_low
+      jbegin_low = jstart_mod/stp_low
+      ! find the number of points of the subdomain in the low resolution
+      if (mod(istart+ni-1-istart_mod+1,stp_low)==0) then
+          ni_low = (istart+ni-1-istart_mod+1) / stp_low
+      else
+          ni_low = ((istart+ni-1-istart_mod+1) / stp_low) + 1
+      endif
+      if (mod(jstart+nj-1-jstart_mod+1,stp_low)==0) then
+          nj_low = (jstart+nj-1-jstart_mod+1) / stp_low
+      else
+          nj_low = ((jstart+nj-1-jstart_mod+1) / stp_low) + 1
+      endif
+
+      allocate(field_low(ni_low,nj_low,size(field,3)))
+      field_low = field(istart_mod-istart+imin:imax:stp_low,
+     &                  jstart_mod-jstart+jmin:jmax:stp_low,:)
+
+      call xios_send_field(TRIM(cdgrd),field_low)
+
+      END SUBROUTINE write_field_low_3d
+# endif /* MOZ */
+
 
 #ifdef MASKING
       SUBROUTINE set_mask(cdgrd)
@@ -1386,7 +1806,8 @@ C 				  endif
       ENDIF
 
       IF( llfull ) THEN
-         clfmt = TRIM(clfmt)//",'_',3i2.2"
+         !clfmt = TRIM(clfmt)//",'_',3i2.2"
+         clfmt = TRIM(clfmt)//",'_',i2.2,':',i2.2,':',i2.2"
          ihour   = isec / 3600
          isec    = MOD(isec, 3600)
          iminute = isec / 60
@@ -1831,6 +2252,13 @@ C       TYPE(xios_date)     :: start_date
       ! fake axis to avoid chaning xml file 
       CALL iom_set_axis_attr( "s_b",(/ (REAL(ji), ji=1,1) /))
 # endif
+
+# ifdef MOZ
+#   ifdef XIOS2
+      CALL xios_set_zoom_axis_attr("s_rho_surf", begin=N-1, n=1 )
+      CALL xios_set_zoom_axis_attr("s_w_surf", begin=N-1, n=1 )
+#   endif
+# endif
       
       ! time axis (for ROMS tools)
 
@@ -1852,6 +2280,39 @@ C       TYPE(xios_date)     :: start_date
       CALL xios_close_context_definition()
       !
       CALL xios_update_calendar(0)
+     
+
+
+# ifdef MOZ
+      ! création d'un nouveau contexte pour sortir une grille plus basse résolution
+      CALL xios_context_initialize('roms_low', MPI_COMM_WORLD)
+      CALL iom_swap( 'roms_low' )
+
+      ! calendar parameters
+      CALL xios_define_calendar( TYPE = "Gregorian", 
+     & time_origin = xios_date(1900,01,01,00,00,00),
+     & start_date = xios_date(iyear,imonth,iday,ihour,iminute,isec))
+
+      ! horizontal grid definition (domain)
+      CALL set_grid_low( "rho_low", lonr, latr)
+      CALL set_grid_low( "u_low", lonu, latu)
+      CALL set_grid_low( "v_low", lonv, latv)
+      CALL set_grid_low( "psi_low", lonu, latv)
+
+      ! vertical grid definition (axis)
+      CALL iom_set_axis_attr( "s_rho", sc_r )
+      CALL iom_set_axis_attr( "s_w", sc_w )
+
+      CALL xios_set_timestep(dtime)
+
+      ! end definition phase
+      CALL xios_close_context_definition()
+      !
+      CALL xios_update_calendar(0)
+      CALL iom_swap( cdname )
+# endif /* MOZ */
+
+
 
       END SUBROUTINE init_xios_tile
       
@@ -1940,6 +2401,9 @@ C       TYPE(xios_date)     :: start_date
 #if defined BIOLOGY && defined PISCES
           USE trcwri_pisces
 #endif
+# ifdef DIAG_SPEC
+          USE diagspec
+# endif /* DIAG_SPEC*/
           IMPLICIT NONE
 
 # include "param.h"
@@ -2105,18 +2569,18 @@ C       TYPE(xios_date)     :: start_date
       call xios_send_field("levels_v"  ,workr(:,:,:))
       
 
-#if defined MOZ && defined DIAG_SPEC
+#if defined DIAG_SPEC 
       do k=1,N
          zz(:,:,k)=rho_r(k)
       end do
-      call xios_send_field("rho_r",zz(:,:,1:N))  
+      !call xios_send_field("rho_r",zz(:,:,1:N))  
       do k=1,N
         zz(:,:,k) = R0 - Tcoef*(t(:,:,k,3,itemp)-T0)
 #  ifdef SALINITY
      &                     + Scoef*(t(:,:,k,3,isalt)-S0)
 #  endif
       end do
-      call xios_send_field("rholin",zz(:,:,1:N)) 
+      !call xios_send_field("rholin",zz(:,:,1:N)) 
 
 # endif
 # endif
@@ -2287,6 +2751,22 @@ C       TYPE(xios_date)     :: start_date
       call Wvlcty (tile, workr) 
       call xios_send_field("w",workr)
 
+# ifdef MOZ
+      ! Output of low grid resolution
+      CALL iom_swap( 'roms_low' )
+      caLL xios_update_calendar(ilc)
+      work2d=zeta(:,:,fast_indx_out)
+      call write_field_low("zeta_low",work2d)
+      call write_field_low("u_low",u(:,:,:,nstp))
+      call write_field_low("v_low",v(:,:,:,nstp))
+      call Wvlcty (tile, workr) 
+      call write_field_low("w_low",workr)
+      call write_field_low("temp_low",t(:,:,:,nstp,itemp))
+      call write_field_low("salt_low",t(:,:,:,nstp,isalt))
+      call write_field_low("rho_low",rho(:,:,:))
+      CALL iom_swap( 'roms' )
+# endif
+
 #  ifdef DIAGNOSTICS_EDDY
 
          GRho=-1*g/rho0
@@ -2372,7 +2852,7 @@ C       TYPE(xios_date)     :: start_date
 !      call xios_send_field("hbl",work2d)
 #  endif
 #  ifdef LMD_BKPP
-      call xios_send_field("hbbl",work2d)
+!     call xios_send_field("hbbl",work2d)
 #  endif
 #  ifdef GLS_MIXING
       call xios_send_field("tke",tke(:,:,:,nstp))
