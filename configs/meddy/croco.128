@@ -2,7 +2,7 @@ title:
 	Go-Meddy   Example
 
 time_stepping: NTIMES   dt[sec]  NDTFAST  NINFO    ! dt=600(64) 200(128) 100(256), 37 (512), 18 (1024)
-               36864     37.5      65        192
+               23040     150.      65        96
 
 S-coord: THETA_S,   THETA_B,    Hc (m)
           1.0d0      0.0d0        2400.d0
@@ -12,7 +12,7 @@ initial: NRREC  filename
                           Go_Meddy_rst.nc
 
 restart:          NRST, NRPFRST / filename
-                  36864     -1
+                  23040     -1
                           Go_Meddy_rst.nc
 
 history: LDEFHIS, NWRT, NRPFHIS / filename 
@@ -64,8 +64,9 @@ diagnosticsM:   ldefdiaM   nwrtdiaM    nrpfdiaM /filename
 diagM_history_fields: diag_momentum(1:2)
                             T T
                             
-spectral_diags: navgspec nwrtspec
-		192	 2304                          
+spectral_diags: navgspec nwrtspec / lon_min,lon_max,lat_min,lat_max
+		96	 1152                          
+                -1. -1. -1. -1.
 
 spectral_diags_kt: navgspec_kt nwrtspec_kt N_kt / levels
                     48         48          2    

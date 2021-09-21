@@ -63,7 +63,7 @@
 # define OSI 'OSI: '
 
 !       Resolution = 64,128,200,256,400,512 or 1024
-# define RESOLUTION 512
+# define RESOLUTION 1024
 
 # undef OPENMP
 # define MPI
