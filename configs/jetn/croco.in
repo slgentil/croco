@@ -70,13 +70,13 @@ diagspec:       navgspec nwrtspec spec_nlev /filename /levels
                 2 4 6 8 16
 
 itide:  flag_itide   omega_itide   nmode_itide   Az_itide  y_itide    start_time_itide 
-            T      1.45444104333e-4     2         1.0e-2   400.0e+3       500
+            T      1.45444104333e-4     2         0.0e-2   400.0e+3       500
 
 itidep: flag_ptb   dcos_ptb   dsin_ptb   nmode_ptb    scale_ptb
             0       -1.0e-6     0.0e-6       2           1.0e0
 
 jet: flag_jet   flag_jet_perturb  jet_ywidth  jet_weight jet_decay_start
-       T              T            800.0e+3      0.6        500
+       T              T            800.0e+3      0.5        500
 
 tidal_diag: omega_tdiag
             1.45444104333e-4 
@@ -88,8 +88,11 @@ damp_rl: rl_flag_south rl_L_south rl_tau_in_south rl_tau_out_south rl_flag_north
 damp_sp: sp_flag_south sp_L_south sp_tau_in_south sp_tau_out_south sp_flag_north sp_L_north sp_tau_in_north sp_tau_out_north
               F   350.0e+3    1000.0e+0   2.0e+0    F   350.0e+3    1000.0e+0   2.0e+0
 
+wind_forcing: tau_max (m/s) T_pulse (hours) T_cylce(days)
+	      0.1	    12              10 
+
 floats: ldefflt  nflt  nrpfflt /fposnam /fname 
-           T     2     0    
+           T     2    1
              floats.in
              floats.nc 
 

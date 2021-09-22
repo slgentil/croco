@@ -798,4 +798,10 @@
 
 #endif /* JETN */
 
+#if defined JETN || defined ITBALT
+! wind forcing
+      real tau_max, T_pulse, T_cycle
+      common /wind_forcing/ tau_max, T_pulse, T_cycle
+#endif
+
 

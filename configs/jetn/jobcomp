@@ -23,10 +23,8 @@
 #
 # set source, compilation and run directories
 #
-
-HOSTNAME=`uname -n`
-UNAME=`uname -a`
 SOURCE=../../croco/OCEAN
+OSI=../osi
 SCRDIR=./Compile
 RUNDIR=`pwd`
 ROOT_DIR=$SOURCE/..
@@ -34,6 +32,8 @@ ROOT_DIR=$SOURCE/..
 # determine operating system
 #
 OS=`uname`
+HOSTNAME=`uname -n`
+UNAME=`uname -a`
 echo "OPERATING SYSTEM IS: $OS"
 
 #
@@ -43,37 +43,16 @@ if [[ $OS == Linux ]] ; then
 
   if [[ $HOSTNAME == *"datarmor"* ]]; then 
   	LINUX_FC=$FC
-#	LINUX_FC=ifort
   elif [[ $HOSTNAME == *"curie"* ]]; then 
 	LINUX_FC=ifort
   elif [[ $UNAME == *"Ubuntu"* ]]; then
  	LINUX_FC=gfortran
  	export OMPI_FC=gfortran
   else
-#        LINUX_FC=ifort
-#        export OMPI_FC=ifort
-        LINUX_FC=gfortran
-        export OMPI_FC=gfortran
+    LINUX_FC=gfortran
+    export OMPI_FC=gfortran
   fi
-#
-#	set 32 or 64 Bits executable
-#
-	ARCH=`uname -m`
-	echo "PROCESSOR IS: $ARCH"
-	if [[ $ARCH == x86_64 ]] ; then
-		BITS=SIXTYFOUR
-	else
-    	BITS=THIRTYTWO
-	fi
-
-elif [[ $OS == Darwin ]] ; then
-
-        DARWIN_FC=gfortran
-
-else
-  	BITS=THIRTYTWO
 fi
-
 #
 # set NETCDF directories
 #
@@ -100,7 +79,7 @@ fi
 #
 # set MPI directories if needed
 #
-# MPIF90=$MPIF90
+#MPIF90=$MPIF90
 MPIF90=mpif90
 # MPIDIR=$(dirname $(dirname $(which $MPIF90) ))
 # MPILIB="-L$MPIDIR/lib -lmpi -limf -lm"

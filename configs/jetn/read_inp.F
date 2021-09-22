@@ -2632,6 +2632,18 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
 !     &         'scale_ptb = ', scale_ptb
 #endif
 ! aponte tidep )
+! aponte wind forcing (
+# if defined JETN || defined ITBALT
+      elseif (keyword(1:kwlen).eq.'wind_forcing') then
+        call cancel_kwd (keyword(1:kwlen), ierr)
+        read(input,*,err=95) tau_max, T_pulse, T_cycle 
+        T_pulse = T_pulse * 3600.
+        T_cycle = T_cycle * 86400.
+        call params_output('wind_tau_max', tau_max)
+        call params_output('wind_T_pulse', T_pulse)
+        call params_output('wind_T_cycle', T_cycle)
+# endif
+! aponte wind forcing )
 
       else
         MPI_master_only write(stdout,'(/3(1x,A)/)')

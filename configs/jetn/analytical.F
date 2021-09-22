@@ -412,6 +412,15 @@ C$    integer  trd, omp_get_thread_num
         enddo
       enddo
 #  endif
+# elif defined JETN || defined ITBALT
+      cff1 = mod(time,T_cycle)
+      if (cff1 > T_pulse) cff1 = 0
+      do j=JstrR,JendR
+        do i=IstrR,IendR
+          sustr(i,j)= tau_max * sin(pi * mod(cff1,2*T_pulse)/T_pulse)
+     &                / rho0
+        enddo
+      enddo
 # else
       do j=JstrR,JendR
         do i=IstrR,IendR

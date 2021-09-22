@@ -4,9 +4,9 @@
 """
   script python pour lancer une simulation en plusieurs chaînages sur caparmor
  
-  [syntaxe] : romschain workdir nbchain elaptim resolution jobname
+  [syntaxe] : chain_datarmor.py workdir nbchain elaptim resolution jobname
       arguments:
-          workdir : repertoire qui sera cree dans WORKDIR
+          workdir : répertoire qui sera créé sous $WORK
           nb_chain : nombre de chainages
           elap_time : temps elapsed pour le job HH:MM:SS
           resolution : resolution, 1 pour 1km, 2 pour 2km, 4 pour 4km 
@@ -22,13 +22,13 @@ import shutil
 
 if  len(sys.argv) < 7 :
     print('--------------------------------------------------------------------------------')
-    print('[syntaxe] : chain_datarmor.py workdir nbchain elaptim resolution jobname restart') 
+    print('[syntaxe] : chain_datarmor.py workdir nbchain elaptim resolution jobname restart')
     print('--------------------------------------------------------------------------------')
-    print('workdir : répertoire qui sera créé sousORKDIR')
+    print('workdir : répertoire qui sera créé sous $WORK')
     print('nbchain : nombre de chainages')
     print('elaptim : temps elapsed pour chaque chainage HH:MM:SS  ')
     print('resolution : resolution 4 pour 4km, 2 pour 2km')
-    print('jobname : nom générique des bchs')
+    print('jobname : nom générique des batchs')
     print('restart : 0 (initial) or 1 (restart)')
     quit()
 
@@ -66,8 +66,8 @@ nb_nodes = int((nb_cores)/28)+1
 startdir=os.getcwd()
 USER = os.getenv('USER')
 #WORK = os.getenv('DATAWORK')
-#WORK = os.getenv('SCRATCH')
-WORK = '/home/c11-data/Test_aponte/jetn'
+WORK = os.getenv('SCRATCH')
+#WORK = '/home/c11-data/Test_aponte/jetn'
 RPATH = WORK+'/'+workdir
 if os.path.exists(RPATH) :    
     os.system('rm -Rf '+RPATH)
