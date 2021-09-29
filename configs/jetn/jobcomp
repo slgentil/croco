@@ -169,6 +169,11 @@ else
 	echo "  file namelist_pisces copied from source directory"
 fi
 #
+# overwrite with OSI files
+#
+/bin/cp -f ${OSI}/*.F $SCRDIR
+/bin/cp -f ${OSI}/*.h $SCRDIR
+#
 # overwrite with local files
 #
 /bin/cp -f *.F90 $SCRDIR

@@ -169,6 +169,12 @@ C$    integer omp_get_thread_num
         enddo
       enddo
 ! aponte vmodes )
+! aponte relax (
+      nudgcof_itide = init
+      nudgcof_zano_itide = init
+! aponte relax )
+      Atide_cos_mode = 0
+      Atide_sin_mode = 0
 ! aponte itide )
 #  endif
 # endif /* JETN */

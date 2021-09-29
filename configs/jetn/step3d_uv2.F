@@ -1223,7 +1223,8 @@
           enddo
         enddo
       enddo
-# endif
+# endif /* M3NUDGING */
+
 ! aponte wmaker (
 #  ifdef IWMAKER
 #   ifdef MPI
@@ -1249,7 +1250,7 @@
 !
 ! Big loop around modes
 !
-      do nmode=2,4
+      do nmode=1,nmode_itide
 ! interpolate forcing on actual grid
 ! there is some degree of inaccuracy due to the fact that v points are
 ! not on z_r, could be improved

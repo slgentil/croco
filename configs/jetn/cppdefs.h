@@ -72,10 +72,21 @@
 ! turn beta on off
 # define BETAON
 
+# define ITIDE         /* turns itide on/off*/
+# ifdef ITIDE
 ! type of wavemaker
-# define WMAKER_TEST 5
-! perturbed internal tide formulation
-# define ITIDEP
+#   define IWMAKER
+#   define WMAKER_TEST 5
+! internal tide formulation
+#   define ITFORCING
+#   define VMODES
+! internal tide perturbation
+#   undef ITIDEP
+! sponges
+#   undef IT_SPONGE_LINEAR_SOUTH
+#   undef IT_SPONGE_LINEAR_NORTH
+#   undef IT_SPONGE_ZANO
+# endif
 
 # undef FERMI_MEM
 
@@ -86,7 +97,6 @@
 
 ! old but necessary options
 # define  ANA_JET
-# define ITIDE         /* turns itide on/off*/
 # undef FLAT_OCEAN    /* flattens the stratification on/off*/
 
 /* reads initial profiles from a file, define ANA_INITIAL */
@@ -149,6 +159,7 @@
 #   define ANA_TCLIMA
 #   define ANA_SSH
 #  endif
+! keys for global relaxation
 #  define M3NUDGING
 #  define M2NUDGING
 #  define TNUDGING
@@ -187,12 +198,6 @@
 # undef SMAGORINSKY
 # ifdef  UV_VIS4
 #   undef  SMAGORINSKY
-# endif
-
-! Itide - Open boundary conditions
-# ifdef ITIDE
-#   define IWMAKER
-#   define VMODES
 # endif
 
 # define OBC_SOUTH

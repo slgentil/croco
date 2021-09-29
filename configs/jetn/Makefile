@@ -131,6 +131,7 @@ include Makedefs
 \
 	get_vmodes.F  vmodes.F stretch_grid.F ana_get_depth.F \
 	ana_get_density.F allreduce.F  var2cdf.F  \
+        stop_run.F
 
  SRCS90 = \
 	par_pisces.F90	ocean2pisces.F90	trc.F90		sms_pisces.F90\

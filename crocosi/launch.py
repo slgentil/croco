@@ -77,7 +77,7 @@ class run(object):
         _bpath = join(self.rpath,'backup/')
         if ~os.path.exists(_bpath):
             os.mkdir(_bpath)
-            code_files = glob(join(self.startdir,'*.F'))
+            code_files = glob(join(self.startdir,'*.[Fh]'))
             #cmd='find '+startdir+' -name "*.[Fh]" -exec grep -l aponte {} \;'
             #listfiles = os.popen(cmd).readlines()  
             for f in code_files:
