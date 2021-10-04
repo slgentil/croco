@@ -75,14 +75,15 @@
 # define ITIDE         /* turns itide on/off*/
 # ifdef ITIDE
 ! type of wavemaker
-#   define IWMAKER
+!#   define IWMAKER
 #   define WMAKER_TEST 5
 ! internal tide formulation
-#   define ITFORCING
+#   undef WMAKER_MODE
 #   define VMODES
 ! internal tide perturbation
 #   undef ITIDEP
 ! sponges
+#   undef Y_STRETCH_RELAX
 #   undef IT_SPONGE_LINEAR_SOUTH
 #   undef IT_SPONGE_LINEAR_NORTH
 #   undef IT_SPONGE_ZANO
@@ -131,7 +132,6 @@
 #  endif
 # endif
 # undef Y_STRETCH_GRID
-# undef Y_STRETCH_RELAX
 
 !                   Horizontal advection for tracer (default UP3)
 # define  TS_HADV_UP5

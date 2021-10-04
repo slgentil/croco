@@ -193,19 +193,19 @@
 ! coeff_stretch = 1.00874
 !      parameter (LLm0=16,  MMm0=832,  N=50)     !  4 km       
 #else       
-       parameter (LLm0=16,  MMm0=512,  N=50)     !  4 km 
+       parameter (LLm0=16,  MMm0=720,  N=50)     !  4 km 
 #endif             
 #  elif RESOLUTION == 2
 #ifdef Y_STRETCH_GRID
        parameter (LLm0=16,  MMm0=1152,  N=100)   !  2 km
 #else 
-       parameter (LLm0=16,  MMm0=1024,  N=100)   !  2 km
+       parameter (LLm0=16,  MMm0=1440,  N=100)   !  2 km
 #endif                    
 #  elif RESOLUTION == 1
 #ifdef Y_STRETCH_GRID
        parameter (LLm0=16,  MMm0=2176,  N=200)   !  1 km
 #else 
-       parameter (LLm0=16,  MMm0=2048,  N=200)   !  1 km
+       parameter (LLm0=16,  MMm0=2880,  N=200)   !  1 km
 #endif                    
 #  endif
 # else /* JETN_NARROW */

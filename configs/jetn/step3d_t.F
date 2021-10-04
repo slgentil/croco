@@ -128,7 +128,8 @@
       REAL    :: flux3_weno, flux5_weno
 # endif
 ! aponte iwmaker (
-# ifdef IWMAKER
+!# ifdef IWMAKER
+# ifdef ITIDE
       real y, yoff, dely, delt
 # endif
 ! aponte iwmaker )
@@ -656,7 +657,8 @@
 # endif /* TNUDGING && TCLIMATOLOGY */
 
 ! aponte iwmaker (
-# ifdef IWMAKER
+!# ifdef IWMAKER
+# ifdef ITIDE
 #  ifdef MPI
          y=real(0+jj*Mm)
 #  else
@@ -883,14 +885,14 @@
 !            enddo
 !          enddo
       enddo
-#  endif
+#  endif /* WMAKER_TEST */
         endif
 ! debug
 !#  ifdef XIOS
 !        workr(:,:,:) = t(:,:,:,itemp,nstp)
 !        CALL xios_send_field("Tdebug",lworkr)
 !#  endif
-# endif
+# endif /* ITIDE */
 ! aponte iwmaker )
 
 !

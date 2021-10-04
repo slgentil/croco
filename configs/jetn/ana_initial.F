@@ -632,6 +632,8 @@ C$    integer omp_get_thread_num
 !     &       *c_vmodes(nmode_itide)**2/c_vmodes(2)
 !     &       *2.27D+0
 
+# ifdef WMAKER_MODE
+
 ! alternative: mulitple amplitudes can be generated
 !!
 !! truth :
@@ -645,7 +647,6 @@ C$    integer omp_get_thread_num
 
 ! baroclinic modes
 
-# ifdef ITFORCING
 
        do nmode=2,nmode_itide
 
@@ -674,8 +675,6 @@ C$    integer omp_get_thread_num
            
         endif
        enddo
-
-# endif /* ITFORCING */
 
        call params_output('itideptb_truth_Acos_mode', Atide_cos_mode)
        call params_output('itideptb_truth_Asin_mode', Atide_sin_mode)
@@ -713,7 +712,10 @@ C$    integer omp_get_thread_num
        call params_output('itideptb_full_Acos_mode', Atide_cos_mode)
        call params_output('itideptb_full_Asin_mode', Atide_sin_mode)
 
-# endif /* ITIDEP  */    
+# endif /* ITIDEP  */  
+
+# endif /* WMAKER_MODE */
+
 ! ....
 
 !       Avs_itide = 0.0D+0

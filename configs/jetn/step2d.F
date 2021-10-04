@@ -183,7 +183,8 @@ C$    trd=omp_get_thread_num()
 
 #ifdef JETN  
 ! aponte iwmaker (
-#  ifdef IWMAKER
+!#  ifdef IWMAKER
+#  ifdef ITIDE
       real y, yoff, dely, delt
 #  endif
 ! aponte iwmaker ) 

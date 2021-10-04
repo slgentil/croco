@@ -26,6 +26,7 @@
 !
       subroutine set_nudgcof_tile (Istr,Iend,Jstr,Jend, wrk)
 !     implicit none
+      use params
       integer ierr
 # if defined MPI
       include 'mpif.h'
@@ -157,7 +158,7 @@
 # ifdef JET_EDDY
         cff_kill_sponges=0.0
 # endif
-        MPI_master_only  write(*,*) 'cff_kill_sponges = ', cff_kill_sponges
+        call params_output('flag_sponges', cff_kill_sponges)
 
 !
 !-------------------------------------------------------------------
