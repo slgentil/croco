@@ -56,16 +56,29 @@
 ! resolution (dx in km)
 # define RESOLUTION 4
 ! narrow channel for internal tide test case
-# undef NARROW
+# define NARROW
 
 ! turn beta on off
 # undef BETAON
 
+# define ITIDE         /* turns itide on/off*/
+# ifdef ITIDE
 ! type of wavemaker
-# define WMAKER_TEST 6
-# undef ITIDEP
+!#   define IWMAKER
+#   define WMAKER_TEST 5
+! internal tide formulation
+#   undef WMAKER_MODE
+#   define VMODES
+! internal tide perturbation
+#   undef ITIDEP
+! sponges
+#   undef Y_STRETCH_RELAX
+#   undef IT_SPONGE_LINEAR_SOUTH
+#   undef IT_SPONGE_LINEAR_NORTH
+#   undef IT_SPONGE_ZANO
+# endif
 
-# define FSTURB
+# undef FSTURB
 # ifdef FSTURB
 #   define VMODES
 # endif
@@ -74,9 +87,6 @@
 # undef  SIGMA_FLOATS  /* float stays at fixed sigma levels */
 # undef  DEPTH_FLOATS  /* float stays at fixed depth levels */
 # undef  FLOAT_DEBUG
-
-! old but necessary options
-# undef ITIDE         /* turns itide on/off*/
 
 /* reads initial profiles from a file, define ANA_INITIAL */
 # define ANA_INITIAL
@@ -119,7 +129,7 @@
 !                   Climatology and nudging
 # define CLIMATOLOGY
 # ifdef CLIMATOLOGY
-#  undef ZONAL_NUDGING
+#  define ZONAL_NUDGING
 #  define M2CLIMATOLOGY
 #  define M3CLIMATOLOGY
 #  define TCLIMATOLOGY
@@ -172,19 +182,12 @@
 #   undef  SMAGORINSKY
 # endif
 
-! Itide
-# ifdef ITIDE
-#   define IWMAKER
-#   define VMODES
-# endif
-
 !           Grid and periodicity, bdy conditions
 # define NS_PERIODIC
 # define EW_PERIODIC
 # define ANA_GRID
 # undef ANA_DEPTH_FILE
 # undef Y_STRETCH_GRID
-# undef Y_STRETCH_RELAX
 
 # undef FRC_BRY
 # ifdef FRC_BRY

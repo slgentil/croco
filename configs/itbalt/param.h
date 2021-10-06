@@ -193,22 +193,22 @@
 ! coeff_stretch = 1.00874
 !      parameter (LLm0=16,  MMm0=832,  N=50)     !  4 km       
 #else       
-       parameter (LLm0=16,  MMm0=512,  N=50)     !  4 km 
+       parameter (LLm0=16,  MMm0=720,  N=50)     !  4 km 
 #endif             
 #  elif RESOLUTION == 2
 #ifdef Y_STRETCH_GRID
        parameter (LLm0=16,  MMm0=1152,  N=100)   !  2 km
 #else 
-       parameter (LLm0=16,  MMm0=1024,  N=100)   !  2 km
+       parameter (LLm0=16,  MMm0=1440,  N=100)   !  2 km
 #endif                    
 #  elif RESOLUTION == 1
 #ifdef Y_STRETCH_GRID
        parameter (LLm0=16,  MMm0=2176,  N=200)   !  1 km
 #else 
-       parameter (LLm0=16,  MMm0=2048,  N=200)   !  1 km
+       parameter (LLm0=16,  MMm0=2880,  N=200)   !  1 km
 #endif                    
 #  endif
-# else /* ITBALT NARROW */
+# else /* NARROW */
 ! Smaller domain: 512 km x 2048 km
 !      parameter (LLm0=32,  MMm0=128,  N=20)      ! 16 km
 !      parameter (LLm0=62,  MMm0=256,  N=40)      !  8 km
@@ -294,7 +294,7 @@
 ! 
 
 # ifdef ITBALT
-# ifdef JET_NARROW
+# ifdef NARROW
 ! Smaller domain: 64 km x 2048 km for regular grid
 !                 64 km x 6000 km for stretched grid
 #  if RESOLUTION == 4
@@ -303,7 +303,7 @@
       parameter (NP_XI=1, NP_ETA=5,  NNODES=NP_XI*NP_ETA)     
 #else       
 ! 4km: 16 x 128 blocks -  4 procs
-      parameter (NP_XI=1, NP_ETA=4,  NNODES=NP_XI*NP_ETA)
+      parameter (NP_XI=1, NP_ETA=12,  NNODES=NP_XI*NP_ETA)
 #endif      
 #  elif RESOLUTION == 2
 #ifdef Y_STRETCH_GRID
@@ -311,7 +311,7 @@
       parameter (NP_XI=1, NP_ETA=9,  NNODES=NP_XI*NP_ETA)
 #else  
 ! 2km: 16 x 128 blocks -  8 procs
-      parameter (NP_XI=1, NP_ETA=8,  NNODES=NP_XI*NP_ETA)
+      parameter (NP_XI=1, NP_ETA=96,  NNODES=NP_XI*NP_ETA)
 #endif            
 #  elif RESOLUTION == 1
 #    ifdef Y_STRETCH_GRID
@@ -388,9 +388,9 @@
 ! 1920 procs (60 noeuds de 32 procs sur fermi)
 !       parameter (NP_XI=32, NP_ETA=60,  NNODES=NP_XI*NP_ETA)
 ! 3840 procs (120 noeuds de 32 procs sur fermi)
-!      parameter (NP_XI=8, NP_ETA=240,  NNODES=NP_XI*NP_ETA)  ! fermi
-!      parameter (NP_XI=4, NP_ETA=15,  NNODES=NP_XI*NP_ETA)   ! datarmor
-       parameter (NP_XI=8, NP_ETA=120,  NNODES=NP_XI*NP_ETA)  ! curie            
+!      parameter (NP_XI=4, NP_ETA=8,  NNODES=NP_XI*NP_ETA)  ! dunree
+      parameter (NP_XI=4, NP_ETA=96,  NNODES=NP_XI*NP_ETA)   ! datarmor
+!      parameter (NP_XI=8, NP_ETA=120,  NNODES=NP_XI*NP_ETA)  ! curie            
 # endif          
 !
 !

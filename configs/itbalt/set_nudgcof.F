@@ -149,6 +149,11 @@
 # endif
         enddo
       enddo
+
+! Flag that kills all sponges but not the zonal relaxation (0=no sponges)
+        cff_kill_sponges=1.0
+        call params_output('flag_sponges', cff_kill_sponges)
+
 !
 !-------------------------------------------------------------------
 ! Compute nudging coefficients in nudging layers
@@ -220,14 +225,10 @@
 
 #else /* Y_STRETCH_RELAX */
 
-! Flag that kills all sponges but not the zonal relaxation (0=no sponges)
-        cff_kill_sponges = 0.0
-        call params_output('flag_sponges', cff_kill_sponges)
-!        if (mynode==0) write(*,*) 'cff_kill_sponges = ', cff_kill_sponges
-
         if ( rl_flag_south ) then
 
-#   if 0
+# ifdef IT_SPONGE_LINEAR_SOUTH
+
 ! original formulation with linear increase plus plateau
          cff = rl_L_south/el  ! nondim width
          cff1 = invday/rl_tau_in_south  ! inverse relax time: inside value
@@ -242,7 +243,9 @@
 !          nudgcof_itide(j) = nudgcof_itide(j) + cff3_itide
           nudgcof_itide(j) = cff3_itide
          endif
-#   else
+
+#   else /* IT_SPONGE_LINEAR_SOUTH */
+
 ! damp zonal mean + anomalies 
 ! more complex formulation
         y_spg(1)=0.0D+3
@@ -260,7 +263,7 @@
          tau_spg(i_spg)=tau_spg(i_spg)/invday
         enddo
 
-        cff3_itide=0.0
+!       cff3_itide=0.0
         do i_spg=1,N_spg-1
         if ( (y .ge. y_spg(i_spg)) .and. (y .le. y_spg(i_spg+1)) ) then
          cff = y_spg(i_spg+1)-y_spg(i_spg)  ! width
@@ -271,9 +274,9 @@
         endif
         enddo
         nudgcof_itide(j) = cff3_itide
-! kills efficiently this type of damping
-        nudgcof_itide(j) = nudgcof_itide(j)*cff_kill_sponges
 
+
+# ifdef IT_SPONGE_ZANO
 
 ! damp zonal anomalies 
 ! more complex formulation
@@ -307,18 +310,19 @@
         endif
         enddo
         nudgcof_zano_itide(j) = cff3_zano
-! kills efficiently this type of damping
-        nudgcof_zano_itide(j) = nudgcof_zano_itide(j)*cff_kill_sponges
 
-#  endif
+# endif /* IT_SPONGE_ZANO */
+
+# endif /* IT_SPONGE_LINEAR_SOUTH */
 
         endif
 
 !!!
         if ( rl_flag_north ) then
 
-#   if 1
+# ifdef IT_SPONGE_LINEAR_NORTH
 
+! original formulation with linear increase plus plateau
          cff = rl_L_north/el  ! nondim width
          cff1 = invday/rl_tau_in_north  ! inverse relax time: south
          cff2 = invday/rl_tau_out_north  ! inverse relax time: north
@@ -329,13 +333,11 @@
 !     &         + cff2 * (y-1.0+cff)/cff ! linear
           cff3_itide = max(cff3_itide,cff1)
           cff3_itide = min(cff3_itide,cff2)
-!          nudgcof_itide(j) = nudgcof_itide(j) + cff3_itide
-          nudgcof_itide(j) = cff3_itide
+          nudgcof_itide(j) = max(nudgcof_itide(j),cff3_itide)
          endif
-! kills efficiently this type of damping
-        nudgcof_itide(j) = nudgcof_itide(j)*cff_kill_sponges 
 
-#   else
+#   else /* IT_SPONGE_LINEAR_NORTH */
+
 ! damp zonal mean + anomalies 
 ! more complex formulation
         y_spg(1)= el - 0.0D+3
@@ -363,10 +365,10 @@
      &         + cff2*(y-y_spg(i_spg))/cff
         endif
         enddo
-        nudgcof_itide(j) = cff3_itide
-! kills efficiently this type of damping
-        nudgcof_itide(j) = nudgcof_itide(j)*cff_kill_sponges
+        nudgcof_itide(j) = max(nudgcof_itide(j),cff3_itide)
 
+
+# ifdef IT_SPONGE_ZANO
 
 ! damp zonal anomalies 
 ! more complex formulation
@@ -399,15 +401,19 @@
      &         + cff2*(y-y_spg(i_spg))/cff
         endif
         enddo
-        nudgcof_zano_itide(j) = cff3_zano
-! kills efficiently this type of damping
-        nudgcof_zano_itide(j) = nudgcof_zano_itide(j)*cff_kill_sponges
+        nudgcof_zano_itide(j) = max(nudgcof_zano_itide(j),cff3_zano)
 
-#  endif
+# endif /* IT_SPONGE_ZANO */
+
+# endif /* IT_SPONGE_LINEAR _NORTH*/
 
         endif
 
 #endif /* Y_STRETCH_RELAX */
+
+! kills efficiently this type of damping
+        nudgcof_itide(j) = nudgcof_itide(j)*cff_kill_sponges 
+        nudgcof_zano_itide(j) = nudgcof_zano_itide(j)*cff_kill_sponges
 
 !
 !        y=y/real(MMm)

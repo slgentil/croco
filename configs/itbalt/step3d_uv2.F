@@ -104,10 +104,10 @@
       real dRx,dRe, cfilt
 # endif
 ! aponte iwmaker (
-#  ifdef IWMAKER || FSTURB
+#  ifdef ITIDE || FSTURB
       real FCn(PRIVATE_1D_SCRATCH_ARRAY,0:N,10)
 #  endif
-#  ifdef IWMAKER 
+#  ifdef ITIDE 
       real y, yoff, dely, delt, time_itide
       integer nmode
 #  endif
@@ -1162,15 +1162,12 @@
  
 ! aponte itide (
 #  ifdef ITIDE
-#  if !defined ZONAL_NUDGING
 ! damp all
      &                    + dt*nudgcof_itide(j)* 
-     &                           (uclm(i,j,k)-u(i,j,k,nnew))    
-#  else
+     &                           (uclm(i,j,k)-u(i,j,k,nnew))
 ! damp zonal anomalies
      &                    + dt*nudgcof_zano_itide(j)*
      &                           (uzon(j,k)-u(i,j,k,nnew))
-#  endif /* ZONAL_NUDGING */
 #  endif
 ! aponte itide )
 #  ifdef MASKING
@@ -1194,16 +1191,13 @@
   
 ! aponte itide (
 #  ifdef ITIDE
-#  if !defined ZONAL_NUDGING
 ! damp all
      &                       + dt*nudgcof_itide(j)*
-     &                           (vclm(i,j,k)-v(i,j,k,nnew)) 
-#  else
+     &                           (vclm(i,j,k)-v(i,j,k,nnew))
 ! damp zonal anomalies
      &                       + dt*nudgcof_zano_itide(j)*
      &                           (vzon(j,k)-v(i,j,k,nnew))
-#  endif /* ZONAL_NUDGING */
-#  endif /* ITIDE */
+#  endif
 ! aponte itide )
 #  ifdef MASKING
             v(i,j,k,nnew)=v(i,j,k,nnew)*vmask(i,j)
@@ -1214,9 +1208,11 @@
           enddo
         enddo
       enddo
-# endif
+# endif /* M3NUDGING */
+
 ! aponte wmaker (
-#  ifdef IWMAKER
+!#  ifdef IWMAKER
+#  ifdef ITIDE
 #   ifdef MPI
       y=real(0+jj*Mm)
 #   else
@@ -1236,11 +1232,15 @@
 !       time_itide = time
 !     endif
 #   if WMAKER_TEST == 5
+
+#     ifdef WMAKER_MODE
+! Internal wave forcing with vertical modes
+
       do j=JV_RANGE
 !
 ! Big loop around modes
 !
-      do nmode=2,4
+      do nmode=1,nmode_itide
 ! interpolate forcing on actual grid
 ! there is some degree of inaccuracy due to the fact that v points are
 ! not on z_r, could be improved
@@ -1346,8 +1346,63 @@
       enddo
 !      write(*,*) 'time = ', time
 !      write(*,*) 'time_start = ', time_start
-#   endif
-# endif
+
+#    else  /* WMAKER_MODE */
+!
+! Internal wave forcing with Gaussian vertical form
+!
+      do j=JV_RANGE
+        do k=1,N
+          do i=Istr,Iend
+            FCn(i,k,0) = exp(-z_r(i,j,k)**2/(itide_h**2))
+          enddo
+        enddo
+!
+! correct barotropicity here
+!
+! init variables
+        do i=IV_RANGE
+            DC(i,0)=0.
+            CF(i,0)=0.
+            FC(i,0)=0.
+        enddo
+! compute local depth and forcing integral
+        do k=1,N,+1
+          do i=IV_RANGE
+            DC(i,k)=0.5*(Hz(i,j,k)+Hz(i,j-1,k))
+            DC(i,0)=DC(i,0)+DC(i,k)
+            CF(i,0)=CF(i,0)+DC(i,k)*FCn(i,k,0)
+          enddo
+        enddo
+! average
+        do i=IV_RANGE
+          DC(i,0)=1./DC(i,0)
+          CF(i,0)=DC(i,0)*CF(i,0)
+        enddo
+! substract average
+        do k=1,N
+          do i=IV_RANGE
+            FCn(i,k,0)=FCn(i,k,0)-CF(i,0)
+          enddo
+        enddo
+!
+! update v
+!
+        do k=1,N
+          do i=IV_RANGE
+            v(i,j,k,nnew)=v(i,j,k,nnew)+dt
+     &          * ( Az_itide/dely_itide * cos(omega_itide*time_itide) )
+     &          *0.5*(1+sign(1.,time_itide))*tanh(time_itide/86400.0/delt)**2
+     &          *exp(-(real(j)/real(MMm)+yoff)**2/dely**2)
+! vertical structure
+     &          *FCn(i,k,0)
+          enddo
+        enddo
+      enddo
+
+#    endif /* WMAKER_MODE */
+#   endif /* WMAKER_TEST */
+# endif  /* ITIDE */
 ! aponte wmaker )
 
 ! spectral turbulence forcing 

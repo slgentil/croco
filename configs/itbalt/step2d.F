@@ -182,7 +182,8 @@ C$    trd=omp_get_thread_num()
 
 #ifdef ITBALT  
 ! aponte iwmaker (
-#  ifdef IWMAKER
+!#  ifdef IWMAKER
+#  ifdef ITIDE
       real y, yoff, dely, delt
 #  endif
 ! aponte iwmaker )
@@ -452,19 +453,16 @@ C$OMP END MASTER
 ! aponte jet )
      &              *(sshzon(j)-zetazon(j))
 # else
-     &              *(ssh(i,j)-zeta_new(i,j))
+     &                                 *(ssh(i,j)-zeta_new(i,j))
 # endif /* ZONAL_NUDGING */
 ! aponte itide (
 #  ifdef ITIDE
-# ifdef ZONAL_NUDGING
-! damp zonal anomalies
-     &             + dtfast*nudgcof_zano_itide(j)
-     &                    *(zetazon(j)-zeta_new(i,j))
-# else
 ! damp all
      &             + dtfast*nudgcof_itide(j)
      &                    *(ssh(i,j)-zeta_new(i,j))
-# endif /* ZONAL_NUDGING */
+! damp zonal anomalies
+     &             + dtfast*nudgcof_zano_itide(j)
+     &                    *(zetazon(j)-zeta_new(i,j))
 #  endif
 ! aponte itide )
         enddo
@@ -1497,15 +1495,12 @@ C$OMP END MASTER
 
 ! aponte itide (
 #  ifdef ITIDE
-# if !defined ZONAL_NUDGING    
 ! damp all
           DUnew = (DUnew + dtfast*nudgcof_itide(j)*
      &                           (ubclm(i,j)-ubar(i,j,knew)))
-# else
 ! damp zonal anomalies:
           DUnew = (DUnew + dtfast*nudgcof_zano_itide(j)*
      &                           (ubzon(j)-ubar(i,j,knew)))
-# endif /* ZONAL_NUDGING */
 #  endif
 ! aponte itide )
 # ifdef MASKING
@@ -1528,17 +1523,15 @@ C$OMP END MASTER
 # else
           DVnew = dtfast*M2nudgcof(i,j)*(vbclm(i,j)-vbar(i,j,knew))    
 # endif 
+     
 ! aponte itide (
 #  ifdef ITIDE
-# if !defined ZONAL_NUDGING    
 ! damp all
           DVnew = (DVnew + dtfast*nudgcof_itide(j)*
      &                           (vbclm(i,j)-vbar(i,j,knew)))
-# else
 ! damp zonal anomalies
           DVnew = (DVnew + dtfast*nudgcof_zano_itide(j)*
      &                           (vbzon(j)-vbar(i,j,knew)))
-# endif /* ZONAL_NUDGING */
 #  endif
 ! aponte itide )
 # ifdef MASKING

@@ -56,10 +56,10 @@ fsturb: dt     F     Lmin     Lmax   t_start  t_decay  Nmode   xmid  xwid   ymid
         10.  1.e-3  50.e+3   100.e+3      0.      500.     5    0.    0.   1440.e+3  500.e+3
 
 fsturb_avmodes: a(1:Nmode)
-        0.0   1.0   0.0   0.0   0.0
+        1.0   0.0   0.0   0.0   0.0
 
-itide:  flag_itide   omega_itide   nmode_itide   Az_itide  y_itide    start_time_itide 
-            T      1.45444104333e-4     2         2.0e-2   400.0e+3      4000
+itide:  flag_itide   omega_itide   nmode_itide   forcing_itide Az_itide  y_itide    start_time_itide 
+            T      1.45444104333e-4     2         1            0.0e-2   400.0e+3      4000
 
 itidep: flag_ptb   dcos_ptb   dsin_ptb   nmode_ptb    scale_ptb
             0       -1.0e-6     0.0e-6       2           1.0e0
@@ -68,7 +68,7 @@ tidal_diag: omega_tdiag
             1.45444104333e-4 
 
 damp_rl: rl_flag_south rl_L_south rl_tau_in_south rl_tau_out_south rl_flag_north rl_L_north rl_tau_in_north rl_tau_out_north
-              F        1000.0e+3     350.0e+3      1000.0e+0    1.0e+0           F             1000.0e+3     350.0e+3   1000.0e+0       1.0e+0
+              T        1000.0e+3     350.0e+3      1000.0e+0    1.0e+0           T             1000.0e+3     350.0e+3   1000.0e+0       1.0e+0
 
 
 damp_sp: sp_flag_south sp_L_south sp_tau_in_south sp_tau_out_south sp_flag_north sp_L_north sp_tau_in_north sp_tau_out_north

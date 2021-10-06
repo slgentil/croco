@@ -2564,6 +2564,16 @@ C 				  endif
 
 ! aponte stats )
 
+!!! pressure
+! does not update density in order to keep previous values
+! used in pressure gradient computation
+      call prsgrd_tile (Istr,Iend,Jstr,Jend, ru,rv, P,
+     &                  A2d(1,3,0),A2d(1,4,0), FC,dZx,rx,dRx)
+      workr = 0.
+      workr(PRIVATE_2D_SCRATCH_ARRAY,:) = P(PRIVATE_2D_SCRATCH_ARRAY,:)
+      call xios_send_field("P",workr)
+
+
 ! aponte tdiags (
 # ifdef TIDAL_DIAGS
 ! SSH
@@ -2736,15 +2746,6 @@ C 				  endif
 !!! w
 ! Don't forget to multiply by N2: sum(w*phiw*N2) !!!!!
 ! and to multiply by scw_vmodes(im)
-
-!!! pressure
-! does not update density in order to keep previous values
-! used in pressure gradient computation
-      call prsgrd_tile (Istr,Iend,Jstr,Jend, ru,rv, P,
-     &                  A2d(1,3,0),A2d(1,4,0), FC,dZx,rx,dRx)
-      workr = 0.
-      workr(PRIVATE_2D_SCRATCH_ARRAY,:) = P(PRIVATE_2D_SCRATCH_ARRAY,:)   
-      call xios_send_field("P",workr)
 
       workvm(:,:,:)=0.0D0
       do im=1,nvmodes

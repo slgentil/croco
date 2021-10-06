@@ -698,7 +698,8 @@ C$    integer omp_get_thread_num
 !     &       *c_vmodes(nmode_itide)**2/c_vmodes(2)
 !     &       *2.27D+0
 
-# ifdef ITIDEP
+# ifdef WMAKER_MODE
+
 ! alternative: mulitple amplitudes can be generated
 !!
 !! truth :
@@ -709,33 +710,51 @@ C$    integer omp_get_thread_num
        Atide_sin_mode(nmode) = 0.0
        dAtide_cos_mode(nmode) = 0.0
        dAtide_sin_mode(nmode) = 0.0
-! first baroclinic mode
-!       nmode = 2
-!       Atide_cos_mode(nmode) = Az_itide/dely_itide
-!     &       *c_vmodes(nmode)**2/c_vmodes(2)
-!     &       *2.27D+0
-!       Atide_sin_mode(nmode) = 0.0
-!       dAtide_cos_mode(nmode) = 0.0
-!       dAtide_sin_mode(nmode) = 0.0
+
 ! baroclinic modes
-       do nmode=2,10
-        if ( nmode .eq. nmode_itide ) then
-          Atide_cos_mode(nmode) = Az_itide/dely_itide
+
+
+       do nmode=2,nmode_itide
+
+
+        if (forcing_itide == 1) then
+           if ( nmode .eq. nmode_itide ) then
+             Atide_cos_mode(nmode) = Az_itide/dely_itide
      &           *c_vmodes(nmode)**2/c_vmodes(2)
      &           *2.27D+0
+           else
+             Atide_cos_mode(nmode) = 0.0
+           endif
+           Atide_sin_mode(nmode) = 0.0
+           dAtide_cos_mode(nmode) = 0.0
+           dAtide_sin_mode(nmode) = 0.0
+
+        else if (forcing_itide == 2) then
+           Atide_cos_mode(nmode) = Az_itide/dely_itide
+     &                          *(phiuv(N,nmode))/h(Istr, Jstr)
+     &                          * 4.e+3
+           Atide_sin_mode(nmode) = 0.0
+           dAtide_cos_mode(nmode) = 0.0
+           dAtide_sin_mode(nmode) = 0.0
+        else
+           call stop_run('forcing_itide = 1 or 2')          
+           
         endif
-        Atide_sin_mode(nmode) = 0.0
-        dAtide_cos_mode(nmode) = 0.0
-        dAtide_sin_mode(nmode) = 0.0
        enddo
+
        call params_output('itideptb_truth_Acos_mode', Atide_cos_mode)
        call params_output('itideptb_truth_Asin_mode', Atide_sin_mode)
+!!
+!! Perturbation
+!!
+# ifdef ITIDEP
+
 !!
 !! first guess
 !!
        if ( flag_ptb .eq. 1 ) then
 ! first guess is 0 for now
-        do nmode=1,10
+        do nmode=1,nmode_itide
          Atide_cos_mode(nmode) = 0.0 
          Atide_sin_mode(nmode) = 0.0 
         enddo
@@ -761,9 +780,12 @@ C$    integer omp_get_thread_num
        call params_output('itideptb_dsin', dsin_ptb)
        call params_output('itideptb_full_Acos_mode', Atide_cos_mode)
        call params_output('itideptb_full_Asin_mode', Atide_sin_mode)
-       
+
+# endif /* ITIDEP  */  
+
+# endif /* WMAKER_MODE */
+
 ! ....
-# endif /* ITIDEP */
 
 !       Avs_itide = 0.0D+0
 !       Azc_itide = 0.0D+0
@@ -846,8 +868,8 @@ C$    integer omp_get_thread_num
 !       call params_output('itide_Aw_cos', Awc_itide)
 !       call params_output('itide_Aw_sin', Aws_itide)
 
-#    endif
-! aponte jetn )
+#    endif /* ITIDE */
+! aponte itbalt )
 
 
 #   elif defined BTCHANNEL

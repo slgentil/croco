@@ -129,7 +129,8 @@
       REAL    :: flux3_weno, flux5_weno
 # endif
 ! aponte iwmaker (
-# ifdef IWMAKER
+!# ifdef IWMAKER
+# ifdef ITIDE
       real y, yoff, dely, delt
 # endif
 ! aponte iwmaker )
@@ -612,16 +613,13 @@
 #  endif /* ZONAL_NUDGING */
 ! aponte itide (
 #  ifdef ITIDE
-#  if !defined ZONAL_NUDGING
 ! damp all
      &                       + dt*nudgcof_itide(j)*
-     &                         (tclm(i,j,k,itrc)-t(i,j,k,nnew,itrc))   
-#  else
+     &                         (tclm(i,j,k,itrc)-t(i,j,k,nnew,itrc))
 ! damp zonal anomalies
      &                       + dt*nudgcof_zano_itide(j)*
      &                         (tzon(j,k,itrc)-t(i,j,k,nnew,itrc))
-#  endif /* ZONAL_NUDGING */
-#  endif /* ITIDE */
+#  endif
 ! aponte itide )
 #  if defined DIAGNOSTICS_TS || defined DIAGNOSTICS_PV
               TForc(i,j,k,itrc)=(TForc(i,j,k,itrc)
@@ -643,7 +641,8 @@
 # endif /* TNUDGING && TCLIMATOLOGY */
 
 ! aponte iwmaker (
-# ifdef IWMAKER
+!# ifdef IWMAKER
+# ifdef ITIDE
 #  ifdef MPI
          y=real(0+jj*Mm)
 #  else
@@ -870,14 +869,14 @@
 !            enddo
 !          enddo
       enddo
-#  endif
+#  endif /* WMAKER_TEST */
         endif
 ! debug
 !#  ifdef XIOS
 !        workr(:,:,:) = t(:,:,:,itemp,nstp)
 !        CALL xios_send_field("Tdebug",lworkr)
 !#  endif
-# endif
+# endif /* ITIDE */
 ! aponte iwmaker )
 
 ! spectral turbulence forcing 

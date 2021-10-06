@@ -91,15 +91,15 @@
 # ifdef MRL_WCI
       real vstu,dudx,dvdx,ustv,dude,dvde
 # endif
-# if defined IWMAKER || defined FSTURB
+# if defined ITIDE || defined FSTURB
       real FCn(PRIVATE_1D_SCRATCH_ARRAY,0:N,10)
 # endif
-#  ifdef IWMAKER 
+#  ifdef ITIDE 
       real y, yoff, dely, delt, time_itide
       integer nmode
-      real CF(PRIVATE_1D_SCRATCH_ARRAY,0:N),
-     &     FC(PRIVATE_1D_SCRATCH_ARRAY,0:N),
-     &     DC(PRIVATE_1D_SCRATCH_ARRAY,0:N)     
+!     real CF(PRIVATE_1D_SCRATCH_ARRAY,0:N),
+!    &     FC(PRIVATE_1D_SCRATCH_ARRAY,0:N),
+!    &     DC(PRIVATE_1D_SCRATCH_ARRAY,0:N)     
 #  endif
 !
 !--------------------------------------------------------------------
@@ -384,7 +384,7 @@
 # endif /* BODYFORCE */
 
 ! aponte wmaker (
-# ifdef IWMAKER
+# ifdef ITIDE
 #  ifdef MPI
       y=real(0+jj*Mm)
 #  else
@@ -483,8 +483,8 @@
         enddo
        enddo
       enddo
-#   endif
-# endif
+#   endif /* WMAKER_TEST */
+# endif /* ITIDE */
 ! aponte wmaker )
 
 ! spectral turbulence forcing 

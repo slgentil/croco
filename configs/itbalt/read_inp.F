@@ -2097,10 +2097,10 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
         if (Agrif_Root()) then
 # endif
           read(input,*,err=95) tauT_in,tauT_out,tauM_in,tauM_out
-          tauT_in =1./(tauT_in *86400.)
-          tauT_out=1./(tauT_out*86400.)
-          tauM_in =1./(tauM_in *86400.)
-          tauM_out=1./(tauM_out*86400.)
+          if (tauT_in /= 0) tauT_in =1./(tauT_in *86400.)
+          if (tauT_out /= 0) tauT_out=1./(tauT_out*86400.)
+          if (tauM_in /= 0) tauM_in =1./(tauM_in *86400.)
+          if (tauM_out /= 0) tauM_out=1./(tauM_out*86400.)
           MPI_master_only write(stdout,'(1pe10.3,2x,A)') 
      &        tauT_in,'tauT_in  Nudging coefficients [sec^-1]'
           MPI_master_only write(stdout,'(1pe10.3,2x,A)') 
@@ -2504,10 +2504,12 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
       elseif (keyword(1:kwlen).eq.'itide') then
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) flag_itide, omega_itide, nmode_itide,
-     &        Az_itide, y_itide, start_time_itide
+     &        forcing_itide,itide_h,  Az_itide, y_itide, start_time_itide
         call params_output('itide_flag', flag_itide)
         call params_output('itide_omega', omega_itide)
         call params_output('itide_nmode', nmode_itide)
+        call params_output('forcing_itide', forcing_itide)
+        call params_output('itide_h', itide_h)
         call params_output('itide_Az', Az_itide)
         call params_output('itide_y', y_itide)
         call params_output('itide_start_time', start_time_itide)

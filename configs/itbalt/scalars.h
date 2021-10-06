@@ -672,6 +672,8 @@
       logical flag_itide
 !     logical ramp_itide
       integer nmode_itide
+      integer forcing_itide
+      real itide_h
       real omega_itide
       real start_time_itide
       real y_itide, dely_itide
@@ -691,8 +693,9 @@
       common / itide_logical / 
      &             flag_itide
 !    &             flag_itide, ramp_itide
-      common / itide_integer / nmode_itide
-      common / itide_scalars / omega_itide
+      common / itide_integer / nmode_itide, forcing_itide
+      common / itide_scalars / itide_h
+     &            , omega_itide
      &            , start_time_itide, y_itide
 !     &            , dely_itide
      &            , Az_itide

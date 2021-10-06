@@ -88,6 +88,18 @@
           </field_group>
       </file>
 
+      <file id="file_se" name="sec" output_freq="1d" sync_freq="1d" split_freq="50d" enabled=".TRUE.">
+          <field_group id="sec_fields" operation="instant" >
+            <field field_ref="zeta" name="ssh_yz" grid_ref="rho_2Dy" />
+            <field field_ref="temp" name="T_yz" grid_ref="rho_yz" />
+            <field field_ref="u" name="u_yz" grid_ref="u_yz" />
+            <field field_ref="v" name="v_yz" grid_ref="v_yz" />
+            <field field_ref="w" name="w_yz" grid_ref="w_yz" />
+            <field field_ref="rot" name="rot_yz" grid_ref="rho_yz" />
+            <field field_ref="P" name="P_yz" grid_ref="rho_yz" />
+          </field_group>
+      </file>
+
       <file id="file_st1" name="sta1" output_freq="600s" sync_freq="1d" split_freq="50d"  enabled=".FALSE.">
           <field_group id="st1_fields" operation="instant" >
             <field field_ref="temp" name="T_station1" grid_ref="sta1_rho" />
