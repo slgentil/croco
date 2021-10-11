@@ -639,7 +639,7 @@ C$    integer omp_get_thread_num
         do j=JR_RANGE
           do i=IR_RANGE
             cff = z_r(i,j,k)/max_depth
-            rho(i,j,k) = rho0 * 
+            rho(i,j,k) = 2. * rho0 * 
      &                     (1. 
      &                      + delta_rho * (1- exp(cff/H_tcline ))
      &                         * tanh(cff/H_mld)**2
@@ -694,7 +694,7 @@ C$    integer omp_get_thread_num
 ! scaling follows reponse to a dirac
 ! should use speeds that include rotation
 ! should produce a 1 cm tidal sea level amplitude for mode 1
-!       Avc_itide = Az_itide/dely_itide
+!       Avc_itide = Az_itide/itide_dely
 !     &       *c_vmodes(nmode_itide)**2/c_vmodes(2)
 !     &       *2.27D+0
 
@@ -717,9 +717,9 @@ C$    integer omp_get_thread_num
        do nmode=2,nmode_itide
 
 
-        if (forcing_itide == 1) then
+        if (itide_forcing == 1) then
            if ( nmode .eq. nmode_itide ) then
-             Atide_cos_mode(nmode) = Az_itide/dely_itide
+             Atide_cos_mode(nmode) = Az_itide/itide_dely
      &           *c_vmodes(nmode)**2/c_vmodes(2)
      &           *2.27D+0
            else
@@ -729,15 +729,15 @@ C$    integer omp_get_thread_num
            dAtide_cos_mode(nmode) = 0.0
            dAtide_sin_mode(nmode) = 0.0
 
-        else if (forcing_itide == 2) then
-           Atide_cos_mode(nmode) = Az_itide/dely_itide
+        else if (itide_forcing == 2) then
+           Atide_cos_mode(nmode) = Az_itide/itide_dely
      &                          *(phiuv(N,nmode))/h(Istr, Jstr)
      &                          * 4.e+3
            Atide_sin_mode(nmode) = 0.0
            dAtide_cos_mode(nmode) = 0.0
            dAtide_sin_mode(nmode) = 0.0
         else
-           call stop_run('forcing_itide = 1 or 2')          
+           call stop_run('itide_forcing = 1 or 2')          
            
         endif
        enddo

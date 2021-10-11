@@ -393,7 +393,7 @@
       y=y/real(MMm)
       yoff = y - 1. * y_itide/el
 ! spatial width of the forcing (gaussian shape)
-      dely = dely_itide/el
+      dely = itide_dely/el
 ! ramping timescale in days
       delt = 4.0
       time_itide = time - start_time_itide

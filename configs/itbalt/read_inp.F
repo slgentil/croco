@@ -2504,14 +2504,15 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
       elseif (keyword(1:kwlen).eq.'itide') then
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) flag_itide, omega_itide, nmode_itide,
-     &        forcing_itide,itide_h,  Az_itide, y_itide, start_time_itide
+     &        itide_forcing,itide_h,  Az_itide, y_itide, start_time_itide
         call params_output('itide_flag', flag_itide)
         call params_output('itide_omega', omega_itide)
         call params_output('itide_nmode', nmode_itide)
-        call params_output('forcing_itide', forcing_itide)
+        call params_output('itide_forcing', itide_forcing)
         call params_output('itide_h', itide_h)
         call params_output('itide_Az', Az_itide)
         call params_output('itide_y', y_itide)
+        call params_output('itide_dely', itide_dely)
         call params_output('itide_start_time', start_time_itide)
 !        MPI_master_only write(stdout,
 !     &         '(7x,A,1x,L1,A,1x,1pe10.3,A,1x,I1)')

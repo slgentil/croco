@@ -652,7 +652,7 @@
          yoff = y - 1. * y_itide/el
 !         yoff = y - 1. * 400.0D+03/el
 !         dely = 10.0D+03/el
-         dely = dely_itide/el
+         dely = itide_dely/el
          delt = 4.0
 !
 ! Uses fluxes from 2th-order centered scheme

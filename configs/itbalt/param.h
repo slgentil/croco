@@ -319,7 +319,7 @@
       parameter (NP_XI=1, NP_ETA=17,  NNODES=NP_XI*NP_ETA)
 #else 
 ! 1km: 16 x 128 blocks -  16 procs
-      parameter (NP_XI=1, NP_ETA=16,  NNODES=NP_XI*NP_ETA)
+      parameter (NP_XI=1, NP_ETA=192,  NNODES=NP_XI*NP_ETA)
 #endif                  
 #  endif /* RESOLUTION */
 # else   /* JET_NARROW  */

@@ -1223,7 +1223,7 @@
 !      yoff = y - 1. * 400.0D+03/el
 ! spatial width of the forcing (gaussian shape)
 !      dely = 10.0D+03/el
-      dely = dely_itide/el
+      dely = itide_dely/el
 ! rmping timescale in days
       delt = 4.0
 !     if ( ramp_itide ) then
@@ -1354,7 +1354,7 @@
       do j=JV_RANGE
         do k=1,N
           do i=Istr,Iend
-            FCn(i,k,0) = exp(-z_r(i,j,k)**2/(itide_h**2))
+            FCn(i,k,0) = exp(-z_r(i,j,k)**2/(itide_h**2)) * phiuv(k,2)
           enddo
         enddo
 !
@@ -1391,7 +1391,7 @@
         do k=1,N
           do i=IV_RANGE
             v(i,j,k,nnew)=v(i,j,k,nnew)+dt
-     &          * ( Az_itide/dely_itide * cos(omega_itide*time_itide) )
+     &          * ( Az_itide/itide_dely * cos(omega_itide*time_itide) )
      &          *0.5*(1+sign(1.,time_itide))*tanh(time_itide/86400.0/delt)**2
      &          *exp(-(real(j)/real(MMm)+yoff)**2/dely**2)
 ! vertical structure

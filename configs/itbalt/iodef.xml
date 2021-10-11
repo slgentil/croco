@@ -88,7 +88,7 @@
           </field_group>
       </file>
 
-      <file id="file_se" name="sec" output_freq="1d" sync_freq="1d" split_freq="50d" enabled=".TRUE.">
+      <file id="file_se" name="sec" output_freq="1h" sync_freq="10d" split_freq="50d" enabled=".TRUE.">
           <field_group id="sec_fields" operation="instant" >
             <field field_ref="zeta" name="ssh_yz" grid_ref="rho_2Dy" />
             <field field_ref="temp" name="T_yz" grid_ref="rho_yz" />

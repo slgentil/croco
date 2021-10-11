@@ -672,11 +672,11 @@
       logical flag_itide
 !     logical ramp_itide
       integer nmode_itide
-      integer forcing_itide
+      integer itide_forcing
       real itide_h
       real omega_itide
       real start_time_itide
-      real y_itide, dely_itide
+      real y_itide, itide_dely
       real Az_itide
       real Azc_itide, Azs_itide
       real Arc_itide, Ars_itide
@@ -693,18 +693,18 @@
       common / itide_logical / 
      &             flag_itide
 !    &             flag_itide, ramp_itide
-      common / itide_integer / nmode_itide, forcing_itide
+      common / itide_integer / nmode_itide, itide_forcing
       common / itide_scalars / itide_h
      &            , omega_itide
      &            , start_time_itide, y_itide
-!     &            , dely_itide
+!     &            , itide_dely
      &            , Az_itide
      &            , Azc_itide, Azs_itide
      &            , Arc_itide, Ars_itide
      &            , Auc_itide, Aus_itide
      &            , Avc_itide, Avs_itide
      &            , Awc_itide, Aws_itide
-      parameter (dely_itide = 10.E+3)
+      parameter (itide_dely = 10.E+3)
       common / itide_vector_eta / nudgcof_itide
      &            , Atide_cos_mode, Atide_sin_mode
      &            , dAtide_cos_mode, dAtide_sin_mode
