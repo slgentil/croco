@@ -1018,7 +1018,7 @@ def get_N2(run, rho, z, g=grav):
     N2 = N2.fillna(N2.shift(s_w=1))
     return N2
 
-def get_p(grid, rho, zw, zr=None, g=grav):
+def get_oldp(grid, rho, zw, zr=None, g=grav):
     """ Compute (not reduced) pressure by integration from the surface, 
     taking rho at rho points and giving results on w points (z grid)
     with p=0 at the surface. If zr is not None, compute result on rho points
@@ -1048,7 +1048,75 @@ def get_p(grid, rho, zw, zr=None, g=grav):
             )
     return g*p.rename("p")
 
-# !!! code below needs to be updated with xgcm approach
+# !!! code below same as croco
+def get_p(grid, rho, z_w, z_r=None, g=None, rho0=None):
+    """ 
+    Compute (not reduced) pressure by integration from the surface, 
+    taking rho at rho points and giving results on rho points (z grid).
+    
+    Parameters
+    ----------
+    grid : xgcm grid
+    rho  : Density (DataArray)
+    z_w  : depth at vertical w points (DataArray)
+    z_r  : depth at vertical rho points (DataArray)
+    g    : acceleration of gravity (float)
+    rho0 : mean density (float)
+    
+    """
+    # useful parameters
+    eps = 1.0e-10
+    if g is None: g=9.81
+    if rho0 is None: rho0=1000.
+    GRho=g/rho0
+    HalfGRho=0.5*GRho
+    N = rho.sizes['s_rho']
+    OneFifth = 1.0/5.0
+    OneTwelfth = 1.0/12.0
+    
+    # compute z_r if None
+    if z_r is None: z_r = grid.interp(z_w, 's')
+        
+    # dz and drho on w levels
+    dR = grid.diff(rho,'s', boundary='extrapolate').rename('dR')
+    dZ = grid.diff(z_r,'s', boundary='extrapolate').rename('dZ')
+
+    # modified dz and dr on w levels
+    dZi = 2. * ( dZ * dZ.shift(s_w=1,fill_value=0) 
+            / (dZ + dZ.shift(s_w=1,fill_value=0)) )
+    dZi = xr.concat([dZ.isel(s_w=0), dZi.isel(s_w=slice(1,None))], dim='s_w')
+    dRi = 2. * ( dR * dR.shift(s_w=1,fill_value=0) 
+            / (dR + dR.shift(s_w=1,fill_value=0)) )
+    dRi = xr.concat([dR.isel(s_w=0), dRi.isel(s_w=slice(1,None))], dim='s_w')
+
+    # Pressure at the surface on rho level
+    Pn = (g*z_w.isel(s_w=-1) + GRho*( rho.isel(s_rho=-1) 
+                                   + 0.5*(rho.isel(s_rho=-1)-rho.isel(s_rho=-2)) 
+                                   * (z_w.isel(s_w=-1)-z_r.isel(s_rho=-1)) 
+                                   / (z_r.isel(s_rho=-1)-z_r.isel(s_rho=-2))
+                                  ) * (z_w.isel(s_w=-1)-z_r.isel(s_rho=-1))
+         )
+    
+    # Pressure of each slice
+    rhoz = (rho + rho.shift(s_rho=-1))*(z_r.shift(s_rho=-1) - z_r)
+    dRz = ((grid.diff(dRi,'s'))*(z_r.shift(s_rho=-1) - z_r
+                                 -OneTwelfth*(grid.interp(dZi, 's'))) )
+    dZr = ((grid.diff(dZi,'s'))*(rho.shift(s_rho=-1) - rho
+                                 -OneTwelfth*(grid.interp(dRi,'s'))) )
+    Pk = (HalfGRho*( rhoz - OneFifth*(dRz - dZr)))
+
+    # replace pressure at the surface
+    Pk = xr.concat([Pk.isel(s_rho=slice(0,-1)), Pn], dim='s_rho')
+
+    # integrate from the surface to bottom
+    P = (Pk
+            .sortby(Pk.s_rho, ascending=False)                
+            .cumsum("s_rho")
+            .sortby(Pk.s_rho, ascending=True)
+            .assign_coords(z_r=z_r)
+        )
+
+    return P.rename('P')
 
 def get_uv_from_psi(psi, ds):
     # note that u, v are computed at rho points
