@@ -1,8 +1,8 @@
 4:
-  ntimes: 14400
+  ntimes: 5760
   dt: 300
-  nbproc_roms: 12
-  nbproc_xios: 3
+  nbproc_roms: 48
+  nbproc_xios: 4
   elapse_time: '05:00:00'
 8:
   ntimes: 14400
@@ -11,14 +11,14 @@
   nbproc_xios: 1
   elapse_time: '03:00:00'
 2:
-  ntimes: 28800
+  ntimes: 57600
   dt: 150
-  nbproc_roms: 96
-  nbproc_xios: 24
+  nbproc_roms: 384
+  nbproc_xios: 96
   elapse_time: '24:00:00'
 1:
-  ntimes: 57600
+  ntimes: 115200
   dt: 75
-  nbproc_roms: 192
+  nbproc_roms: 960
   nbproc_xios: 48
   elapse_time: '24:00:00'

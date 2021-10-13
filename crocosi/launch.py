@@ -9,7 +9,7 @@ class run(object):
     """ Object to automate run launchings
     """
     
-    def __init__(self, rundir, nbchains=1, elaptim=None, config=None,
+    def __init__(self, rundir, nbchains=1, elaptim=None, config=4,
                  jobname='job', workdir=None, restart=False,
                  launch=False, qsub=True,
                  **params):
@@ -32,12 +32,15 @@ class run(object):
         # backup code files
         self._backup_code()
         # change input parameters in croco.in
-        self.restart = restart
-        self.update_input_file(**params)    
+        #self.restart = restart
+        #self.update_input_file(**params)    
         # guess config if necessary and create job files
+        self.restart = restart
         self.jobname = jobname
         self._load_config(config)
         self._create_job_files()
+        # change input parameters in croco.in
+        self.update_input_file(**params)    
         # create commands to be executed
         self.qsub = qsub
         self._create_commands()
@@ -105,6 +108,10 @@ class run(object):
                 lines = f.readlines()
                 for index, line in enumerate(lines):
                     key = line.split(':')[0]
+                    if key=='time_stepping':
+                        lines[index+1]=wrap([self.ntimes,self.dt,35,10])
+                    if key=='restart':
+                        lines[index+1]=wrap([self.ntimes,-1])
                     if key=='initial' and t==1:
                         if not self.restart:
                             lines[index+1]=wrap(0)
@@ -123,11 +130,10 @@ class run(object):
     def _load_config(self, config):
         with open(join(self.startdir,'config.yaml')) as f:
             configs = yaml.full_load(f)
-        if config is None:
-            self.config = list(configs.keys())[0]
-            _required = ['elapse_time', 'nbproc_roms', 'nbproc_xios']
-            assert all([r in configs[self.config] for r in _required])
-            for k, v in configs[self.config].items():
+        self.config = config
+        _required = ['elapse_time', 'nbproc_roms', 'nbproc_xios']
+        assert all([r in configs[self.config] for r in _required])
+        for k, v in configs[self.config].items():
                 setattr(self, k, v)
         self.nb_cores = self.nbproc_roms+self.nbproc_xios
         self.nb_nodes = int((self.nb_cores)/28)+1
