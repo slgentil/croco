@@ -58,8 +58,8 @@ fsturb: dt     F     Lmin     Lmax   t_start  t_decay  Nmode   xmid  xwid   ymid
 fsturb_avmodes: a(1:Nmode)
         1.0   0.0   0.0   0.0   0.0
 
-itide:  flag_itide   omega_itide   nmode_itide   forcing_itide Az_itide  y_itide    start_time_itide 
-            T      1.45444104333e-4     2         1            0.0e-2   400.0e+3      4000
+itide:  flag_itide   omega_itide   nmode_itide   forcing_itide h_itide Az_itide  y_itide    start_time_itide
+            T      1.45444104333e-4     2         1            500.    1.0e-2    400.0e+3   4000
 
 itidep: flag_ptb   dcos_ptb   dsin_ptb   nmode_ptb    scale_ptb
             0       -1.0e-6     0.0e-6       2           1.0e0

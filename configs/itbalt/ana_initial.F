@@ -632,14 +632,14 @@ C$    integer omp_get_thread_num
       call MPI_allreduce(local_max_depth, max_depth, 1,
      &                   MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierr)
 
-      delta_rho = 0.001
+      delta_rho = 0.002
       H_tcline = 0.15
       H_mld = 100/max_depth
       do k=1,N
         do j=JR_RANGE
           do i=IR_RANGE
             cff = z_r(i,j,k)/max_depth
-            rho(i,j,k) = 2. * rho0 * 
+            rho(i,j,k) = rho0 * 
      &                     (1. 
      &                      + delta_rho * (1- exp(cff/H_tcline ))
      &                         * tanh(cff/H_mld)**2

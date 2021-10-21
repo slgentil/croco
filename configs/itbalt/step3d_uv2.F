@@ -104,7 +104,7 @@
       real dRx,dRe, cfilt
 # endif
 ! aponte iwmaker (
-#  ifdef ITIDE || FSTURB
+#  ifdef ITIDE || FSTURB_OFF
       real FCn(PRIVATE_1D_SCRATCH_ARRAY,0:N,10)
 #  endif
 #  ifdef ITIDE 
@@ -1354,7 +1354,7 @@
       do j=JV_RANGE
         do k=1,N
           do i=Istr,Iend
-            FCn(i,k,0) = exp(-z_r(i,j,k)**2/(itide_h**2)) * phiuv(k,2)
+            FCn(i,k,1) = exp(-z_r(i,j,k)**2/(itide_h**2)) * phiuv(k,2)
           enddo
         enddo
 !
@@ -1371,7 +1371,7 @@
           do i=IV_RANGE
             DC(i,k)=0.5*(Hz(i,j,k)+Hz(i,j-1,k))
             DC(i,0)=DC(i,0)+DC(i,k)
-            CF(i,0)=CF(i,0)+DC(i,k)*FCn(i,k,0)
+            CF(i,0)=CF(i,0)+DC(i,k)*FCn(i,k,1)
           enddo
         enddo
 ! average
@@ -1382,7 +1382,7 @@
 ! substract average
         do k=1,N
           do i=IV_RANGE
-            FCn(i,k,0)=FCn(i,k,0)-CF(i,0)
+            FCn(i,k,1)=FCn(i,k,1)-CF(i,0)
           enddo
         enddo
 !
@@ -1395,7 +1395,7 @@
      &          *0.5*(1+sign(1.,time_itide))*tanh(time_itide/86400.0/delt)**2
      &          *exp(-(real(j)/real(MMm)+yoff)**2/dely**2)
 ! vertical structure
-     &          *FCn(i,k,0)
+     &          *FCn(i,k,1)
           enddo
         enddo
       enddo

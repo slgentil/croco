@@ -52,7 +52,7 @@
           </field_group>
       </file>
 
-      <file id="file_av" name="ave" output_freq="2d" sync_freq="2d" split_freq="100d"  enabled=".FALSE.">
+      <file id="file_av" name="ave" output_freq="2d" sync_freq="2d" split_freq="100d"  enabled=".TRUE.">
           <field_group id="av_fields" operation="average" freq_op="1ts" >
             <field field_ref="zeta" />
             <field field_ref="temp" name="T_xy" grid_ref="rho_3Dxy" />
@@ -125,7 +125,7 @@
             <field name="u_a" grid_ref="u_3D" > @u_a </field>
             <field name="v_a" grid_ref="v_3D" > @v_a </field>
             <field name="w_a" grid_ref="rho_3D" > @w_a </field>
-            <field name="P_a" grid_ref="rho_3D" > @P_a </field>
+            <!-- <field name="P_a" grid_ref="rho_3D" > @P_a </field> -->
             <field name="ssh_t_cos" grid_ref="rho_2D" > @ssh_t_cosa </field>
             <field name="ssh_t_sin" grid_ref="rho_2D" > @ssh_t_sina </field>
             <field name="T_t_cos" grid_ref="rho_3D" > @T_t_cosa </field>
