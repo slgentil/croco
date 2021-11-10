@@ -1,5 +1,5 @@
 4:
-  ntimes: 5760
+  ntimes: 28800
   dt: 300
   nbproc_roms: 48
   nbproc_xios: 4
