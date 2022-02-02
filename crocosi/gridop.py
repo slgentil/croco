@@ -55,8 +55,8 @@ def x2rho(v, grid, run=None):
     # assign coordinates
     if run:
         if not run.grid_regular:
-            vout = vout.assign_coords(coords={'nav_lon_rho':run['grid'].nav_lon_rho})
-            vout = vout.assign_coords(coords={'nav_lat_rho':run['grid'].nav_lat_rho})
+            vout = vout.assign_coords(coords={'nav_lon_rho':run[run.grid_name].nav_lon_rho})
+            vout = vout.assign_coords(coords={'nav_lat_rho':run[run.grid_name].nav_lat_rho})
             vout = vout.assign_coords(coords={'z_r':zout})
                             
     return vout
@@ -85,8 +85,8 @@ def x2u(v, grid, run=None):
                 zout = grid.interp(zout, 's')
     if run:
         if not run.grid_regular:
-            vout = vout.assign_coords(coords={'nav_lon_u':run['grid'].nav_lon_u})
-            vout = vout.assign_coords(coords={'nav_lat_u':run['grid'].nav_lat_u})
+            vout = vout.assign_coords(coords={'nav_lon_u':run[run.grid_name].nav_lon_u})
+            vout = vout.assign_coords(coords={'nav_lat_u':run[run.grid_name].nav_lat_u})
             vout = vout.assign_coords(coords={'z_u':zout})
     return vout
 
@@ -114,8 +114,8 @@ def x2v(v, grid, run=None):
                 zout = grid.interp(zout, 's')
     if run:
         if not run.grid_regular:
-            vout = vout.assign_coords(coords={'nav_lon_v':run['grid'].nav_lon_v})
-            vout = vout.assign_coords(coords={'nav_lat_v':run['grid'].nav_lat_v})
+            vout = vout.assign_coords(coords={'nav_lon_v':run[run.grid_name].nav_lon_v})
+            vout = vout.assign_coords(coords={'nav_lat_v':run[run.grid_name].nav_lat_v})
             vout = vout.assign_coords(coords={'z_v':zout})
     return vout
 
@@ -143,8 +143,8 @@ def x2w(v, grid, run=None):
                 zout = grid.interp(zout, 's')
     if run:
         if not run.grid_regular:
-            vout = vout.assign_coords(coords={'nav_lon_rho':run['grid'].nav_lon_rho})
-            vout = vout.assign_coords(coords={'nav_lat_rho':run['grid'].nav_lat_rho})
+            vout = vout.assign_coords(coords={'nav_lon_rho':run[run.grid_name].nav_lon_rho})
+            vout = vout.assign_coords(coords={'nav_lat_rho':run[run.grid_name].nav_lat_rho})
             vout = vout.assign_coords(coords={'z_w':zout})
     return vout
 
@@ -172,8 +172,8 @@ def x2psi(v, grid, run=None):
                 zout = grid.interp(zout, 's')
     if run:
         if not run.grid_regular:
-            vout = vout.assign_coords(coords={'nav_lon_f':run['grid'].nav_lon_f})
-            vout = vout.assign_coords(coords={'nav_lat_f':run['grid'].nav_lat_f})
+            vout = vout.assign_coords(coords={'nav_lon_f':run[run.grid_name].nav_lon_f})
+            vout = vout.assign_coords(coords={'nav_lat_f':run[run.grid_name].nav_lat_f})
             vout = vout.assign_coords(coords={'z_f':zout})
     return vout
 
@@ -339,8 +339,9 @@ def get_slice(run, var, z, longitude=None, latitude=None, depth=None):
             vnew =  (((v1 - v2) * latitude + v2 * y1 - v1 * y2) / ydiff)
         elif depth is not None:
             try:
-                zmask = x2x(run['grid'].mask_rho.where(run['grid'].h>abs(depth),np.nan) ,
-                        run.xgrid,grid_point)    
+                zmask = x2x(run[run.grid_name].mask_rho.where(
+                                            run[run.grid_name].h>abs(depth),np.nan) ,
+                                            run.xgrid,grid_point)    
             except:
                 zmask = var.isel({dims['s']:0}) * 0. +1
             swapdim ='s_rho' if dims['s']=='s_w' else 's_w'
@@ -607,7 +608,7 @@ def get_z(run, zeta=None, h=None, vgrid='r',
             2="new": z = z0 * (_zeta + _h) + _zeta  with  z0 = (hc * sc + _h * cs) / (hc + _h)
     '''
 
-    grid, xgrid = run['grid'], run['xgrid']
+    grid, xgrid = run[run.grid_name], run['xgrid']
 
     _h = grid.h if h is None else h
     _zeta = 0*grid.h if zeta is None else zeta

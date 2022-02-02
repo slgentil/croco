@@ -119,7 +119,7 @@ class run(object):
                             lines[index+1]=wrap(1)
                     if key=='initial' and t>1:
                         lines[index+1]=wrap(1)
-                    if key=='nrpfflt' and t>1:
+                    if key=='floats' and t>1:
                         lines[index+1]=lines[index+1].rstrip()[:-2]+'1\n'
                     for p, v in params.items():
                         if key==p:

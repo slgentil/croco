@@ -34,6 +34,7 @@ class Run(object):
     def __init__(self,
                  dirname, 
                  prefix='',
+                 suffix='',
                  outputs=[],
                  read_zarr=True,
                  tdir_max=0,
@@ -84,6 +85,7 @@ class Run(object):
         self.dirname = os.path.expanduser(dirname)
         self.verbose = verbose
         self.prefix = prefix
+        self.suffix = suffix
         self.zarr_dir = path.join(self.dirname, 'zarr')
         self.tdir_max = tdir_max # limits the number of t directories
         #
@@ -170,11 +172,12 @@ class Run(object):
         #
         # find all avaible outputs
         self._find_available_outputs()
-        if path.isfile(path.join(self.dirname,'t1/{}grid.nc'.format(self.prefix))):
-            _outputs = ['grid']
+        if path.isfile(path.join(self.dirname,'t1/{}grid{}.nc'.format(self.prefix,self.suffix))):
+            _outputs = ['{}grid{}'.format(self.prefix,self.suffix)]
         else:
             # for backward compatibility
             _outputs = ['his']
+        self.grid_name = _outputs[0]
         if isinstance(outputs, str) and outputs=='all':
             _outputs += self.outputs_avail
         elif isinstance(outputs, list):
@@ -230,6 +233,8 @@ class Run(object):
             zarr_archive = path.join(self.zarr_dir, key+'.zarr')
             if path.isdir(zarr_archive) and read_zarr:
                 ds = xr.open_zarr(zarr_archive, **kwargs)
+                if 'time_counter' in ds.dims:
+                    ds=ds.rename({'time_counter':'time'})
                 # rechunk
                 if self.chunks[key]:
                     ds = ds.chunk(self.chunks[key])
@@ -506,10 +511,12 @@ class Run(object):
             return Cs
 
         # Store grid sizes
-        if 'grid' in self.outputs:
-            ds = self.ds['grid']
-        elif 'his' in self.outputs: # backward compatibility
-            ds = self.ds['his']
+    
+#         if 'grid' in self.outputs:
+#             ds = self.ds['grid']
+#         elif 'his' in self.outputs: # backward compatibility
+#             ds = self.ds['his']
+        ds = self.ds[self.grid_name]
         self.L = ds.sizes['x_rho']
         self.M = ds.sizes['y_rho']
         self.Lm = self.L - 1
@@ -565,7 +572,7 @@ class Run(object):
         if self.grid_regular:
             ds, metrics = _compute_metrics(ds)
         else:
-            ds, metrics = self._compute_metrics_curvilinear()
+            ds, coords, metrics = self._compute_metrics_curvilinear()
         # generate xgcm grid
         self.xgrid = Grid(ds, 
                           periodic=self.grid_periodicity,
@@ -1076,14 +1083,10 @@ class Run(object):
 
     def _compute_metrics_curvilinear(self):
         from xgcm import Grid
-
-        if 'grid' in self.outputs:
-            ds = self.ds['grid']
-        elif 'his' in self.outputs: # backward compatibility
-            ds = self.ds['his'] 
-            
+    
         # curvilinear grid
         # Create xgcm grid without metrics
+        ds = self.ds[self.grid_name]    
         coords={'xi': {'center':'x_rho', 'inner':'x_u'}, 
                 'eta': {'center':'y_rho', 'inner':'y_v'}, 
                 's': {'center':'s_rho', 'outer':'s_w'}}
@@ -1094,10 +1097,11 @@ class Run(object):
         
         # drop f from coordinates
         for s in self.outputs:
-            self.ds[s] = self.ds[s].reset_coords(['f'])
+            try:
+                self.ds[s] = self.ds[s].reset_coords(['f'])
+            except:
+                pass
             
-        z_r = self.get_z(zeta=self.ds['his'].ssh).persist().fillna(0.)
-        z_w = self.get_z(zeta=self.ds['his'].ssh, vgrid='w').persist().fillna(0.)
         for s in self.outputs:
             # compute horizontal coordinates
             self.ds[s]['nav_lon_u'] = self.xgrid.interp(self.ds[s].nav_lon_rho,'xi')
@@ -1106,23 +1110,37 @@ class Run(object):
             self.ds[s]['nav_lat_v'] = self.xgrid.interp(self.ds[s].nav_lat_rho,'eta')
             self.ds[s]['nav_lon_psi'] = self.xgrid.interp(self.ds[s].nav_lon_v,'xi')
             self.ds[s]['nav_lat_psi'] = self.xgrid.interp(self.ds[s].nav_lat_u,'eta')
-
-            # compute z coordinate at rho/w points
-            self.ds[s]['z_r'] = z_r
-            self.ds[s]['z_w'] = z_w
-            self.ds[s]['z_u'] = self.xgrid.interp(z_r,'xi')
-            self.ds[s]['z_v'] = self.xgrid.interp(z_r,'eta')
-            self.ds[s]['z_psi'] = self.xgrid.interp(self.ds[s].z_u,'eta')
-            
             # set as coordinates in the dataset
-            _coords = ['nav_lon_u','nav_lat_u','nav_lon_v','nav_lat_v','nav_lon_psi','nav_lat_psi',
-                      'z_r','z_w','z_u','z_v','z_psi']
+            _coords = ['nav_lon_u','nav_lat_u',
+                       'nav_lon_v','nav_lat_v',
+                       'nav_lon_psi','nav_lat_psi',
+                      ]
             self.ds[s] = self.ds[s].set_coords(_coords)
+        
+        for s in [s for s in self.outputs if s!=self.grid_name]:
+            # compute z coordinate at rho/w points
+            if 'ssh' in [v for v in self.ds[s].data_vars] and \
+               's_rho' in [d for d in self.ds[s].dims.keys()] and \
+                self.ds[s]['s_rho'].size>1:
+                z_r = self.get_z(zeta=self.ds[s].ssh).fillna(0.)
+                z_w = self.get_z(zeta=self.ds[s].ssh, vgrid='w').fillna(0.)
+                self.ds[s]['z_r'] = z_r
+                self.ds[s]['z_w'] = z_w
+                self.ds[s]['z_u'] = self.xgrid.interp(z_r,'xi')
+                self.ds[s]['z_v'] = self.xgrid.interp(z_r,'eta')
+                self.ds[s]['z_psi'] = self.xgrid.interp(self.ds[s].z_u,'eta')
+                self.ds[self.grid_name]['z_r'] = z_r
+                self.ds[self.grid_name]['z_w'] = z_w
+                self.ds[self.grid_name]['z_u'] = self.xgrid.interp(z_r,'xi')
+                self.ds[self.grid_name]['z_v'] = self.xgrid.interp(z_r,'eta')
+                self.ds[self.grid_name]['z_psi'] = \
+                          self.xgrid.interp(self.ds[self.grid_name].z_u,'eta')
+                # set as coordinates in the dataset
+                _coords = ['z_r','z_w','z_u','z_v','z_psi']
+                self.ds[s] = self.ds[s].set_coords(_coords)
+                self.ds[self.grid_name] = self.ds[self.grid_name].set_coords(_coords)
 
-        if 'grid' in self.outputs:
-            ds = self.ds['grid']
-        elif 'his' in self.outputs: # backward compatibility
-            ds = self.ds['his']    
+        ds = self.ds[self.grid_name]    
 
         # add horizontal metrics for u, v and psi point
         if 'pm' in ds and 'pn' in ds:
@@ -1143,11 +1161,12 @@ class Run(object):
         ds['dx_psi'], ds['dy_psi'] = dll_dist(dlon, dlat, ds.nav_lon_psi, ds.nav_lat_psi)
 
         # add vertical metrics for u, v, rho and psi points
-        ds['dz_r'] = self.xgrid.diff(self['grid'].z_r,'s')
-        ds['dz_w'] = self.xgrid.diff(self['grid'].z_w,'s')
-        ds['dz_u'] = self.xgrid.diff(self['grid'].z_u,'s')
-        ds['dz_v'] = self.xgrid.diff(self['grid'].z_v,'s')
-        ds['dz_psi'] = self.xgrid.diff(self['grid'].z_psi,'s')
+        if 'z_r' in [v for v in ds.coords]:
+            ds['dz_r'] = self.xgrid.diff(ds.z_r,'s')
+            ds['dz_w'] = self.xgrid.diff(ds.z_w,'s')
+            ds['dz_u'] = self.xgrid.diff(ds.z_u,'s')
+            ds['dz_v'] = self.xgrid.diff(ds.z_v,'s')
+            ds['dz_psi'] = self.xgrid.diff(ds.z_psi,'s')
 
         # add areas metrics for rho,u,v and psi points
         ds['rAr'] = ds.dx_psi * ds.dy_psi
@@ -1155,18 +1174,22 @@ class Run(object):
         ds['rAv'] = ds.dx_u * ds.dy_u
         ds['rAf'] = ds.dx_r * ds.dy_r
 
+        self.ds[self.grid_name] = ds
+        
         # create new xgcmgrid with vertical metrics
         coords={'xi': {'center':'x_rho', 'inner':'x_u'}, 
-                'eta': {'center':'y_rho', 'inner':'y_v'}, 
-                's': {'center':'s_rho', 'outer':'s_w'}}
+                'eta': {'center':'y_rho', 'inner':'y_v'}}
+        if 'z_r' in ds:
+            coords.update({'s': {'center':'s_rho', 'outer':'s_w'}})
         metrics = {
                ('xi',): ['dx_r', 'dx_u', 'dx_v', 'dx_psi'], # X distances
                ('eta',): ['dy_r', 'dy_u', 'dy_v', 'dy_psi'], # Y distances
-               ('s',): ['dz_r', 'dz_u', 'dz_v', 'dz_psi', 'dz_w'], # Z distances
                ('xi', 'eta'): ['rAr', 'rAu', 'rAv', 'rAf'] # Areas
               }
+        if 'z_r' in ds:
+            metrics.update({('s',): ['dz_r', 'dz_u', 'dz_v', 'dz_psi', 'dz_w']}), # Z distances
         
-        return ds, metrics
+        return ds, coords, metrics
 
 def _compute_metrics(ds):
     """ Compute metrics from data available in grid.nc
