@@ -140,13 +140,6 @@
           </field_group>
       </file>
 
-      <file id="file_fst" name="fst" output_freq="1d" sync_freq="1d" enabled=".FALSE.">
-          <field_group id="fst_fields" operation="instant" >
-            <field field_ref="Ffst" name="Ffst" grid_ref="rho_3D" />
-            <field field_ref="Wfst" name="Wfst"  />
-          </field_group>
-      </file>
-
     </file_definition>
 
     <!-- ========================================================================== -->

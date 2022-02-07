@@ -78,15 +78,15 @@
 !#   define IWMAKER
 #   define WMAKER_TEST 5
 ! internal tide formulation
-#   undef WMAKER_MODE
+#   define WMAKER_MODE
 #   define VMODES
 ! internal tide perturbation
-#   undef ITIDEP
+#   define ITIDEP
 ! sponges
 #   undef Y_STRETCH_RELAX
 #   undef IT_SPONGE_LINEAR_SOUTH
-#   undef IT_SPONGE_LINEAR_NORTH
-#   undef IT_SPONGE_ZANO
+#   define IT_SPONGE_LINEAR_NORTH
+#   define IT_SPONGE_ZANO
 # endif
 
 # undef FERMI_MEM

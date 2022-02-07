@@ -1368,9 +1368,9 @@
 ! Internal wave forcing with Gaussian vertical form
 !
       do j=JV_RANGE
-        do k=2,N-1
+        do k=1,N
           do i=Istr,Iend
-            FCn(i,k,0) = exp(-z_r(i,j,k)**2/h(i,j)**2)
+            FCn(i,k,0) = exp(-z_r(i,j,k)**2/(h_itide**2))
           enddo
         enddo
 !
