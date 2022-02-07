@@ -3,34 +3,44 @@
     <domain_group id="rho">
         <domain id="rho" long_name="grid Rho"/>
         <!-- Start MOZ -->
-        <domain id="rho_zoom" long_name="grid Rho zoom"/>
+        <domain id="rho_zoom" domain_ref="rho" long_name="grid Rho zoom">
+              <zoom_domain id="rho_zoom" ibegin="0000" ni="0000" jbegin="0000" nj="0000" /> 
+        </domain>
         <!-- End MOZ -->
      </domain_group>
 
      <domain_group id="u">
         <domain id="u" long_name="grid U"/>
         <!-- Start MOZ -->
-        <domain id="u_zoom" long_name="grid U zoom"/>
+        <domain id="u_zoom" domain_ref="u" long_name="grid U zoom">
+              <zoom_domain id="u_zoom" ibegin="0000" ni="0000" jbegin="0000" nj="0000" /> 
+        </domain>
         <!-- End MOZ -->
      </domain_group>
 
      <domain_group id="v">
         <domain id="v" long_name="grid V"/>
         <!-- Start MOZ -->
-        <domain id="v_zoom" long_name="grid V zoom"/>
+        <domain id="v_zoom" domain_ref="v" long_name="grid V zoom">
+              <zoom_domain id="v_zoom" ibegin="0000" ni="0000" jbegin="0000" nj="0000" /> 
+        </domain>
         <!-- End MOZ -->
      </domain_group>
 
      <domain_group id="w">
         <domain id="w" long_name="grid W"/>
         <!-- Start MOZ -->
-        <domain id="w_zoom" long_name="grid W zoom"/>
+        <domain id="w_zoom" domain_ref="w" long_name="grid W zoom">
+              <zoom_domain id="w_zoom" ibegin="0000" ni="0000" jbegin="0000" nj="0000" /> 
+        </domain>
         <!-- End MOZ -->
      </domain_group>
 
      <domain_group id="b">
         <!-- Start MOZ -->
-        <domain id="b_zoom" long_name="grid sed zoom"/>
+        <domain id="b_zoom" domain_ref="b" long_name="grid sed zoom">
+              <zoom_domain id="b_zoom" ibegin="0000" ni="0000" jbegin="0000" nj="0000" /> 
+        </domain>
         <!-- End MOZ -->
 
      </domain_group>

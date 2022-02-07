@@ -1,7 +1,23 @@
 
    <field_definition level="1" prec="4" enabled=".TRUE." default_value="1.e20">   
 
-      <field id="time" long_name="time (in s) since beginning"  unit="second" grid_ref="scalar_grid"/>
+
+      <field_group id="Vertical_dimension_rho_low" grid_ref="rho_vertical_dimension" >
+         <field id="Cs_r_low" long_name="ocean s roms coordinate at rho point"  />
+         <field id="sc_r_low" long_name="S-coordinate stretching curves at RHO-points"  />
+      </field_group>
+      <field_group id="Vertical_dimension_w_low"  grid_ref="w_vertical_dimension" >
+         <field id="Cs_w_low" long_name="ocean s roms coordinate at w point"  />
+         <field id="sc_w_low" long_name="S-coordinate stretching curves at W-points"  />
+      </field_group>
+      <field_group id="scalar_low" grid_ref="scalar_grid"  >
+         <field id="hc_low" long_name="S-coordinate parameter, critical depth"  />
+         <field id="theta_s_low" long_name="S-coordinate surface control parameter"  />
+         <field id="theta_b_low" long_name="S-coordinate bottom control parameter"  />
+         <field id="Tcline_low" long_name="S-coordinate surface/bottom layer width"  />
+         <field id="Vtransform_low" long_name="vertical terrain-following transformation equation"  />
+    </field_group>
+
 
      <!-- T grid -->
      <field_group id="rho_low" grid_ref="rho_3D_low">
@@ -10,6 +26,12 @@
          <field id="salt_low" long_name="salinity" unit="PSU" />
          <field id="w_low" long_name="vertical velocity" unit="meter second-1" />
          <field id="rho_low" long_name="density anomaly" unit="kilogram meter-3" />
+         <field id="h_low" long_name="bathymetry at RHO-points" unit="meter" grid_ref="rho_2D_low"/>
+	 <field id="f_low" long_name="Coriolis parameter at RHO-points" unit="second-1" grid_ref="rho_2D_low" />
+         <!--<field id="pm_low" long_name="curvilinear coordinates metric in XI" unit="meter-1" grid_ref="rho_2D_low" /> -->
+         <!--<field id="pn_low" long_name="curvilinear coordinates metric in ETA" unit="meter-1" grid_ref="rho_2D_low" /> -->
+	<field id="angle_low" long_name="angle between XI-axis and EAST" unit="radians" grid_ref="rho_2D_low" />
+         <field id="mask_rho_low" long_name="angle between XI-axis and EAST" unit="radians" grid_ref="rho_2D_low" />
      </field_group>
         
         

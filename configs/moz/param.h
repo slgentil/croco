@@ -186,8 +186,8 @@
        parameter (LLm0=1024,  MMm0=1024,  N=180) 
 #    elif RESOLUTION == 1620
        parameter (LLm0=1620,  MMm0=940,  N=360) 
-#    elif RESOLUTION == 3060
-       parameter (LLm0=3060,  MMm0=3060,  N=540) 
+#    elif RESOLUTION == 3000
+       parameter (LLm0=3000,  MMm0=3000,  N=540)
 #    endif
 #  else
       parameter (LLm0=94,   MMm0=81,   N=40)
@@ -233,8 +233,8 @@
 #    elif RESOLUTION == 256
        parameter (NP_XI=2, NP_ETA=8, NNODES=NP_XI*NP_ETA)         ! Linux
 #    elif RESOLUTION == 512 
-!      parameter (NP_XI=4, NP_ETA=32, NNODES=NP_XI*NP_ETA)
-       parameter (NP_XI=8, NP_ETA=32, NNODES=NP_XI*NP_ETA)
+       parameter (NP_XI=4, NP_ETA=32, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=8, NP_ETA=32, NNODES=NP_XI*NP_ETA)
 !      parameter (NP_XI=16, NP_ETA=32, NNODES=NP_XI*NP_ETA)
 #    elif RESOLUTION == 768 
        parameter (NP_XI=12, NP_ETA=64, NNODES=NP_XI*NP_ETA)
@@ -256,6 +256,22 @@
 !      parameter (NP_XI=20, NP_ETA=47, NNODES=NP_XI*NP_ETA)
 #    elif RESOLUTION == 3060 
        parameter (NP_XI=17, NP_ETA=30, NNODES=NP_XI*NP_ETA)
+#    elif RESOLUTION == 3000
+!      parameter (NP_XI=20, NP_ETA=20, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=20, NP_ETA=25, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=20, NP_ETA=30, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=20, NP_ETA=40, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=20, NP_ETA=50, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=30, NP_ETA=40, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=30, NP_ETA=50, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=30, NP_ETA=60, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=40, NP_ETA=50, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=50, NP_ETA=50, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=30, NP_ETA=100, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=40, NP_ETA=100, NNODES=NP_XI*NP_ETA)
+!      parameter (NP_XI=30, NP_ETA=150, NNODES=NP_XI*NP_ETA)
+        parameter (NP_XI=50, NP_ETA=100, NNODES=NP_XI*NP_ETA)
+!       parameter (NP_XI=30, NP_ETA=200, NNODES=NP_XI*NP_ETA)
 #    endif
 #else
       parameter (NP_XI=1, NP_ETA=1, NNODES=NP_XI*NP_ETA)
