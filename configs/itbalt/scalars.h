@@ -803,6 +803,9 @@
 #endif
 ! aponte mem )
 
+! wind forcing
+      real tau_max, T_pulse, T_cycle, wind_start_time
+      common /wind_forcing/ tau_max, T_pulse, T_cycle, wind_start_time
 #endif /* ITBALT */
 
 

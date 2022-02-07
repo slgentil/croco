@@ -302,7 +302,7 @@
       parameter (NP_XI=1, NP_ETA=5,  NNODES=NP_XI*NP_ETA)     
 #else       
 ! 4km: 16 x 128 blocks -  4 procs
-      parameter (NP_XI=1, NP_ETA=4,  NNODES=NP_XI*NP_ETA)
+      parameter (NP_XI=1, NP_ETA=12,  NNODES=NP_XI*NP_ETA)
 #endif      
 #  elif RESOLUTION == 2
 #ifdef Y_STRETCH_GRID
@@ -310,7 +310,7 @@
       parameter (NP_XI=1, NP_ETA=9,  NNODES=NP_XI*NP_ETA)
 #else  
 ! 2km: 16 x 128 blocks -  8 procs
-      parameter (NP_XI=1, NP_ETA=8,  NNODES=NP_XI*NP_ETA)
+      parameter (NP_XI=1, NP_ETA=96,  NNODES=NP_XI*NP_ETA)
 #endif            
 #  elif RESOLUTION == 1
 #    ifdef Y_STRETCH_GRID

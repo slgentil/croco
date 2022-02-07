@@ -36,7 +36,7 @@
          <field id="angle" long_name="angle between XI-axis and EAST" unit="radians" />
 
 
-         <field id="mask_rho" long_name="angle between XI-axis and EAST" unit="radians" />
+         <field id="mask_rho" long_name="mask land/water" unit="0/1" />
 
 
          <field id="zeta" long_name="free-surface" unit="meter" />
@@ -72,6 +72,10 @@
          <!-- MOZ -->
          <field id="sst" field_ref="temp" long_name="Sea Surface Temperature" unit=" " grid_ref="rhogrid_surf"/>
          <field id="sss" field_ref="salt" long_name="Sea Surface Salinity" unit=" " grid_ref="rhogrid_surf"/>
+         <field id="h_zoom" field_ref="h" long_name="bathymetry at RHO-points" unit="meter" grid_ref="sshgrid_zoom"/>
+         <field id="angle_zoom" field_ref="angle" long_name="angle between XI-axis and EAST" unit="radian" grid_ref="sshgrid_zoom"/>
+         <field id="f_zoom" field_ref="f" long_name="Coriolis parameter at RHO-points" unit="second-1" grid_ref="sshgrid_zoom"/>
+         <field id="mask_rho_zoom" field_ref="mask_rho" long_name="mask land/water" unit="0/1" grid_ref="sshgrid_zoom"/>
          <field id="sshzoom" field_ref="zeta" long_name="Zoom Free_surface" unit=" " grid_ref="sshgrid_zoom"/>
          <field id="tzoom" field_ref="temp" long_name="Zoom Temperature" unit=" " grid_ref="rhogrid_zoom"/>
          <field id="szoom" field_ref="salt" long_name="Zoom Salinity" unit=" " grid_ref="rhogrid_zoom"/>

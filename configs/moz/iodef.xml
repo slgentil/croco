@@ -14,10 +14,11 @@
     <!-- ========================================================================== -->
 
 
-    <file_definition type="one_file" output_freq="1d" sync_freq="1d" > 
+    <file_definition type="one_file" output_freq="2d" sync_freq="2d" >
+    <!--<file_definition type="multiple_file" output_freq="2d" sync_freq="2d"    -->
 
-      <file id="file_grd" name="grid" output_freq="1ts"  enabled="false">
-          <field_group id="grid_fields" operation="once">
+       <file id="file_grd" name="grid" output_freq="10ts"  sync_freq="10ts" enabled="true"> 
+          <field_group id="grid_fields" operation="instant">
             <field field_ref="hc" />
             <field field_ref="theta_s" />
             <field field_ref="theta_b" />
@@ -33,16 +34,10 @@
             <field field_ref="sc_r" />
             <field field_ref="Cs_w" />
             <field field_ref="sc_w" />
-            <field field_ref="lon_rho" />
-            <field field_ref="lat_rho" />
-            <field field_ref="lon_u" />
-            <field field_ref="lat_u" />
-            <field field_ref="lon_v" />
-            <field field_ref="lat_v" />
           </field_group>
       </file>
 
-      <file id="file_his" name="his" output_freq="80ts" sync_freq="80ts" enabled="true">
+      <file id="file_his" name="his" output_freq="10ts" sync_freq="10ts" enabled="false">
         <field_group id="his_fields" operation="instant">
           <field field_ref="time" name="time" />
           <field field_ref="zeta" name="ssh" />
@@ -55,7 +50,7 @@
        </field_group>
       </file>
 
-      <file id="file_surf" name="surf" output_freq="0.5h" sync_freq="0.5h" enabled="false">
+      <file id="file_surf" name="surf" output_freq="0.5h" sync_freq="2d" enabled="false">
         <field_group id="surf_fields" operation="instant">
           <field field_ref="zeta" name="ssh" />
           <field field_ref="ssu" name="ssu" />
@@ -65,7 +60,25 @@
        </field_group>
       </file>
 
-      <file id="file_zoom" name="zoom" output_freq="1h" sync_freq="1h" enabled="false">
+       <file id="file_grd_zoom" name="grid_zoom" output_freq="10ts"  sync_freq="10ts" enabled="true"> 
+          <field_group id="grid_fields_zoom" operation="once">
+            <field field_ref="hc" />
+            <field field_ref="theta_s" />
+            <field field_ref="theta_b" />
+            <field field_ref="Tcline" />
+            <field field_ref="Vtransform" />
+            <field field_ref="h_zoom" />
+            <field field_ref="f_zoom" />
+            <field field_ref="angle_zoom" />
+            <field field_ref="mask_rho_zoom" />
+            <field field_ref="Cs_r" />
+            <field field_ref="sc_r" />
+            <field field_ref="Cs_w" />
+            <field field_ref="sc_w" />
+          </field_group>
+      </file>
+
+      <file id="file_zoom" name="zoom" output_freq="10ts" sync_freq="10ts" enabled="false">
         <field_group id="zoom_fields" operation="instant">
           <field field_ref="sshzoom" name="sshzoom" />
           <field field_ref="uzoom" name="uzoom" />
@@ -109,9 +122,28 @@
     <!-- ========================================================================== -->
 
 
-    <file_definition type="one_file" output_freq="1d" sync_freq="1d" > 
+    <file_definition type="one_file" output_freq="2d" sync_freq="2d" >
+    <!--<file_definition type="multiple_file" output_freq="2d" sync_freq="2d"    -->
 
-      <file id="file_low" name="low" output_freq="80ts" sync_freq="80ts" enabled="true">
+       <file id="file_grd_low" name="grid_low" output_freq="10ts"  sync_freq="10ts" enabled="true"> 
+          <field_group id="grid_fields_low" operation="once">
+            <field field_ref="hc_low" />
+            <field field_ref="theta_s_low" />
+            <field field_ref="theta_b_low" />
+            <field field_ref="Tcline_low" />
+            <field field_ref="Vtransform_low" />
+            <field field_ref="h_low" />
+            <field field_ref="f_low" />
+            <field field_ref="angle_low" />
+            <field field_ref="mask_rho_low" />
+            <field field_ref="Cs_r_low" />
+            <field field_ref="sc_r_low" />
+            <field field_ref="Cs_w_low" />
+            <field field_ref="sc_w_low" />
+          </field_group>
+      </file>
+
+      <file id="file_low" name="low" output_freq="10ts" sync_freq="10ts" enabled="false">
         <field_group id="low_fields" operation="instant">
           <field field_ref="zeta_low" name="ssh_low" />
           <field field_ref="u_low" />
@@ -153,7 +185,7 @@
       </variable_group>
 
       <variable_group id="parameters" >
-        <variable id="using_server" type="bool">true</variable>
+        <variable id="using_server" type="bool">false</variable>
         <variable id="info_level" type="int">10</variable>
         <variable id="print_file" type="bool">true</variable>
       </variable_group>

@@ -2501,11 +2501,12 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
       elseif (keyword(1:kwlen).eq.'itide') then
         call cancel_kwd (keyword(1:kwlen), ierr)
         read(input,*,err=95) flag_itide, omega_itide, nmode_itide,
-     &        forcing_itide, Az_itide, y_itide, start_time_itide
+     &        forcing_itide,h_itide,  Az_itide, y_itide, start_time_itide
         call params_output('itide_flag', flag_itide)
         call params_output('itide_omega', omega_itide)
         call params_output('itide_nmode', nmode_itide)
         call params_output('forcing_itide', forcing_itide)
+        call params_output('h_itide', h_itide)
         call params_output('itide_Az', Az_itide)
         call params_output('itide_y', y_itide)
         call params_output('itide_start_time', start_time_itide)

@@ -67,7 +67,8 @@
       CHARACTER(LEN=*)            , INTENT(in) ::   cdgrd
       REAL plon(GLOBAL_2D_ARRAY)
       REAL plat(GLOBAL_2D_ARRAY)
-      REAL(kind=8) :: nr_sumofall
+      REAL(kind=8) :: nr_sumofall, nr_minofall, nr_maxofall
+      REAL(kind=8) :: to_radian, haversine
       !
       INTEGER vtype, horiz_type, vert_type
       INTEGER imin, imax, jmin, jmax, ni, nj
@@ -77,7 +78,8 @@
       INTEGER :: ji
 
 # ifdef MOZ
-      REAL :: xstart, xsize, ystart, ysize
+      REAL :: xstart, xsize, ystart, ysize, xsize_domain, ysize_domain
+!    &        lonmin, lonmax,latmin,latmax
 # endif
       !!----------------------------------------------------------------------
       !
@@ -188,16 +190,19 @@
            ysize = 500e+3
            xstart = 200e+3
            ystart = 200e+3
-           xl = nr_sumofall(sum(1./pm(1:Lm,1))) / NP_ETA
-           el = nr_sumofall(sum(1./pn(1,1:Mm))) / NP_XI
-           xstart = xstart/(xl / float(LLm0))
-           xsize = xsize/(xl / float(LLm0))
-           ystart = ystart/(el / float(MMm0))
-           ysize = ysize/(el / float(MMm0))
+           !lonmin=nr_minofall(lonr(1:Lm,1:Mm))
+           !lonmax=nr_maxofall(lonr(1:Lm,1:Mm))
+           !latmin=nr_minofall(latr(1:Lm,1:Mm))
+           !latmax=nr_maxofall(latr(1:Lm,1:Mm))
+           xsize_domain = haversine(latmin,lonmin,latmin,lonmax)
+           ysize_domain = haversine(latmin,lonmin,latmax,lonmin)
+           xstart = xstart/(xsize_domain / float(LLm0))
+           xsize = xsize/(xsize_domain / float(LLm0))
+           ystart = ystart/(ysize_domain / float(MMm0))
+           ysize = ysize/(ysize_domain / float(MMm0))
            CALL iom_set_zoom_domain_attr (TRIM(cdgrd)//"_zoom",
      &             ibegin=max(1,int(xstart)), jbegin=max(1,int(ystart)),
-     &             ni=min(nx_glo,int(xsize)), nj=min(nx_glo,int(ysize)))
-           
+     &             ni=min(nx_glo,int(xsize)), nj=min(ny_glo,int(ysize)))
 #   endif
 # endif
 
@@ -1637,7 +1642,8 @@ C 				  endif
        READ(start_date(7:10),fmt='(i4)') iyear
        CALL ymds2ju( iyear, imonth,iday, 0., jday0 )  
 # elif defined USE_CALENDAR
-       CALL ymds2ju(1900, 1, 1, 0., jday0 )  
+!      CALL ymds2ju(1900, 1, 1, 0., jday0 )  
+       CALL ymds2ju(1994, 1, 1, 0., jday0 )  
 # else
        CALL ymds2ju( 1, 1, 1, 0., jday0 )  
 # endif
@@ -2212,7 +2218,8 @@ C       TYPE(xios_date)     :: start_date
      &        start_date=cldate )
 # else
       CALL xios_define_calendar( TYPE = "Gregorian", 
-     & time_origin = xios_date(1900,01,01,00,00,00),
+!    & time_origin = xios_date(1900,01,01,00,00,00),
+     & time_origin = xios_date(1994,01,01,00,00,00),
      & start_date = xios_date(iyear,imonth,iday,ihour,iminute,isec))
 #endif
       ! horizontal grid definition
@@ -2290,7 +2297,8 @@ C       TYPE(xios_date)     :: start_date
 
       ! calendar parameters
       CALL xios_define_calendar( TYPE = "Gregorian", 
-     & time_origin = xios_date(1900,01,01,00,00,00),
+!    & time_origin = xios_date(1900,01,01,00,00,00),
+     & time_origin = xios_date(1994,01,01,00,00,00),
      & start_date = xios_date(iyear,imonth,iday,ihour,iminute,isec))
 
       ! horizontal grid definition (domain)
@@ -2755,6 +2763,29 @@ C       TYPE(xios_date)     :: start_date
       ! Output of low grid resolution
       CALL iom_swap( 'roms_low' )
       caLL xios_update_calendar(ilc)
+
+! Beautiful  way to write scalars with XIOS-2.x
+      call xios_send_field("Cs_r_low",Cs_r(1:N))
+      call xios_send_field("Cs_w_low",Cs_w(0:N))
+      call xios_send_field("sc_r_low",sc_r(1:N))
+      call xios_send_field("sc_w_low",sc_w(0:N))
+      call xios_send_field("hc_low",hc)
+      call xios_send_field("theta_s_low",theta_s)
+      call xios_send_field("theta_b_low",theta_b)
+      call xios_send_field("Tcline_low",Tcline)
+      call xios_send_field("Vtransform_low",REAL(Vtransform))
+
+      ! Bathymetry.
+      call write_field_low("h_low",h)
+      ! Coriolis parameter.
+      call write_field_low("f_low",f)
+      ! Curvilinear transformation metrics.
+# ifdef CURVGRID
+      call write_field_low("angle_low",angler)
+# endif
+# ifdef MASKING
+      call write_field_low("mask_rho_low",rmask)
+# endif
       work2d=zeta(:,:,fast_indx_out)
       call write_field_low("zeta_low",work2d)
       call write_field_low("u_low",u(:,:,:,nstp))

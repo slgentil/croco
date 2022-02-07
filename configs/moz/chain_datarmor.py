@@ -27,7 +27,7 @@ if  len(sys.argv) < 7 :
     print 'workdir : répertoire qui sera créé sous $WORK'
     print 'nbchain : nombre de chainages'
     print 'elaptim : temps elapsed pour chaque chainage HH:MM:SS  '
-    print 'resolution : resolution 256, 512, 1024, 1620 ou 3060 '
+    print 'resolution : resolution 256, 512, 1024, 1620 ou 3000 '
     print 'jobname : nom générique des batchs'   
     print 'restart : 0 (initial) or 1 (restart)'
     quit()
@@ -47,7 +47,7 @@ elif resolution==256:
     nbproc_roms=2*8
     nbproc_xios=1
 elif resolution==512:
-    nbproc_roms=4*32
+    nbproc_roms=8*32
     nbproc_xios=2
 elif resolution==1024:
     nbproc_roms=16*32
@@ -101,9 +101,12 @@ for t in range(0,nbchain+1):
         shutil.copy(startdir+'/croco',tdir)
         shutil.copy(startdir+'/croco.in',tdir)
         shutil.copy(startdir+'/field_def.xml',tdir) 
+        shutil.copy(startdir+'/field_def_low.xml',tdir) 
         shutil.copy(startdir+'/domain_def.xml',tdir) 
+        shutil.copy(startdir+'/domain_def_low.xml',tdir) 
         shutil.copy(startdir+'/axis_def.xml',tdir)
         shutil.copy(startdir+'/grid_def.xml',tdir)
+        shutil.copy(startdir+'/grid_def_low.xml',tdir)
         shutil.copy(startdir+'/iodef.xml',tdir)   
         # shutil.copy(startdir+'/floats.in',tdir)
         shutil.copy(startdir+'/xios_server.exe',tdir)

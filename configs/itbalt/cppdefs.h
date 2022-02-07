@@ -56,12 +56,12 @@
 ! resolution (dx in km)
 # define RESOLUTION 4
 ! narrow channel for internal tide test case
-# define NARROW
+# undef NARROW
 
 ! turn beta on off
 # undef BETAON
 
-# define ITIDE         /* turns itide on/off*/
+# undef ITIDE         /* turns itide on/off*/
 # ifdef ITIDE
 ! type of wavemaker
 !#   define IWMAKER
@@ -78,13 +78,13 @@
 #   undef IT_SPONGE_ZANO
 # endif
 
-# undef FSTURB
+# define FSTURB
 # ifdef FSTURB
 #   define VMODES
 # endif
 
-# undef  FLOATS
-# undef  SIGMA_FLOATS  /* float stays at fixed sigma levels */
+# define  FLOATS
+# define  SIGMA_FLOATS  /* float stays at fixed sigma levels */
 # undef  DEPTH_FLOATS  /* float stays at fixed depth levels */
 # undef  FLOAT_DEBUG
 
@@ -112,11 +112,11 @@
 # define UV_ADV
 
 !                   Advection for tracer (default: HADV UP3, VADV AKIMA )
-!# define  TS_HADV_UP5
-!# define  TS_VADV_SPLINES
+# define  TS_HADV_UP5
+# define  TS_VADV_SPLINES
 !                   Avection for momentum (default: HADV UP3, VADV SPLINES)
-!# define  UV_HADV_UP5
-!# define  UV_VADV_SPLINES
+# define  UV_HADV_UP5
+# define  UV_VADV_SPLINES
 !                   Surface and bottom fluxes
 # define ANA_STFLUX
 # define ANA_BTFLUX

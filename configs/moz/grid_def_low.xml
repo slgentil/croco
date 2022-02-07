@@ -1,4 +1,15 @@
 <grid_definition>
+	<grid id="scalar_grid">
+		<scalar scalar_ref="scalar"/>
+	</grid>
+
+	<grid id="rho_vertical_dimension">
+		<axis axis_ref="s_rho"/>
+	</grid>
+	<grid id="w_vertical_dimension">
+		<axis axis_ref="s_w"/>
+	</grid>
+
 	<grid id="rho_2D_low">
 		<domain domain_ref="rho_low"/>
 	</grid>
@@ -20,10 +31,10 @@
 		<domain domain_ref="v_low"/>
 		<axis axis_ref="s_rho"/>
 	</grid>
-	<grid id="psi_2D">
+	<grid id="psi_2D_low">
 		<domain domain_ref="psi_low"/>
 	</grid>
-	<grid id="psi_3D">
+	<grid id="psi_3D_low">
 		<domain domain_ref="psi_low"/>
 		<axis axis_ref="s_w"/>
 	</grid>

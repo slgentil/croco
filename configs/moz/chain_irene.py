@@ -24,8 +24,8 @@ if  len(sys.argv) < 7 :
     print 'workdir : répertoire qui sera créé sous $WORK'
     print 'nbchain : nombre de chainages'
     print 'elaptim : temps elapsed pour chaque chainage (secondes)'
-    print 'resolution : resolution 128, 256, 512, 1024, 1620 ou 3060'
-    print 'projid :numero de projet gen12355(Claire)'   
+    print 'resolution : resolution 128, 256, 512, 1024, 1620, 3000'
+    print 'projid :numero de projet gen12938(Claire)'   
     print 'restart : 0 (initial) or 1 (restart)'
     quit()
     
@@ -54,10 +54,9 @@ elif resolution==1024:
 elif resolution==1620:
     nbproc_roms=10*47
     nbproc_xios=188
-elif resolution==3060:
-    #nbproc_roms=17*45
-    nbproc_roms=17*90
-    nbproc_xios=1
+elif resolution==3000:
+    nbproc_roms=50*100
+    nbproc_xios=0
 else:
     print 'resolution not implemented yet'
     quit()
@@ -71,8 +70,11 @@ nb_cores = nbproc_roms+nbproc_xios
 startdir=os.getcwd()
 HOME = os.getenv('HOME')
 WORK = os.getenv('CCCWORKDIR')
+WORKG = os.getenv('ALL_CCCWORKDIR')
 #WORK = os.getenv('CCCSCRATCHDIR')
-RPATH = WORK+'/'+workdir
+#WORK = os.getenv('ALL_CCCSCRATCHDIR')
+SCRATCHG = os.getenv('ALL_CCCSCRATCHDIR')
+RPATH = SCRATCHG+'/'+workdir
 if os.path.exists(RPATH) :
     os.system('rm -Rf '+RPATH)
 os.mkdir(RPATH)
@@ -104,10 +106,18 @@ for t in range(0,nbchain+1):
      	    shutil.copy(startdir+'/domain_def.xml',tdir)
         else:
      	    print "domain_def.xml not found in current directory"      	
+        if os.path.exists(startdir+"/domain_def_low.xml"):
+     	    shutil.copy(startdir+'/domain_def_low.xml',tdir)
+        else:
+     	    print "domain_def_low.xml not found in current directory"      	
         if os.path.exists(startdir+"/field_def.xml"):
      	    shutil.copy(startdir+'/field_def.xml',tdir)
         else:
      	    print "field_def.xml not found in current directory"      	
+        if os.path.exists(startdir+"/field_def_low.xml"):
+     	    shutil.copy(startdir+'/field_def_low.xml',tdir)
+        else:
+     	    print "field_def_low.xml not found in current directory"      	
         if os.path.exists(startdir+"/axis_def.xml"):
      	    shutil.copy(startdir+'/axis_def.xml',tdir)
         else:
@@ -116,10 +126,14 @@ for t in range(0,nbchain+1):
      	    shutil.copy(startdir+'/grid_def.xml',tdir)
         else:
      	    print "grid_def.xml not found in current directory"      	
-        if os.path.exists(startdir+"/xios_server.exe"):
-     	    shutil.copy(startdir+'/xios_server.exe',tdir)
+        if os.path.exists(startdir+"/grid_def_low.xml"):
+     	    shutil.copy(startdir+'/grid_def_low.xml',tdir)
         else:
-     	    print "xios_server.exe not found in current directory"
+     	    print "grid_def_low.xml not found in current directory"      	
+        #if os.path.exists(startdir+"/xios_server.exe"):
+     	#    shutil.copy(startdir+'/xios_server.exe',tdir)
+        #else:
+     	#    print "xios_server.exe not found in current directory"
 
 #==============================================================================
 
@@ -183,16 +197,18 @@ for t in range(1,nbchain+1):
 # Création du corps du script
 
     fo.write('cd ${BRIDGE_MSUB_PWD}\n')
-    fo.write('cat << END > app.conf\n')
-    fo.write(str(nbproc_roms)+' ./croco\n')
-    fo.write(str(nbproc_xios)+' ./xios_server.exe\n')
-    fo.write('END\n')
+    #fo.write('cat << END > app.conf\n')
+    #fo.write(str(nbproc_roms)+' ./croco\n')
+    #fo.write(str(nbproc_xios)+' ./xios_server.exe\n')
+    #fo.write('END\n')
     if t!=1 or restart==1:
-       fo.write('cp ../t'+str(t-1)+'/moz_grd.nc .\n')  
-       fo.write('cp ../t'+str(t-1)+'/moz_ini.nc .\n')    
-       fo.write('cp ../t'+str(t-1)+'/moz_bry.nc .\n')    
-    fo.write('ccc_mprun -f app.conf\n')
-#   fo.write('ccc_mprun ./croco\n')
+       #fo.write('cp ../t'+str(t-1)+'/moz_grd.nc .\n')  
+       fo.write('ln -s '+WORKG+'/init_3000/moz_grd.*.nc .\n')    
+       fo.write('cp ../t'+str(t-1)+'/moz_ini.*..nc .\n')    
+       #fo.write('cp ../t'+str(t-1)+'/moz_bry.nc .\n')    
+       fo.write('ln -s '+WORKG+'/init_3000/moz_bry.*.nc .\n')    
+#    fo.write('ccc_mprun -f app.conf\n')
+    fo.write('ccc_mprun ./croco\n')
     if t != nbchain:
         fo.write('cd ../t'+str(t+1)+'\n')
         fo.write('ccc_msub job_irene\n')
