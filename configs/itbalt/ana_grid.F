@@ -178,6 +178,7 @@ C$    integer omp_get_thread_num
 ! f0 is the value of the Coriolis frequency at the center
 ! of the domain (see same file) 
                      f0=1.0313E-4
+                     if (T_pulse == 0.) T_pulse = 2.*pi/f0
 #  if defined BETAON
                      beta=1.6186E-11
 #  else

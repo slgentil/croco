@@ -52,8 +52,8 @@
           </field_group>
       </file>
 
-      <file id="file_av" name="ave" output_freq="2d" sync_freq="2d" split_freq="100d"  enabled=".TRUE.">
-          <field_group id="av_fields" operation="average" freq_op="1ts" >
+      <file id="file_ave" name="ave" output_freq="2d" sync_freq="2d" split_freq="100d"  enabled=".TRUE.">
+          <field_group id="ave_fields" operation="average" freq_op="1ts" >
             <field field_ref="zeta" />
             <field field_ref="temp" name="T_xy" grid_ref="rho_3Dxy" />
             <field field_ref="u" name="u_xy" grid_ref="u_3Dxy" />
@@ -64,20 +64,21 @@
             <field field_ref="temp" name="T_yz" grid_ref="rho_yz" />
             <field field_ref="w" name="w_yz" grid_ref="w_yz" />   
             <field field_ref="P" name="P_yz" grid_ref="rho_yz" />    
-            <field field_ref="ssh_t_cos" />
-            <field field_ref="ssh_t_sin" />
-            <field field_ref="T_t_cos" name="t_xy_cos" grid_ref="rho_3Dxy" />
-            <field field_ref="T_t_sin" name="t_xy_sin" grid_ref="rho_3Dxy" />
-            <field field_ref="u_t_cos" name="u_xy_cos" grid_ref="u_3Dxy" />
-            <field field_ref="u_t_sin" name="u_xy_sin" grid_ref="u_3Dxy" />
-            <field field_ref="v_t_cos" name="v_xy_cos" grid_ref="v_3Dxy" />
-            <field field_ref="v_t_sin" name="v_xy_sin" grid_ref="v_3Dxy" />
             <field field_ref="ke" />
             <field field_ref="ens" />
           </field_group>
       </file>
 
-      <file id="file_in" name="inst" output_freq="1d" sync_freq="1d" split_freq="50d" enabled=".TRUE.">
+      <file id="file_ave_har" name="ave_har" output_freq="2d" sync_freq="2d" split_freq="100d"  enabled=".FALSE.">
+          <field_group id="ave_har_fields" operation="average" freq_op="1ts" >
+            <field field_ref="ssh_t_cos" />
+            <field field_ref="T_t_cos" name="t_xy_cos" grid_ref="rho_3Dxy" />
+            <field field_ref="u_t_cos" name="u_xy_cos" grid_ref="u_3Dxy" />
+            <field field_ref="v_t_cos" name="v_xy_cos" grid_ref="v_3Dxy" />
+          </field_group>
+      </file>
+
+      <file id="file_in" name="inst" output_freq="1d" sync_freq="1d" split_freq="50d" enabled=".FALSE.">
           <field_group id="inst_fields" operation="instant" >
             <field field_ref="zeta" name="ssh_y" grid_ref="rho_2Dy" />
             <field field_ref="temp" name="T_y" grid_ref="rho_3Dy" />
@@ -88,7 +89,7 @@
           </field_group>
       </file>
 
-      <file id="file_se" name="sec" output_freq="1h" sync_freq="10d" split_freq="50d" enabled=".TRUE.">
+      <file id="file_sec" name="sec" output_freq="1h" sync_freq="10d" split_freq="50d" enabled=".TRUE.">
           <field_group id="sec_fields" operation="instant" >
             <field field_ref="zeta" name="ssh_yz" grid_ref="rho_2Dy" />
             <field field_ref="temp" name="T_yz" grid_ref="rho_yz" />
@@ -118,24 +119,29 @@
           </field_group>
       </file> 
 
-      <file id="file_his" name="his" output_freq="20d" sync_freq="20d" split_freq="20d"  enabled=".TRUE.">
-          <field_group id="his_fields" operation="instant" freq_op="2d">
+      <file id="file_3D_ave" name="3D_ave" output_freq="50d" sync_freq="50d" split_freq="50d"  enabled=".TRUE.">
+          <field_group id="3D_ave_fields" operation="instant" freq_op="2d">
             <field name="ssh_a" grid_ref="rho_2D" > @ssh_a </field>
             <field name="T_a" grid_ref="rho_3D" > @T_a </field>
             <field name="u_a" grid_ref="u_3D" > @u_a </field>
             <field name="v_a" grid_ref="v_3D" > @v_a </field>
             <field name="w_a" grid_ref="rho_3D" > @w_a </field>
             <!-- <field name="P_a" grid_ref="rho_3D" > @P_a </field> -->
+          </field_group>
+      </file>
+
+      <file id="file_3D_har" name="3D_har" output_freq="50d" sync_freq="50d" split_freq="50d"  enabled=".FALSE.">
+          <field_group id="3D_har_fields" operation="instant" freq_op="2d">
             <field name="ssh_t_cos" grid_ref="rho_2D" > @ssh_t_cosa </field>
-            <field name="ssh_t_sin" grid_ref="rho_2D" > @ssh_t_sina </field>
             <field name="T_t_cos" grid_ref="rho_3D" > @T_t_cosa </field>
-            <field name="T_t_sin" grid_ref="rho_3D" > @T_t_sina </field>
             <field name="u_t_cos" grid_ref="u_3D" > @u_t_cosa </field>
-            <field name="u_t_sin" grid_ref="u_3D" > @u_t_sina </field>
             <field name="v_t_cos" grid_ref="v_3D" > @v_t_cosa </field>
-            <field name="v_t_sin" grid_ref="v_3D" > @v_t_sina </field>
             <field name="w_t_cos" grid_ref="rho_3D" > @w_t_cosa </field>
-            <field name="w_t_sin" grid_ref="rho_3D" > @w_t_sina </field>
+          </field_group>
+      </file>
+
+      <file id="file_3D_dir" name="3D_dir" output_freq="50d" sync_freq="50d" split_freq="50d"  enabled=".FALSE.">
+          <field_group id="3D_dir_fields" operation="instant" freq_op="2d">
             <field name="ssh_t_dirac" grid_ref="rho_2D" > @ssh_t_diraca </field>
             <field name="T_t_dirac" grid_ref="rho_3D" > @T_t_diraca </field>
             <field name="u_t_dirac" grid_ref="u_3D" > @u_t_diraca </field>
@@ -166,7 +172,7 @@
           </field_group>
       </file>
 
-      <file id="file_fst" name="fsturb" output_freq="5d" sync_freq="5d" enabled=".TRUE.">
+      <file id="file_fst" name="fsturb" output_freq="5d" sync_freq="5d" enabled=".FALSE.">
           <field_group id="fst_fields" operation="instant" >
             <field field_ref="fst_F_t" name="fst_F_t" grid_ref="rho_3D" />
             <field field_ref="fst_F_zeta" name="fst_F_zeta" grid_ref="rho_2D" />

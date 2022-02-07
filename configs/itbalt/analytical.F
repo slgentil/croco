@@ -412,6 +412,24 @@ C$    integer  trd, omp_get_thread_num
         enddo
       enddo
 #  endif
+# elif defined ITBALT
+      if (T_cycle > 0.) then
+         cff1 = mod(time,T_cycle)
+         if (cff1 > T_pulse) cff1 = 0
+         do j=JstrR,JendR
+           do i=IstrR,IendR
+             sustr(i,j)= 0.5 * (1+sign(1.,(time - wind_start_time)))
+     &          * tau_max * sin(pi * mod(cff1,2*T_pulse)/T_pulse) / rho0
+           enddo
+         enddo
+      else
+         do j=JstrR,JendR
+           do i=IstrR,IendR
+             sustr(i,j)= 0.5 * (1+sign(1.,(time - wind_start_time)))
+     &                 * tau_max * sin(2.*pi *time/T_pulse) / rho0
+           enddo
+         enddo
+      endif
 # else
       do j=JstrR,JendR
         do i=IstrR,IendR
