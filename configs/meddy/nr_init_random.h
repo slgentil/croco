@@ -16,10 +16,6 @@
       call init_spectral(planf,planb,rvar,cvar)    
       call matrice(xlmb,w2)
 
-!     xlambda=sqrt(Nfreq2)*(CELL_DZ*(KM-KL))/(bgf_o(1,1)*sqrt(w2) )
-!     xlambda=sqrt(Nfreq2)*(CELL_DZ*(KM-KL))/(bgf_o(1,1)*pi )
-!     xkrad1=(CELL_DX*(LLm-0))/(xlambda*2*pi)
-
        do j=1,32	! (64+1)/2
 	  do  i=1,32  	! (64+1)/2
                 mk = float(i)/float(64)
@@ -31,9 +27,6 @@
           enddo
        enddo  
 
-!      valmax = nr_maxofall(maxval(abs(kk)))
-!      if (mynode.eq.0) print*,'XXXXXX',valmax,maxval(xlmb),1/w2*xkrad1**2,w2
-
        etot=0.0
        allocate(prd_spec(1:64,1:64,nmdef))
        
@@ -41,7 +34,6 @@
         ekin(mde)=0.0
         do j=1,64
           do  i=1,64
-!            xk=sqrt(kk(i,j) + xlmb(mde))
              xk=sqrt(kk(i,j))
              aa= sqrt(rand_spec(xk))
              call random_number(xx)
@@ -80,16 +72,12 @@
       enddo
       deallocate(prd_spec) 
 
-         
 !...... perturbation ds chaque proc
       do k = 1, N                        !    
         do j = 1, Mm
           do i = 1, Lm   
              iofset = i+ni*Lm
              jofset = j+nj*Mm
-!            x = xp(i,j)
-!            y = yp(i,j) 
-!            d2 = ((x-x1)/(2.5*thick_y))**2 +((y-y1)/(2.5*thick_y))**2 
              rhopr_rand(i,j,k) =  prd(iofset,jofset,nmdef)      !*exp(-d2**2)             
           end do
         end do
@@ -102,18 +90,6 @@
 
       if (mynode == 0) print *,'max rhopr_rand ', maxval(abs(rhopr_rand))
      
-      if (random_pert_urot) then	! coding velocity streamfunction
-
-      if (mynode == 0) then
-        write(STDOUT,*) '--------------------------------------------------'
-        write(STDOUT,*) 
-     & 'random perturbations added to streamfunction field amp=',factor_amp_urot
-        write(STDOUT,*) '--------------------------------------------------'
-      endif
-
-
-      endif !random_pert_urot
-
 ! end random perturbations
 !..........................................................................
 

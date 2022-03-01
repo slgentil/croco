@@ -43,7 +43,7 @@ if [[ $OS == Linux ]] ; then
 
   if [[ $HOSTNAME == *"datarmor"* ]]; then 
   	LINUX_FC=$FC
-  elif [[ $HOSTNAME == *"curie"* ]]; then 
+  elif [[ $HOSTNAME == *"irene"* ]]; then 
 	LINUX_FC=ifort
   elif [[ $UNAME == *"Ubuntu"* ]]; then
  	LINUX_FC=gfortran
@@ -66,7 +66,7 @@ fi
 if [[ $HOSTNAME == *"datarmor"* ]]; then 
   NETCDFLIB=$(nf-config --flibs) 
   NETCDFINC=-I$(nf-config --includedir)
-elif [[ $HOSTNAME == *"curie"* ]]; then 
+elif [[ $HOSTNAME == *"irene"* ]]; then 
   NETCDFLIB=$(nf-config --flibs) 
   NETCDFINC=-I$(nf-config --includedir)
 elif [[ $UNAME == *"Ubuntu"* ]]; then
@@ -100,8 +100,9 @@ if [[ $HOSTNAME == *"datarmor"* ]]; then
   # XIOS_ROOT_DIR='/home1/datahome/slgentil/lib/XIOS'
   # XIOS_ROOT_DIR='/home1/datahome/slgentil/lib/XIOS-2.5_mpt'
   XIOS_ROOT_DIR='/home/datawork-croco/datarmor-only/SOURCE_CODES/XIOS/XIOS-2.5'
-elif [[ $HOSTNAME == *"curie"* ]]; then 
-  XIOS_ROOT_DIR='$(HOME)/lib/XIOS'
+elif [[ $HOSTNAME == *"irene"* ]]; then 
+  #XIOS_ROOT_DIR=$HOME/lib/XIOS2
+  XIOS_ROOT_DIR=$HOME/lib/XIOS2.5
 elif [[ $UNAME == *"Ubuntu"* ]]; then
 # XIOS_ROOT_DIR=/home1/dunree/slgentil/models/XIOS/xios_ubuntu18_LTS
   XIOS_ROOT_DIR=/home1/dunree/slgentil/models/XIOS/XIOS2_ubuntu18_LTS
@@ -117,8 +118,10 @@ fi
 if [[ $HOSTNAME == *"datarmor"* ]]; then 
   MYLIB='-mkl=sequential -L/appli/ncl/5.2.1/intel/ncarg/lib -lngmath'
   MYINC="-I$MKLROOT/include/fftw"
-elif [[ $HOSTNAME == *"curie"* ]]; then 
-  MYLIB="-L$FFTW3_LIBDIR -lfftw3 $MKL_LIBS"
+elif [[ $HOSTNAME == *"irene"* ]]; then 
+  #MYLIB="-L$MKL_LIBDIR -lmkl -L$NCL_NCARG_LIBDIR -lngmath -lgfortran"
+  MYLIB="$MKL_LDFLAGS -L$NCL_NCARG_LIBDIR -lngmath -lgfortran"
+  #MYLIB="-L$MKL_LIBDIR -lfftw3"
   MYINC="-I$FFTW3_INCDIR"
 elif [[ $UNAME == *"Ubuntu"* ]]; then
   MYLIB="-llapack -lfftw3 -lfftw3f -L/usr/lib/x86_64-linux-gnu/ncarg -lngmath -lgfortran"
@@ -147,6 +150,7 @@ AGRIF_SRC=${ROOT_DIR}/AGRIF
 # copy SOURCE code
 #
 /bin/cp -f ${SOURCE}/*.F90 $SCRDIR
+/bin/cp -f ${SOURCE}/*.h90 $SCRDIR
 /bin/cp -f ${SOURCE}/*.F   $SCRDIR
 /bin/cp -f ${SOURCE}/*.h   $SCRDIR
 /bin/cp -f ${SOURCE}/Make* $SCRDIR
@@ -202,7 +206,8 @@ if [[ $OS == Linux || $OS == Darwin ]] ; then           # ===== LINUX =====
  		#          -no-prec-div -no-prec-sqrt -ip -w -traceback $CPPFLAGS1"
 		# FFLAGS1="-xCORE-AVX2 -O3 -i4 -r8 -align all -assume byterecl -extend-source -fno-alias \
 		#          -no-prec-div -no-prec-sqrt -init=zero -ip -w $CPPFLAGS1"
-		FFLAGS1="-O3 -i4 -r8 -extend-source $CPPFLAGS1"
+		#FFLAGS1="-O0 -g3 -check bounds -traceback -ftz -i4 -r8 -extend-source -mcmodel=large $CPPFLAGS1"
+		FFLAGS1="-O3 -i4 -r8 -ftz -extend-source -mcmodel=large $CPPFLAGS1"
 		LDFLAGS1="$LDFLAGS1"
 	elif [[ $LINUX_FC == gfortran ]] ; then
 		CPP1="cpp -traditional -DLinux"

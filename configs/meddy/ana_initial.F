@@ -92,7 +92,7 @@ C$    integer omp_get_thread_num
       real(8),dimension(GLOBAL_2D_ARRAY,N) :: gaussian
 
 ! random_seed
-      logical   :: random_init, random_pert_urot
+      logical   :: random_init
       integer   :: mde,nmdef,ni,nj,iofset,jofset
       integer*8 :: planf, planb
       real(8)   :: facsolpert, factor_amp_urot, w2, xlambda, xkrad1, mk, nk
@@ -173,15 +173,15 @@ C$    integer omp_get_thread_num
 !
 
       if (mynode == 0) then
-         write(STDOUT,*) '--------------------------------------------------'
+         write(STDOUT,*) '--------------------------------------------'
          write(STDOUT,*) ' initialisation vortex lens '
-         write(STDOUT,*) '--------------------------------------------------'
+         write(STDOUT,*) '--------------------------------------------'
          write(STDOUT,'(A,F7.1)')' largest time step (s) horizontal',
      &                  (1./pm(1,1))/(abs(2*z1*Nfreq/pi)+0.5)/4
          write(STDOUT,'(A,F7.1)')' largest time step (s) vertical', 
      &                  Hz(1,1,1)/(0.1)/4
          write(STDOUT,*)' max coriolis, min', f(1,1),  f(1,Mm)
-         write(STDOUT,*) '--------------------------------------------------'
+         write(STDOUT,*) '--------------------------------------------'
       endif
       call params_output('icase', icase)
       call params_output('Nfreq2',Nfreq2)
@@ -195,26 +195,14 @@ C$    integer omp_get_thread_num
 
 ! background rho(z)
 !------------------
-      if (icase == 50) then           ! Go meddy stratification   
-        open(unit=12, file='exp.txt', form='formatted')
-        read(12,*) rhobk
-        read(12,*) rhoin
-        close(12)
-      else
         do k = 1, N
           do j = JR_RANGE
             do i = IR_RANGE
                z = z_r(i,j,k)
-               zz = (z-zmid)/dhh
-               rhobk(k) = (- Nfreq2*( (1-shift)**2*dhh*zz  
-     &          + 2*(1-shift)*deltaN*dhh*log(cosh(zz))  
-     &          + dhh*deltaN**2*(zz-tanh(zz)) )  
-     &          - delta1*atan(exp(  wid1*(z+zth1)  ))  
-     &          - delta2*atan(exp(  wid2*(z+zth2)  ))   )
+               rhobk(k) = - Nfreq2*(z-zmid)
             enddo
           enddo
         enddo
-      endif
 
 ! background t,s
 !-----------------
@@ -222,9 +210,11 @@ C$    integer omp_get_thread_num
       do k = 1, N
         do j = JR_RANGE
           do i = IR_RANGE
-            t(i,j,k,1,itemp) = T0 - FRACTS/Tcoef*rho0/g*rhobk(k)
 #ifdef SALINITY
+            t(i,j,k,1,itemp) = T0 - FRACTS/Tcoef*rho0/g*rhobk(k)
             t(i,j,k,1,isalt) = S0 + (1-FRACTS)/Scoef*rho0/g*rhobk(k)
+#else
+            t(i,j,k,1,itemp) = T0 - 1/Tcoef*rho0/g*rhobk(k)
 #endif
           end do
         end do
@@ -236,7 +226,7 @@ C$    integer omp_get_thread_num
       rho = 0.0
       call rho_eos(tile)
 
-      rho_bk_sav = rho(1,1,:)   !!! invariant sur l'horizontal
+      rho_bk_sav = rho(1,1,:)  !!! invariant sur l'horizontal
 
       do k = 2, N-1                            
          Nfreq2_bk(k) = -g/rho0*   
@@ -251,7 +241,6 @@ C$    integer omp_get_thread_num
 
 !!! rhopr = vortex density profile/rho0*g
 !----------------------------------------
-           if (icase.eq.2) then
               if (linear_balance) then   
                 if (mynode == 0) 
      &             write(STDOUT,*) 'initialisation linear thermal wind balance'
@@ -259,7 +248,6 @@ C$    integer omp_get_thread_num
                 if (mynode == 0) 
      &             write(STDOUT,*) 'initialisation gradient wind balance'
              endif    ! linear balance
-           endif   ! icase = 2
  
       do k = 1, N                           
         do j = JR_RANGE
@@ -270,52 +258,34 @@ C$    integer omp_get_thread_num
 
             d2 = ((x-x1)/thick_y)**2 +((y-y1)/thick_y)**2 
 
-            if (icase.gt.100) then    
-              z2 = ((z-z1)/thick_z)**2 
-              distance2    = d2 + Nfreq2_bk(k)/Nfreq2*z2
-              denom(i,j,k) = 1 + distance2 + distance2**2 
-              dNfreq_bk    = 0.5*(sqrt(Nfreq2_bk(k+1))-sqrt(Nfreq2_bk(k-1)))
-     &                       /Hz(i,j,k)
-              Fp           = -Rossby/4*(1+2*distance2)/denom(i,j,k)**(power+1)
-              rhopr(i,j,k) =  2.*(z-z1) *(dNfreq_bk*(z-z1)+sqrt(Nfreq2_bk(k)))
-     &                        /Nfreq * Fp*(1+2*Fp)*Nfreq2/(Burger)
-
-           elseif (icase.eq.1) then
-              z2 = ((z-z1)/thick_z)**2 
-              distance2    = d2 + z2
-              denom(i,j,k) = 1 + distance2 + distance2**2 
-              rhopr(i,j,k) = -Rossby/2.*Nfreq2/Burger   
-     &                       *(z-z1)*(1+2*distance2)/denom(i,j,k)**(power+1)
-           elseif (icase.eq.2) then
               z2 = ((z-z1)/thick_z)**2 
               distance2    = d2 + z2
               if (linear_balance) then   
-              rhopr(i,j,k) = -Rossby/2.*Nfreq2/Burger   
+                rhopr(i,j,k) = -Rossby/2.*Nfreq2/Burger   
      &                     *(z-z1)*exp(-distance2)
               else
-              rhopr(i,j,k) = -Rossby/2.*Nfreq2/Burger   
+                rhopr(i,j,k) = -Rossby/2.*Nfreq2/Burger   
      &                     *(z-z1)*exp(-distance2)
      &                     *(1+Rossby/2.*exp(-distance2))
               endif    ! linear balance
-           elseif (icase.eq.50) then        ! Go meddy data
-              rhopr(i,j,k) = rhoin(k)*exp(-d2)
-           endif
          end do
        end do
       end do
 
       valmax = nr_maxofall(maxval(abs(rhopr)))
-      if (mynode == 0) print *,'-------------------------------------------'
+      if (mynode == 0) print *,'---------------------------------------'
       if (mynode == 0) print *,'max rhopr =', valmax
-      if (mynode == 0) print *,'-------------------------------------------'
+      if (mynode == 0) print *,'---------------------------------------'
 
 
 ! vortex density profile : t,s,rho
 !---------------------------------
 
-      t(:,:,:,1,itemp) = T0 - FRACTS/Tcoef*rho0/g*rhopr
 #ifdef SALINITY
+      t(:,:,:,1,itemp) = T0 - FRACTS/Tcoef*rho0/g*rhopr
       t(:,:,:,1,isalt) = S0 + (1-FRACTS)/Scoef*rho0/g*rhopr
+#else
+      t(:,:,:,1,itemp) = T0 - 1/Tcoef*rho0/g*rhopr
 #endif
 
       call rho_eos(tile)
@@ -327,7 +297,8 @@ C$    integer omp_get_thread_num
         do j = JR_RANGE
           do i = IR_RANGE
             Nfreq2_tot(i,j,k) = Nfreq2_bk(k)-g/rho0*   
-     &                           0.5d0*(rho(i,j,k+1)-rho(i,j,k-1))/Hz(i,j,k)
+     &                           0.5d0*(rho(i,j,k+1)-rho(i,j,k-1))
+     &                           /Hz(i,j,k)
           end do
         end do
       end do
@@ -343,22 +314,25 @@ C$    integer omp_get_thread_num
         do j = JR_RANGE
           do i = IR_RANGE
             rho(i,j,k) = rho(i,j,k-1) - rho0/g*0.5*  
-     &                        (Nfreq2_tot(i,j,k)+Nfreq2_tot(i,j,k-1))*Hz(i,j,k)
+     &                        (Nfreq2_tot(i,j,k)+Nfreq2_tot(i,j,k-1))
+     &                         *Hz(i,j,k)
           end do
         end do
       end do
-!      rho(:,:,1) = rho(:,:,2)
 
 ! inversion de T et S
 !---------------------
-      t(:,:,:,1,itemp) = T0-FRACTS/Tcoef*(rho-rho0)
 #ifdef SALINITY
-      t(:,:,:,1,isalt) = S0+(1-FRACTS)/Scoef*(rho-rho0)
+      t(:,:,:,1,itemp) = T0-FRACTS/Tcoef*(rho-R0)
+      t(:,:,:,1,isalt) = S0+(1-FRACTS)/Scoef*(rho-R0)
+#else
+      t(:,:,:,1,itemp) = T0 - 1/Tcoef*(rho-R0)
 #endif
 
 
 !!! + la partie compensée !!!
 !----------------------------
+#ifdef SALINITY
       do k = 1, N                            
         do j = JR_RANGE
           do i = IR_RANGE
@@ -366,24 +340,14 @@ C$    integer omp_get_thread_num
             y = yr(i,j)
             z = z_r(i,j,k)
             d2 = ((x-x1)/thick_y)**2 +((y-y1)/thick_y)**2 
-            if (icase.gt.100) then
-              gaussian(i,j,k)=  (-3.5d-3/4.*log(-z/1.5+10.)+4.d-3) +  
-     &           exp(-d2)*((-tanh((z+670)/200)+tanh((z+1520)/100))*1.d-3)
-            elseif (icase.eq.50) then
-              gaussian(i,j,k)=  (-3.0e-3/4.*log(-z/1.5+10.)+4.d-3) +  
-     &           exp(-d2)*((-tanh((z+700)/200)+tanh((z+1520)/100))*0.8e-3)
-            else
-              gaussian(i,j,k)=  (0.8d-6*z-4d-4) + 
+            gaussian(i,j,k)=  (0.8d-6*z-4d-4) + 
      &           exp(-d2)*(exp(-((z-z1)/450)**4)*1.5d-3)
-            endif
           end do
         end do
       end do
 
-      t(:,:,:,1,itemp) = t(:,:,:,1,itemp)  + (FRACTS/Tcoef*rho0)*gaussian
-#ifdef SALINITY
+      t(:,:,:,1,itemp) = t(:,:,:,1,itemp) + (FRACTS/Tcoef*rho0)*gaussian
       t(:,:,:,1,isalt) = t(:,:,:,1,isalt) + (FRACTS/Scoef*rho0)*gaussian
-#endif
 
       valmax = nr_maxofall(maxval(abs(t(:,:,:,1,itemp))))
       if (mynode == 0)  print *,'max t =', valmax
@@ -395,6 +359,7 @@ C$    integer omp_get_thread_num
       valmin = nr_minofall(minval(rho))
       if (mynode==0) print *,'min potend_inittracer', valmin
 
+#endif
 
 !....................................................................
 !============================= 
@@ -407,24 +372,17 @@ C$    integer omp_get_thread_num
 
 
         if (nmdef.gt.1) then
-! following option of balanced density perturbations IS included in random_pert_urot
-          if (mynode == 0) then
-            write(STDOUT,*) '--------------------------------------------------'
-            write(STDOUT,*)
-     &     ' random balanced perturbations added to density field '
-            write(STDOUT,*) '--------------------------------------------------'
-          endif
       
+# ifdef SALINITY
 ! adding to temperature field
-
           do k = 1, N                 !loop excluding surface/bottom boundaries
             do j = JR_RANGE
               do i = IR_RANGE
                 f0 = (f(i,j)+f(i,j+1))*0.5d0
                 t(i,j,k,1,itemp)= t(i,j,k,1,itemp)* facsolpert 
-     &                   -0.5*25.0/4.0*f0*(rho0/g)* 
-!    &                    -0.5*25.0/4.0*rho0*Rossby*Nfreq2/g* 
-     &                  (rhopr_rand(i,j,k+1) -rhopr_rand(i,j,k-1))/(Hz(1,1,1)*2)
+     &                  - FRACTS/Tcoef*f0*(rho0/g)*
+     &                  (rhopr_rand(i,j,k+1) -rhopr_rand(i,j,k-1))
+     &                  /(Hz(1,1,1)*2)
               end do
             end do
           end do
@@ -437,19 +395,35 @@ C$    integer omp_get_thread_num
               do i = IR_RANGE
                 f0 = (f(i,j)+f(i,j+1))*0.5d0
                 t(i,j,k,1,isalt)= t (i,j,k,1,isalt)* facsolpert 
-     &                   +(1-0.5)*5.0/4.0*f0*(rho0/g)* 
-!    &                    +(1-0.5)*5.0/4.0*rho0*Rossby*Nfreq2/g* 
-     &                 (rhopr_rand(i,j,k+1) -rhopr_rand(i,j,k-1))/(Hz(i,j,k)*2)
+     &                   +(1-FRACTS)/Scoef*f0*(rho0/g)* 
+     &                 (rhopr_rand(i,j,k+1) -rhopr_rand(i,j,k-1))
+     &                 /(Hz(i,j,k)*2)
               end do
             end do
           end do
           if (mynode == 0)  
      &      print *,'random_pert_urot max s ',maxval(abs(t(:,:,:,1,isalt)))
-        endif ! if nmdef>1
          
+#else
 
-!     call mpi_barrier(MPI_COMM_WORLD,ierr)  
+! adding to temperature field
+          do k = 1, N                 !loop excluding surface/bottom boundaries
+            do j = JR_RANGE
+              do i = IR_RANGE
+                f0 = (f(i,j)+f(i,j+1))*0.5d0
+                t(i,j,k,1,itemp)= t(i,j,k,1,itemp)* facsolpert
+     &                  - 1/Tcoef*f0*(rho0/g)*
+     &                  (rhopr_rand(i,j,k+1) -rhopr_rand(i,j,k-1))
+     &                  /(Hz(1,1,1)*2)
+              end do
+            end do
+          end do
+          if (mynode == 0)
+     &      print *,'random_pert_urot max t ', maxval(abs(t(:,:,:,1,itemp)))
 
+#endif
+
+        endif ! if nmdef>1
 
 #if defined EW_PERIODIC || defined NS_PERIODIC || defined  MPI
 # ifdef SOLVE3D
@@ -474,9 +448,6 @@ C$    integer omp_get_thread_num
 !  Initial conditions for momentum components [m/s].
 !--------------------------------------------------------------------
 !
-
-
-
       ph=0.
       pres_up = 0.0
       u_geo = 0.
@@ -486,77 +457,77 @@ C$    integer omp_get_thread_num
       !!!! geostrophic component
       !-------------------------
 
-	      call rho_eos(tile)
+      call rho_eos(tile)
 
-	      do k = 1, N
-		do j = JstrR-1,JendR+1
-		  do i = IstrR-1 ,IendR+1
-		    buoyancy = (rho(i,j,k))*g*(-1.0d0)/rho0
-		    grd_z = buoyancy
-		    pres_dif = Hz(i,j,k)*(grd_z)       ! valid under uniform grid           
-		    ph(i,j,k) = (pres_up(i,j) + 0.5d0*pres_dif)
-		    pres_up(i,j) = pres_up(i,j) + pres_dif
-		  enddo
-		enddo
-	      enddo
+      do k = 1, N
+       do j = JstrR-1,JendR+1
+        do i = IstrR-1 ,IendR+1
+         buoyancy = (rho(i,j,k)+rho0-R0)*g*(-1.0d0)/rho0
+         grd_z = buoyancy
+         pres_dif = Hz(i,j,k)*(grd_z)       ! valid under uniform grid           
+         ph(i,j,k) = (pres_up(i,j) + 0.5d0*pres_dif)
+         pres_up(i,j) = pres_up(i,j) + pres_dif
+        enddo
+       enddo
+      enddo
 
-       else
+      else
 
-	      do k = 1, N
-		do j = JstrR-1,JendR+1
-		  do i = IstrR-1 ,IendR+1
-                      x = xr(i,j)
-                      y = yr(i,j)
-                      d2 = ((x-x1)/thick_y)**2 +((y-y1)/thick_y)**2
-                      z = z_r(i,j,k)
-                      z2 = ((z-z1)/thick_z)**2
-                      distance2    = d2 + z2
-                      f0 = f(i,j)
-                      ph(i,j,k) = - f0*thick_y**2*Rossby/4.*exp(-distance2)
-		  end do
-		end do
-	      end do
+      do k = 1, N
+       do j = JstrR-1,JendR+1
+        do i = IstrR-1 ,IendR+1
+            x = xr(i,j)
+            y = yr(i,j)
+            d2 = ((x-x1)/thick_y)**2 +((y-y1)/thick_y)**2
+            z = z_r(i,j,k)
+            z2 = ((z-z1)/thick_z)**2
+            distance2    = d2 + z2
+            f0 = f(i,j)
+            ph(i,j,k) = - f0*thick_y**2*Rossby/4.*exp(-distance2)
+        end do
+       end do
+      end do
 
-       endif   ! linear_balance
+      endif   ! linear_balance
 
-	      do k = 1, N
-		do j = 1, Mm
-		  do i = 1, Lm
-                    if (linear_balance) then   
-		        f0 = (f(i,j)+f(i+1,j))*0.5d0
-                    else
-                        f0 = 1.
-                    endif
-		    cnt = 4.
-		    u_geo(i,j,k) = ((ph(i-1,j+1,k)-ph(i-1,j,k)) + 
-     &       	           (ph(i-1,j,k)-ph(i-1,j-1,k)) +   
-     &         	         (ph(i,j+1,k)-ph(i,j,k)) +       
-     &         	         (ph(i,j,k)-ph(i,j-1,k))           
-     &         	         )*(-1.0d0)*pn(i,j)/(f0*cnt)
-		  end do
-		end do
-	      end do
+      do k = 1, N
+       do j = 1, Mm
+        do i = 1, Lm
+         if (linear_balance) then   
+          f0 = (f(i,j)+f(i+1,j))*0.5d0
+         else
+          f0 = 1.
+         endif
+         cnt = 4.
+         u_geo(i,j,k) = ((ph(i-1,j+1,k)-ph(i-1,j,k)) + 
+     &                 (ph(i-1,j,k)-ph(i-1,j-1,k)) +   
+     &                 (ph(i,j+1,k)-ph(i,j,k)) +       
+     &                 (ph(i,j,k)-ph(i,j-1,k))           
+     &                )*(-1.0d0)*pn(i,j)/(f0*cnt)
+        end do
+       end do
+      end do
 
-	      do k = 1, N
-		do j = 1, Mm
-		  do i = 1, Lm
-                    if (linear_balance) then   
-		        f0 = (f(i,j)+f(i,j+1))*0.5d0
-                    else
-                        f0 = 1.
-                    endif
-		    cnt = 4.
-		    v_geo(i,j,k) = ((ph(i+1,j-1,k)-ph(i,j-1,k)) + 
-     &  	                (ph(i,j-1,k)-ph(i-1,j-1,k)) +    
-     &  	                (ph(i+1,j,k)-ph(i,j,k)) +       
-     &  	                (ph(i,j,k)-ph(i-1,j,k))            
-     & 		                 )*pm(i,j)/(f0*cnt)
-		  end do
-		end do
-	      end do
+      do k = 1, N
+       do j = 1, Mm
+        do i = 1, Lm
+               if (linear_balance) then   
+                 f0 = (f(i,j)+f(i,j+1))*0.5d0
+                else
+                 f0 = 1.
+                endif
+           cnt = 4.
+           v_geo(i,j,k) = ((ph(i+1,j-1,k)-ph(i,j-1,k)) + 
+     &                 (ph(i,j-1,k)-ph(i-1,j-1,k)) +    
+     &                 (ph(i+1,j,k)-ph(i,j,k)) +       
+     &                 (ph(i,j,k)-ph(i-1,j,k))            
+     &                  )*pm(i,j)/(f0*cnt)
+         end do
+        end do
+      end do
 
-	      u(:,:,:,1) = u_geo
-	      v(:,:,:,1) = v_geo
+      u(:,:,:,1) = u_geo
+      v(:,:,:,1) = v_geo
 
 
       valmax = nr_maxofall(maxval(abs(u(:,:,:,1))))
