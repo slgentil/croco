@@ -24,9 +24,9 @@
 
       subroutine diag_tile (Istr,Iend,Jstr,Jend, ke2d,pe2d)
 
-#if defined DIAG_SPEC
-      USE diagspec
-#endif  
+!#if defined DIAG_SPEC
+!      USE diagspec
+!#endif  
 
       implicit none     
 #include "param.h" 

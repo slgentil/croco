@@ -1941,9 +1941,6 @@ C       TYPE(xios_date)     :: start_date
 #if defined BIOLOGY && defined PISCES
           USE trcwri_pisces
 #endif
-# ifdef DIAG_SPEC
-          USE diagspec
-# endif /* DIAG_SPEC*/
           IMPLICIT NONE
 
 # include "param.h"
@@ -2108,21 +2105,6 @@ C       TYPE(xios_date)     :: start_date
       enddo
       call xios_send_field("levels_v"  ,workr(:,:,:))
       
-
-#if defined DIAG_SPEC 
-      do k=1,N
-         zz(:,:,k)=rho_r(k)
-      end do
-      !call xios_send_field("rho_r",zz(:,:,1:N))  
-      do k=1,N
-        zz(:,:,k) = R0 - Tcoef*(t(:,:,k,3,itemp)-T0)
-#  ifdef SALINITY
-     &                     + Scoef*(t(:,:,k,3,isalt)-S0)
-#  endif
-      end do
-      !call xios_send_field("rholin",zz(:,:,1:N)) 
-
-# endif
 # endif
 !
 ! Bathymetry.

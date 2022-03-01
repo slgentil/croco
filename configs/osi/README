@@ -1,0 +1,48 @@
+Modifications/Création de routines propres à OSI:
+
+Routines modifiées par rapport à OCEAN/XIOS
+...........................................
+
+- main.F: Modifs DIAG_SPEC, calcul temps ellapsed, calcul rho reference (utile dans sortie de diag.F et DIAG_SPEC)
+- output.F: Ecriture des DIAG_SPEC et suppression des outputs de diags physiques (DIAGNOSTICS_TS, DIAGNOSTICS_UV)
+- read_inp.F: Lecture paramètres DIAG_SPEC et FLOATS
+- diag.F: Ecriture de diagnostiques dans output.mpi (!!! commentaire sur DIAG_SPEC à retirer?)
+- diagnostics.h: Declarations de variables communes pour DIAG_SPEC et sorties de diag.F
+- rhs3d.F: Calcul des termes pour DIAG_SPEC
+- step3d_t.F: Calcul des termes pour DIAG_SPEC
+- step3d_uv2.F: Calcul des termes pour DIAG_SPEC
+- compute_horiz_tracer_fluxes.h: Calcul des flux centrés pour DIAG_SPEC
+- u_vadv_order5.h: Corrections WENO (inclus dans release 2022)
+- v_vadv_order5.h: idem
+- send_xios_diags.F: Modifications pour USE_CALENDAR (à retravailler sur START_DATE)
+
+
+Routines créées pour DIAG_SPEC, diagnostiques OSI
+.................................................
+
+- init_rho_ref.F: calcul rho_r et drhor_dz pour DIAG_SPEC et diag.F (calcul APE)
+
+- diag_spec.F: Diags spectraux sur les niveaux sigma
+- diag_spec.isorho.F: Diags spectraux sur les iso-densités (testé ?)
+- diag_spec_kt.F: Diags spectraux en (x,y),t (testé ?)
+- t3dadv_order5_C6.h: Sauvegarde de l'advection centrée C6 (pour calculer dissipation UP5)
+- u_hadv_order5_C6.h: Sauvegarde de l'advection centrée C6 (pour calculer dissipation UP5)
+- v_hadv_order5_C6.h: Sauvegarde de l'advection centrée C6 (pour calculer dissipation UP5)
+- wrtcdf.F: Ecriture des diagnostiques spectraux
+
+
+Routines créées boite à outils
+..............................
+
+- allreduce.F : operations sur tout le domaine (max, min, sum)
+- utils.F: haversine (degrés to kilomètres)
+- var2cdf.F: Ecriture variable en fichier netcdf (pas de parallèle)
+- stop_run.F: stop MPI proprement
+- params_output.F: outputs OSI dans output.mpi
+- qsort.F: tri d'un vecteur
+- fillnan.F: Do a horizontal 2D cubic spline interpolation to fill Nan value of input array
+- interp.F90: routines d'interpolation (auteur Stephane Raynaud)
+- interp_isorho.F: interpolation d'un vecteur en iso_densité
+- tooldatosec.F90: Transformation de date pour XIOS
+- tooldecompdat.F90: Transformation de date pour XIOS
+- toolsectodat.F90: Transformation de date pour XIOS

@@ -2144,7 +2144,7 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
 # endif
 #endif
 #ifdef SOLVE3D
-# if !defined NONLIN_EOS || defined DIAG_SPEC
+# ifndef NONLIN_EOS
 !
 ! Parameters for linear equations of state.
 !
@@ -2160,7 +2160,7 @@ CR        write(*,*)'NumGasExcTerms=',NumGasExcTerms
      &    Tcoef, 'Tcoef    Thermal expansion coefficient',
      &                                           '(kg/m3/Celsius).',
      &    Scoef, 'Scoef    Saline contraction coefficient',
-     &                                           '(kg/m3/PSU).'
+     &                                                '(kg/m3/PSU).'
 # endif
 # ifdef SEDIMENT
 !
