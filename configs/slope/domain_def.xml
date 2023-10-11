@@ -1,0 +1,29 @@
+    <domain_definition>
+
+    <domain_group id="rho">
+        <domain id="rho" long_name="grid Rho"/>
+     </domain_group>
+
+     <domain_group id="u">
+        <domain id="u" long_name="grid U"/>
+     </domain_group>
+
+     <domain_group id="v">
+        <domain id="v" long_name="grid V"/>
+     </domain_group>
+
+     <domain_group id="w">
+        <domain id="w" long_name="grid W"/>
+     </domain_group>
+     
+     <domain_group id="psi">
+        <domain id="psi" long_name="grid PSI"/>
+     </domain_group>
+
+     <domain_group id="b">
+        <domain id="b" long_name="grid sed"/>
+     </domain_group>
+
+
+
+   </domain_definition>
