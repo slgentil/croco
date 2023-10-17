@@ -3,10 +3,10 @@ C #   undef THREE_GHOST_POINTS
 C #   define SLOPE_TGH
 C # endif
 
-C # ifdef PARALLEL_FILES
-C #   undef PARALLEL_FILES
-C #   define  SLOPE_PF 
-C # endif
+# ifdef PARALLEL_FILES
+#   undef PARALLEL_FILES
+#   define  SLOPE_PF 
+# endif
 
       ini_jet_name = "ini_jet_slope.nc"
       lstr=lenstr(ini_jet_name)
@@ -38,7 +38,6 @@ C      &        (/icount,jcount/), (/1,1/),zeta(-2,-2,1))
      &                                ,ininame(1:lstr)
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "zeta done"
 !
 ! 2D momentum component in the XI-direction. (ubar)
 !
@@ -59,7 +58,6 @@ C      &        (/icount,jcount/), (/1,1/),ubar(-2,-2,1))
      &                                ,ininame(1:lstr)
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "ubar done"
 !
 ! 2D momentum component in the ETA-direction (vbar)
 !
@@ -80,7 +78,6 @@ C      &        (/icount,jcount/), (/1,1/),vbar(-2,-2,1))
      &                                ,ininame(1:lstr)
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "vbar done"
 !
 ! 3D momentum component in the XI-direction. (u)
 !
@@ -101,7 +98,6 @@ C      &        (/icount,jcount,N/), (/1,1,1/),u(-2,-2,1,1))
      &                                ,ininame(1:lstr)
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "u done"
 !
 ! 3D momentum component in the ETA-direction. (v)
 !
@@ -122,7 +118,6 @@ C      &        (/icount,jcount,N/), (/1,1,1/),v(-2,-2,1,1))
      &                                ,ininame(1:lstr)
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "v done"
 !
 ! Tracer variables. (temp, salt)
 !
@@ -146,9 +141,7 @@ C      &        (/icount,jcount,N/), (/1,1,1/),t(-2,-2,1,1,itrc))
      &                                    ininame(1:lstr)
         endif
       enddo
-      MPI_master_only  write(stdout,*) "temp done"
 
-      MPI_master_only write(stdout,*) "u=",u(-2:1,int(MMm/2),N,1)
 
   1   format(/1x,'ini_jet_slope - unable to find variable:',    1x,A,
      &                            /15x,'in input NetCDF file:',1x,A/)
@@ -165,6 +158,6 @@ C # ifdef SLOPE_TGH
 C #   define THREE_GHOST_POINTS
 C # endif
 
-C # ifdef SLOPE_PF
-C #   define PARALLEL_FILES
-C # endif
+# ifdef SLOPE_PF
+#   define PARALLEL_FILES
+# endif

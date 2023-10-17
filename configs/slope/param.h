@@ -179,19 +179,24 @@
 
 
 #elif defined SLOPE
+# ifdef JET_SLOPE
+!     parameter (LLm0=200,  MMm0=200,  N=16)
+!     parameter (LLm0=200,  MMm0=200,  N=32)
+!     parameter (LLm0=200,  MMm0=200,  N=54)
+      parameter (LLm0=200,  MMm0=200,  N=100)
+!     parameter (LLm0=400,  MMm0=400,  N=16)
+!     parameter (LLm0=400,  MMm0=400,  N=32)
+!     parameter (LLm0=400,  MMm0=400,  N=54)
+# else /* BELL */
 !     parameter (LLm0=35,  MMm0=70,  N=16)
 !     parameter (LLm0=70,  MMm0=140,  N=16)
-!     parameter (LLm0=140,  MMm0=140,  N=8)
-!     parameter (LLm0=140,  MMm0=140,  N=16)
-!     parameter (LLm0=140,  MMm0=280,  N=16)
-!     parameter (LLm0=200,  MMm0=200,  N=16)
-!     parameter (LLm0=400,  MMm0=400,  N=16)
-      parameter (LLm0=400,  MMm0=400,  N=32)
+      parameter (LLm0=140,  MMm0=280,  N=16)
 !     parameter (LLm0=280,  MMm0=560,  N=8)
 !     parameter (LLm0=280,  MMm0=560,  N=16)
 !     parameter (LLm0=280,  MMm0=560,  N=32)
 !     parameter (LLm0=280,  MMm0=560,  N=64)
 !     parameter (LLm0=280,  MMm0=560,  N=128)
+# endif
 
 #  else
       parameter (LLm0=xx, MMm0=xx, N=xx)
@@ -233,10 +238,10 @@
 !     parameter (NP_XI=1, NP_ETA=1,  NNODES=NP_XI*NP_ETA)     ! linux
 !     parameter (NP_XI=5, NP_ETA=5,  NNODES=NP_XI*NP_ETA)     ! job1
 !     parameter (NP_XI=7, NP_ETA=7,  NNODES=NP_XI*NP_ETA)     ! job2
-      parameter (NP_XI=9, NP_ETA=9,  NNODES=NP_XI*NP_ETA)     ! job3
+!     parameter (NP_XI=9, NP_ETA=9,  NNODES=NP_XI*NP_ETA)     ! job3
 !     parameter (NP_XI=10, NP_ETA=10,  NNODES=NP_XI*NP_ETA)     ! job4
 !     parameter (NP_XI=6, NP_ETA=23,  NNODES=NP_XI*NP_ETA)     ! job5
-!     parameter (NP_XI=12, NP_ETA=13,  NNODES=NP_XI*NP_ETA)     ! job6
+      parameter (NP_XI=12, NP_ETA=13,  NNODES=NP_XI*NP_ETA)     ! job6
 !     parameter (NP_XI=9, NP_ETA=31,  NNODES=NP_XI*NP_ETA)     ! job10
 #else
       parameter (NP_XI=1, NP_ETA=1, NNODES=NP_XI*NP_ETA)

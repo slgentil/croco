@@ -2,14 +2,6 @@
       lstr=lenstr(ini_jet_name)
       ierr=nf_open(ini_jet_name(1:lstr), nf_nowrite, ncid)
 
-      imin=iminmpi-3+3
-      imax=imaxmpi+3+3
-      jmin=jminmpi-3+3
-      jmax=jmaxmpi+3+3
-      icount=imax-imin+1
-      jcount=jmax-jmin+1
-C       print*,'mynode,imin,imax,jmin,jmax=',mynode,imin,imax,jmin,jmax
-
 !
 ! Vertical S-coordinate surface stretching parameter: theta_s
 !
@@ -24,7 +16,6 @@ C       print*,'mynode,imin,imax,jmin,jmax=',mynode,imin,imax,jmin,jmax
         MPI_master_only  write(stdout,1) "theta_s",ini_jet_name
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "theta_s done"
 !
 ! Vertical S-coordinate bottom stretching parameter: theta_b
 !
@@ -39,7 +30,6 @@ C       print*,'mynode,imin,imax,jmin,jmax=',mynode,imin,imax,jmin,jmax
         MPI_master_only  write(stdout,1) "theta_b",ini_jet_name
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "theta_b done"
 !
 ! Vertical S-coordinate Hc parameter: hc
 !
@@ -54,7 +44,6 @@ C       print*,'mynode,imin,imax,jmin,jmax=',mynode,imin,imax,jmin,jmax
         MPI_master_only  write(stdout,1) "hc",ini_jet_name
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "hc done"
 !
 ! background density : rho0
 !
@@ -69,13 +58,12 @@ C       print*,'mynode,imin,imax,jmin,jmax=',mynode,imin,imax,jmin,jmax
         MPI_master_only  write(stdout,1) "rho0",ini_jet_name
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "rho0 done"
 !
 ! Size of the domain in the xi direction : xl
 !
       ierr=nf_inq_varid (ncid, "xl", varid)
       if (ierr .eq. nf_noerr) then
-         ierr = nf_get_var1_double(ncid, varid, (/1/), xl)
+         ierr = nf_get_var1_double(ncid, varid, (/1/), Length_XI)
          if (ierr .ne. nf_noerr) then
             MPI_master_only write(stdout,2) "xl ",ini_jet_name
           stop                                         !--> ERROR
@@ -84,13 +72,12 @@ C       print*,'mynode,imin,imax,jmin,jmax=',mynode,imin,imax,jmin,jmax
         MPI_master_only  write(stdout,1) "xl",ini_jet_name
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "xl done"
 !
 ! Size of the domain in the eta direction : el
 !
       ierr=nf_inq_varid (ncid, "el", varid)
       if (ierr .eq. nf_noerr) then
-         ierr = nf_get_var1_double(ncid, varid, (/1/), el)
+         ierr = nf_get_var1_double(ncid, varid, (/1/), Length_ETA)
          if (ierr .ne. nf_noerr) then
             MPI_master_only write(stdout,2) "el ",ini_jet_name
           stop                                         !--> ERROR
@@ -99,169 +86,68 @@ C       print*,'mynode,imin,imax,jmin,jmax=',mynode,imin,imax,jmin,jmax
         MPI_master_only  write(stdout,1) "el",ini_jet_name
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "el done"
 !
-! Size of a horizontal cell in the xi direction : dx
+!  Max topography depth
 !
-      ierr=nf_inq_varid (ncid, "dx", varid)
+      ierr=nf_inq_varid (ncid, "depth", varid)
       if (ierr .eq. nf_noerr) then
-         ierr = nf_get_var1_double(ncid, varid, (/1/), dx)
+         ierr = nf_get_var1_double(ncid, varid, (/1/), depth)
          if (ierr .ne. nf_noerr) then
-            MPI_master_only write(stdout,2) "dx ",ini_jet_name
+            MPI_master_only write(stdout,2) "depth ",ini_jet_name
           stop                                         !--> ERROR
         endif
       else
-        MPI_master_only  write(stdout,1) "dx",ini_jet_name
+        MPI_master_only  write(stdout,1) "depth",ini_jet_name
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "dx done"
 !
-! Size of a horizontal cell in the eta direction : dy
 !
-      ierr=nf_inq_varid (ncid, "dy", varid)
+!  Coriolis parameter f0
+!
+      ierr=nf_inq_varid (ncid, "f0", varid)
       if (ierr .eq. nf_noerr) then
-         ierr = nf_get_var1_double(ncid, varid, (/1/), dy)
+         ierr = nf_get_var1_double(ncid, varid, (/1/), f0)
          if (ierr .ne. nf_noerr) then
-            MPI_master_only write(stdout,2) "dy ",ini_jet_name
+            MPI_master_only write(stdout,2) "f0 ",ini_jet_name
           stop                                         !--> ERROR
         endif
       else
-        MPI_master_only  write(stdout,1) "dy",ini_jet_name
+        MPI_master_only  write(stdout,1) "f0",ini_jet_name
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "dy done"
 !
-! x at rho point. (xr)
+! Coriolis parameter beta
 !
-      ierr=nf_inq_varid (ncid, "xr", varid)
+      ierr=nf_inq_varid (ncid, "beta", varid)
       if (ierr .eq. nf_noerr) then
-        ierr=nf_fread (xr(START_2D_ARRAY), ncid, varid,
-     &                                         0, r2dvar)
-C         ierr = nf_get_vars_double(ncid,varid,(/imin,jmin/),
-C      &        (/icount,jcount/), (/1,1/),xr)
-        if (ierr .ne. nf_noerr) then
-          MPI_master_only write(stdout,2) "xr ",ini_jet_name
+         ierr = nf_get_var1_double(ncid, varid, (/1/), beta)
+         if (ierr .ne. nf_noerr) then
+            MPI_master_only write(stdout,2) "beta ",ini_jet_name
           stop                                         !--> ERROR
         endif
       else
-        MPI_master_only  write(stdout,1) "xr",ini_jet_name
+        MPI_master_only  write(stdout,1) "beta",ini_jet_name
         stop                                           !--> ERROR
       endif
-      MPI_master_only  write(stdout,*) "xr done"
-
-!
-! y at rho point. (yr)
-!
-      ierr=nf_inq_varid (ncid, "yr", varid)
-      if (ierr .eq. nf_noerr) then
-        ierr=nf_fread (yr(START_2D_ARRAY), ncid, varid,
-     &                                         0, r2dvar)
-C         ierr = nf_get_vars_double(ncid,varid,(/imin,jmin/),
-C      &        (/icount,jcount/), (/1,1/),yr)
-        if (ierr .ne. nf_noerr) then
-          MPI_master_only write(stdout,2) "yr ",ini_jet_name
-          stop                                         !--> ERROR
-        endif
-      else
-        MPI_master_only  write(stdout,1) "yr",ini_jet_name
-        stop                                           !--> ERROR
-      endif
-      MPI_master_only  write(stdout,*) "yr done"
-
-!
-! x at psi point. (xp)
-!
-      ierr=nf_inq_varid (ncid, "xp", varid)
-      if (ierr .eq. nf_noerr) then
-        ierr=nf_fread (xp(START_2D_ARRAY), ncid, varid,
-     &                                         0, p2dvar)
-C         ierr = nf_get_vars_double(ncid,varid,(/imin,jmin/),
-C      &        (/icount,jcount/), (/1,1/),xp)
-        if (ierr .ne. nf_noerr) then
-          MPI_master_only write(stdout,2) "xp ",ini_jet_name
-          stop                                         !--> ERROR
-        endif
-      else
-        MPI_master_only  write(stdout,1) "xp",ini_jet_name
-        stop                                           !--> ERROR
-      endif
-      MPI_master_only  write(stdout,*) "xp done"
-
-!
-! y at psi point. (yp)
-!
-      ierr=nf_inq_varid (ncid, "yp", varid)
-      if (ierr .eq. nf_noerr) then
-        ierr=nf_fread (yp(START_2D_ARRAY), ncid, varid,
-     &                                         0, p2dvar)
-C         ierr = nf_get_vars_double(ncid,varid,(/imin,jmin/),
-C      &        (/icount,jcount/), (/1,1/),yp)
-        if (ierr .ne. nf_noerr) then
-          MPI_master_only write(stdout,2) "yp ",ini_jet_name
-          stop                                         !--> ERROR
-        endif
-      else
-        MPI_master_only  write(stdout,1) "yp",ini_jet_name
-        stop                                           !--> ERROR
-      endif
-      MPI_master_only  write(stdout,*) "yp done"
-
-!
-! Topography. (h)
-!
-      ierr=nf_inq_varid (ncid, "h", varid)
-      if (ierr .eq. nf_noerr) then
-        ierr=nf_fread (h(START_2D_ARRAY), ncid, varid,
-     &                                         0, r2dvar)
-C         ierr = nf_get_vars_double(ncid,varid,(/imin,jmin/),
-C      &        (/icount,jcount/), (/1,1/),h)
-        if (ierr .ne. nf_noerr) then
-          MPI_master_only write(stdout,2) "h "
-     &                                ,ini_jet_name
-          stop                                         !--> ERROR
-        endif
-      else
-        MPI_master_only  write(stdout,1) "h"
-     &                                ,ini_jet_name
-        stop                                           !--> ERROR
-      endif
-      MPI_master_only  write(stdout,*) "h done"
-!
-!  Coriolis parameter (f)
-!
-      ierr=nf_inq_varid (ncid, "f", varid)
-      if (ierr .eq. nf_noerr) then
-        ierr=nf_fread (f(START_2D_ARRAY), ncid, varid,
-     &                                         0, r2dvar)
-C         ierr = nf_get_vars_double(ncid,varid,(/imin,jmin/),
-C      &        (/icount,jcount/), (/1,1/),f)
-        if (ierr .ne. nf_noerr) then
-          MPI_master_only write(stdout,2) "f "
-     &                                , ini_jet_name
-          stop                                        !--> ERROR
-        endif
-      else
-        MPI_master_only write(stdout,1) "f "
-     &                                ,ini_jet_name
-        stop                                           !--> ERROR
-      endif
-      MPI_master_only  write(stdout,*) "f done"
 
   1   format(/1x,'ini_jet_slope - unable to find variable:',    1x,A,
      &                            /15x,'in input NetCDF file:',1x,A/)
   2   format(/1x,'ini_jet_slope - error while reading variable:',1x, A,
      &                            /15x,'in input NetCDF file:',1x,A/)
   
+!  Output 
 
-      MPI_master_only write(stdout,*) "theta_s,theta_b,hc=",theta_s,theta_b,hc
-      MPI_master_only write(stdout,*) "rh0 = ",rho0
-      MPI_master_only write(stdout,*) "xl,el = ",xl,el
-      MPI_master_only write(stdout,*) "dx,dy = ",dx,dy
-      MPI_master_only write(stdout,*) "xr = ",xr(-2:1,-2)
-      MPI_master_only write(stdout,*) "xp = ",xp(-2:1,-2)
-      MPI_master_only write(stdout,*) "yr = ",yr(-2,-2:1)
-      MPI_master_only write(stdout,*) "yp = ",yp(-2,-2:1)
-      MPI_master_only write(stdout,*) "f = ",f(-2:1,-2)
+      MPI_master_only  write(stdout,*) " "
+      call params_output('theta_s',theta_s)
+      call params_output('theta_b',theta_b)
+      call params_output('hc',hc)
+      call params_output('Length_XI',Length_XI)
+      call params_output('Length_ETA',Length_ETA)
+      call params_output('depth',depth)
+      call params_output('rho0',rho0)
+      call params_output('f0',f0)
+      call params_output('beta',beta)
+      MPI_master_only  write(stdout,*) " "
 
 
 !

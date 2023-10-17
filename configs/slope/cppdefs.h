@@ -143,12 +143,15 @@
 
 		/* Boundary Conditions */
 
-# undef OBC_EAST
-# undef OBC_WEST
-# define EW_PERIODIC
-# undef OBC_NORTH
-# undef OBC_SOUTH
-# undef NS_PERIODIC
+# ifdef JET_SLOPE
+#   undef OBC_EAST
+#   undef OBC_WEST
+#   define EW_PERIODIC
+# else  /* BELL */
+#   undef OBC_NORTH
+#   undef OBC_SOUTH
+#   define NS_PERIODIC
+# endif
 /*
 # if defined OBC_EAST || defined OBC_WEST
 #   undef  OBC_M2SPECIFIED

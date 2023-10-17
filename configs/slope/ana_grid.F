@@ -72,8 +72,8 @@ C$    integer omp_get_thread_num
      &        start(2), count(2), ibuff(6),   nf_fread, checkdims,
      &        imin, imax, jmin, jmax, icount, jcount
       character *60 ini_jet_name
-#  endif /* JET_SLOPE */
-#endif /* SLOPE */
+#  endif
+#endif
 # ifdef INTERNAL
       real cff1, ridge_width, ridge_height
 # endif
@@ -212,7 +212,7 @@ C$    integer omp_get_thread_num
                      beta=0.
 # elif defined SLOPE
                      depth=4000.
-                     f0= -4.d-4
+                     f0= 4.d-4
                      beta=0.
 # else
                      depth=???
@@ -220,12 +220,6 @@ C$    integer omp_get_thread_num
                      beta=???
 # endif
 
-!  Output (h,f,beta)
-
-      call params_output('depth',depth)
-      call params_output('f0',f0)
-      call params_output('beta',beta)
-!
 !----------------------------------------------------------------------
 ! Grid dimensions (Length_XI, Length_ETA)
 !----------------------------------------------------------------------
@@ -327,12 +321,16 @@ C$    integer omp_get_thread_num
 #  endif
 # elif defined SLOPE
                      Length_XI = 50.e+3
-!                    Length_XI = 100.e+3
-!                    Length_ETA = 50.e+3
                      Length_ETA = 100.e+3
 # else
                      Length_XI =???
                      Length_ETA=??? 
+# endif
+
+# ifdef SLOPE
+#   ifdef JET_SLOPE
+#      include "ini_grid_slope.F"
+#   endif
 # endif
 
 !----------------------------------------------------------------------
@@ -448,29 +446,23 @@ CR     &                                'x0=',x0, 'y0=',y0, mynode
 
 # elif defined SLOPE
 
-
 #   ifdef JET_SLOPE
 
-#     include "ini_grid_slope.F"
+#     include "ini_h_slope.F"
 
 #   else
-!     h_width = 71740.    ! cas Mozambique
-      h_width = 100.e+3    ! width of the topographic slope
+      h_width = 40.e+3    ! width of the topographic slope
       h_min = 2000.       ! min depth of the topography
-      h_mid = 0.5 * xl    ! mid of the slope
+      h_mid = 0.5 * xl
 
       do j=JstrR,JendR
         do i=IstrR,IendR
-! slope
-!          h(i,j)=  h_min + 0.5*(depth - h_min)*(1 + 
-!    &               tanh(pi*0.5*
-!    &                    sinh((xr(i,j) - h_mid) / (h_width/2.))))
            h(i,j)=  h_min - 0.5*(depth - h_min)*(1 + 
      &              tanh(pi*0.5*
      &              sinh(sinh(sinh(sinh((xr(i,j) - h_mid) / (h_width/2.)))))))
 
 ! fond plat
-!         h(i,j)=  depth 
+          h(i,j)=  depth 
         enddo
       enddo
 #   endif

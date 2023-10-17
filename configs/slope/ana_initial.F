@@ -169,7 +169,6 @@ C$    integer omp_get_thread_num
         enddo
 
 # elif defined SLOPE
-        MPI_master_only write(stdout,*) 'IR_RANGE:',IR_RANGE
         do j=JV_RANGE
           do i=IR_RANGE
             vbar(i,j,1) = 0.
@@ -461,7 +460,7 @@ C$    integer omp_get_thread_num
 
 #     include "ini_jet_slope.F"
 
-#   else
+#   else /* JET_SLOPE */
         alphax = 0.3/xl    ! xl=50km BELL isopycnes plus plats
 !       alphax = 2.5/xl    ! xl=50km BELL default
         MPI_master_only write(stdout,*) 'alphax=',alphax
@@ -555,7 +554,7 @@ C$    integer omp_get_thread_num
         call exchange_v3d_tile (Istr,Iend,Jstr,Jend,
      &                        v(START_2D_ARRAY,1,1))
 
-#   endif /* JET */
+#   endif /* JET_SLOPE */
 
 #  elif defined KH_INST
 
